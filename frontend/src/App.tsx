@@ -14,14 +14,32 @@ interface AgentResponse {
   tool_used?: string;
 }
 
+interface Supplier {
+  _id?: string;
+  name: string;
+  category: string;
+  contact: string;
+  rating: number;
+}
+
+interface Bid {
+  _id?: string;
+  supplier_id: string;
+  items: Array<{ name: string; quantity: number; unit_price: number }>;
+  total_price: number;
+  delivery_days: number;
+  terms: string;
+  status: string;
+}
+
 function App() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [suppliers, setSuppliers] = useState<any[]>([]);
-  const [bids, setBids] = useState<any[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [bids, setBids] = useState<Bid[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
