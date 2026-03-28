@@ -2,6 +2,15 @@
 
 An AI-Native Procurement Assistant powered by LLM and LangChain.
 
+[![Python](https://img.shields.io/badge/Python-3.14.3-blue.svg)](https://python.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.104.1-009688.svg)](https://fastapi.tiangolo.com)
+[![React](https://img.shields.io/badge/React-18.2.0-61DAFB.svg)](https://reactjs.org)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0.2-3178C6.svg)](https://typescriptlang.org)
+[![LangChain](https://img.shields.io/badge/LangChain-0.1.0-000000.svg)](https://langchain.com)
+[![MongoDB](https://img.shields.io/badge/MongoDB-4.6-47A248.svg)](https://mongodb.com)
+[![ChromaDB](https://img.shields.io/badge/ChromaDB-1.5.5-FF6B35.svg)](https://chroma-db.com)
+[![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3.3.0-38B2AC.svg)](https://tailwindcss.com)
+
 ## Overview
 
 ProcureAI automates procurement workflows through natural language commands using a React chat interface.
@@ -83,3 +92,10 @@ procureai/
 - Milestone 3: LangChain agent with tools
 - Milestone 4: React frontend integration
 - Milestone 5: Full deployment
+
+## Author
+
+Developed by **[Georgios Panagopoulos](https://github.com/GiorgosPanagopoulos)**.
+
+- GitHub: https://github.com/GiorgosPanagopoulos
+- LinkedIn: https://linkedin.com/in/georgios-panagopoulos-9253842ba
