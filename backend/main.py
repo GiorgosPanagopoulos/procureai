@@ -7,6 +7,7 @@ from typing import List, Dict
 from pathlib import Path
 from io import BytesIO
 from pypdf import PdfReader
+import json
 
 # Chromadb for vector store
 from chromadb import Client as ChromaClient
@@ -92,12 +93,20 @@ def embed_text(text: str) -> List[float]:
     except Exception as e:
         print(f"Error embedding text: {e}")
         return [0.0] * 1536
-    reader = PdfReader(BytesIO(pdf_bytes))
-    pages = []
-    for page in reader.pages:
-        text = page.extract_text() or ""
-        pages.append(text)
-    return "\n".join(pages).strip()
+
+
+def extract_text_from_pdf(pdf_bytes: bytes) -> str:
+    """Extract text from PDF."""
+    try:
+        reader = PdfReader(BytesIO(pdf_bytes))
+        pages = []
+        for page in reader.pages:
+            text = page.extract_text() or ""
+            pages.append(text)
+        return "\n".join(pages).strip()
+    except Exception as e:
+        print(f"Error extracting PDF text: {e}")
+        return ""
 
 
 def ingest_text(source: str, text: str) -> int:
@@ -234,6 +243,219 @@ document_qa_tool = {
     "description": "Answer questions over ingested PDF documents (ChromaDB vector store). Returns answer and source references.",
 }
 
+
+# ============= AGENT TOOLS =============
+
+async def bid_comparison_tool(category: str = "", max_results: int = 5) -> str:
+    """Compare bids by price, delivery, and terms. Returns ranked results."""
+    try:
+        bids_cursor = db.bids.find({}).limit(max_results)
+        bids_list = await bids_cursor.to_list(length=max_results)
+        
+        if not bids_list:
+            return "No bids found in the system."
+        
+        # Sort by total_price (ascending) with delivery_days as tiebreaker
+        sorted_bids = sorted(bids_list, key=lambda x: (x.get("total_price", 0), x.get("delivery_days", 0)))
+        
+        result_text = "Bid Comparison Results:\n"
+        for i, bid in enumerate(sorted_bids, 1):
+            result_text += f"\n{i}. Supplier ID: {bid.get('supplier_id', 'N/A')}\n"
+            result_text += f"   Total Price: ${bid.get('total_price', 0):.2f}\n"
+            result_text += f"   Delivery Days: {bid.get('delivery_days', 'N/A')}\n"
+            result_text += f"   Terms: {bid.get('terms', 'N/A')}\n"
+            result_text += f"   Status: {bid.get('status', 'pending')}\n"
+        
+        return result_text
+    except Exception as e:
+        return f"Error comparing bids: {e}"
+
+
+async def report_generation_tool(report_type: str = "procurement") -> str:
+    """Generate structured procurement summary from MongoDB data."""
+    try:
+        suppliers_cursor = db.suppliers.find({})
+        suppliers_list = await suppliers_cursor.to_list(length=None)
+        
+        bids_cursor = db.bids.find({})
+        bids_list = await bids_cursor.to_list(length=None)
+        
+        report = f"""
+PROCUREMENT REPORT - {report_type.upper()}
+====================================
+
+SUPPLIERS SUMMARY:
+- Total Suppliers: {len(suppliers_list)}
+"""
+        
+        if suppliers_list:
+            avg_rating = sum(s.get("rating", 0) for s in suppliers_list) / len(suppliers_list)
+            report += f"- Average Supplier Rating: {avg_rating:.2f}/5.0\n"
+            
+            categories = set(s.get("category", "unknown") for s in suppliers_list)
+            report += f"- Categories: {', '.join(categories)}\n"
+        
+        report += f"""
+BIDS SUMMARY:
+- Total Bids: {len(bids_list)}
+"""
+        
+        if bids_list:
+            total_value = sum(b.get("total_price", 0) for b in bids_list)
+            avg_delivery = sum(b.get("delivery_days", 0) for b in bids_list) / len(bids_list)
+            report += f"- Total Bid Value: ${total_value:,.2f}\n"
+            report += f"- Average Delivery Time: {avg_delivery:.1f} days\n"
+            
+            statuses = {}
+            for bid in bids_list:
+                status = bid.get("status", "pending")
+                statuses[status] = statuses.get(status, 0) + 1
+            report += f"- Bid Status Distribution: {dict(statuses)}\n"
+        
+        return report
+    except Exception as e:
+        return f"Error generating report: {e}"
+
+
+async def supplier_lookup_tool(category: str = "", min_rating: float = 0.0) -> str:
+    """Query suppliers with filtering and recommendations."""
+    try:
+        query = {}
+        if category:
+            query["category"] = {"$regex": category, "$options": "i"}
+        if min_rating > 0:
+            query["rating"] = {"$gte": min_rating}
+        
+        suppliers_cursor = db.suppliers.find(query).limit(10)
+        suppliers_list = await suppliers_cursor.to_list(length=10)
+        
+        if not suppliers_list:
+            return f"No suppliers found matching criteria: category={category}, rating>={min_rating}"
+        
+        result_text = f"Supplier Lookup Results ({len(suppliers_list)} found):\n"
+        
+        # Sort by rating descending
+        sorted_suppliers = sorted(suppliers_list, key=lambda x: x.get("rating", 0), reverse=True)
+        
+        for i, supplier in enumerate(sorted_suppliers, 1):
+            result_text += f"\n{i}. {supplier.get('name', 'N/A')}\n"
+            result_text += f"   Category: {supplier.get('category', 'N/A')}\n"
+            result_text += f"   Rating: {supplier.get('rating', 'N/A')}/5.0\n"
+            result_text += f"   Contact: {supplier.get('contact', 'N/A')}\n"
+        
+        return result_text
+    except Exception as e:
+        return f"Error looking up suppliers: {e}"
+
+
+async def router_agent(user_input: str) -> Dict:
+    """
+    ReAct agent with intent routing: analyzes user input and selects appropriate tool(s).
+    Returns tool results via OpenAI LLM orchestration.
+    """
+    if not user_input.strip():
+        return {"response": "Please provide a query.", "tool_used": "none"}
+    
+    # Intent classification via LLM
+    intent_prompt = f"""Analyze the user's procurement query and identify the primary intent.
+Classify into one of these categories:
+1. "document_qa" - Questions about procurement documents/contracts/terms
+2. "bid_comparison" - Comparing bids, prices, delivery times
+3. "supplier_lookup" - Finding suppliers, checking ratings
+4. "report" - Generating summaries or reports
+5. "multi_tool" - Requires multiple tools
+
+User Query: {user_input}
+
+Respond with ONLY the classification (e.g., "bid_comparison") and any tool parameters in JSON format.
+Format: {{"intent": "...", "params": {{...}}}}"""
+    
+    try:
+        intent_response = openai_client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": intent_prompt}],
+            temperature=0,
+        )
+        intent_text = intent_response.choices[0].message.content.strip()
+        
+        # Parse intent
+        try:
+            intent_data = json.loads(intent_text)
+        except json.JSONDecodeError:
+            # Fallback parsing
+            intent_data = {"intent": "multi_tool", "params": {}}
+        
+        intent = intent_data.get("intent", "multi_tool")
+        params = intent_data.get("params", {})
+        
+        # Execute tool(s) based on intent
+        tool_result = ""
+        
+        if intent == "document_qa":
+            tool_result = document_qa(user_input, k=4)
+            tool_used = "document_qa"
+        elif intent == "bid_comparison":
+            tool_result = await bid_comparison_tool(
+                category=params.get("category", ""),
+                max_results=params.get("max_results", 5)
+            )
+            tool_used = "bid_comparison"
+        elif intent == "supplier_lookup":
+            tool_result = await supplier_lookup_tool(
+                category=params.get("category", ""),
+                min_rating=params.get("min_rating", 0.0)
+            )
+            tool_used = "supplier_lookup"
+        elif intent == "report":
+            tool_result = await report_generation_tool(report_type=params.get("type", "procurement"))
+            tool_used = "report_generation"
+        else:  # multi_tool
+            # Run multiple relevant tools
+            doc_qa_result = document_qa(user_input, k=3)
+            bid_result = await bid_comparison_tool(max_results=3)
+            supplier_result = await supplier_lookup_tool(max_results=3)
+            
+            tool_result = f"""
+Document Search: {doc_qa_result.get('answer', 'N/A')}
+
+Top Bids:
+{bid_result}
+
+Top Suppliers:
+{supplier_result}
+"""
+            tool_used = "multi_tool"
+        
+        # Generate final response via LLM
+        final_prompt = f"""You are a helpful procurement assistant. Based on the following query and tool results, provide a clear, structured answer.
+
+User Query: {user_input}
+
+Tool Results:
+{tool_result}
+
+Provide a concise, actionable response that directly addresses the user's query."""
+        
+        final_response = openai_client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": final_prompt}],
+            temperature=0,
+        )
+        
+        answer = final_response.choices[0].message.content
+        
+        return {
+            "response": answer,
+            "tool_used": tool_used,
+            "raw_results": tool_result,
+        }
+    
+    except Exception as e:
+        return {"response": f"Error processing query: {e}", "tool_used": "error"}
+
+
+# ============= END AGENT TOOLS =============
+
 @app.on_event("startup")
 async def startup_event():
     """Ingest mock PDFs on startup if vector store is empty."""
@@ -267,8 +489,9 @@ async def get_bids():
 
 @app.post("/chat")
 async def chat(message: str):
-    # Placeholder for chat endpoint
-    return {"response": f"Echo: {message}"}
+    """Chat endpoint powered by ReAct agent."""
+    result = await router_agent(message)
+    return {"response": result["response"], "tool_used": result.get("tool_used", "unknown")}
 
 @app.post("/upload")
 async def upload_file(file: UploadFile = File(...)):
