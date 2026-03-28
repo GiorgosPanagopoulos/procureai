@@ -7,6 +7,7 @@ from typing import List, Dict
 from pathlib import Path
 from io import BytesIO
 from pypdf import PdfReader
+from pydantic import BaseModel
 import json
 
 # Chromadb for vector store
@@ -21,7 +22,7 @@ app = FastAPI(title="ProcureAI API", version="2.0.0")
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # React dev server
+    allow_origins=["http://localhost:3000", "http://localhost:5173"],  # React dev servers
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -31,6 +32,9 @@ app.add_middleware(
 mongodb_url = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
 client = AsyncIOMotorClient(mongodb_url)
 db = client.procureai
+
+class ChatRequest(BaseModel):
+    message: str
 
 # OpenAI and Chroma setup
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
@@ -488,9 +492,19 @@ async def get_bids():
     return bids
 
 @app.post("/chat")
-async def chat(message: str):
+async def chat(payload: ChatRequest):
     """Chat endpoint powered by ReAct agent."""
-    result = await router_agent(message)
+    if not payload.message.strip():
+        raise HTTPException(status_code=400, detail="Message cannot be empty")
+
+    try:
+        result = await router_agent(payload.message)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Agent error: {e}")
+
+    if not result or not result.get("response"):
+        raise HTTPException(status_code=500, detail="Agent returned empty response")
+
     return {"response": result["response"], "tool_used": result.get("tool_used", "unknown")}
 
 @app.post("/upload")
