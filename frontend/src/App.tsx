@@ -363,6 +363,9 @@ function App() {
                 Load Bids
               </button>
             </div>
+            <div className="mb-3 text-sm text-gray-700">
+              Suppliers loaded: {suppliers.length}, Bids loaded: {bids.length}
+            </div>
             {(suppliers.length > 0 || bids.length > 0) && (
               <div className="space-y-3">
                 {suppliers.length > 0 && (

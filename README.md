@@ -23,7 +23,6 @@ ProcureAI combines a robust backend with an intelligent LLM agent and a modern f
 
 > Architecture: frontend React app → FastAPI backend → MongoDB + ChromaDB + OpenAI.
 
-
 ## Architecture
 
 - `frontend`: React app with `/chat`, `/upload`, and helper panels
