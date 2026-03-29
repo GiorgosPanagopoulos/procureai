@@ -191,4 +191,4 @@ typings/
 .vscode-test
 
 # ChromaDB
-.chroma/
+.chroma/.DS_Store
