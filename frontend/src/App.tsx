@@ -42,10 +42,11 @@ function App() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [bids, setBids] = useState<Bid[]>([]);
-  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false;
-    const saved = localStorage.getItem('darkMode');
-    return saved ? JSON.parse(saved) : false;
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('darkMode') === 'true';
+    }
+    return false;
   });
 
   const scrollToBottom = () => {
@@ -57,21 +58,13 @@ function App() {
   }, [messages]);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    // Apply initial dark mode from localStorage
     if (isDarkMode) {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
     }
-  }, []); // Only run on mount
-
-  const toggleDarkMode = () => {
-    document.documentElement.classList.toggle('dark');
-    const newDarkMode = document.documentElement.classList.contains('dark');
-    setIsDarkMode(newDarkMode);
-    localStorage.setItem('darkMode', JSON.stringify(newDarkMode));
-  };
+    localStorage.setItem('darkMode', String(isDarkMode));
+  }, [isDarkMode]);
 
   const fetchWithTimeout = async (input: RequestInfo, init?: RequestInit, timeout = 15000) => {
     const controller = new AbortController();
@@ -262,7 +255,7 @@ function App() {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">ProcureAI</h1>
           <div className="flex items-center space-x-4">
             <button
-              onClick={toggleDarkMode}
+              onClick={() => setIsDarkMode(prev => !prev)}
               className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 transition-colors"
               title={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
             >
