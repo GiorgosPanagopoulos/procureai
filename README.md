@@ -9,6 +9,7 @@ ProcureAI supports bid comparison, supplier lookup, report generation, and docum
 [![React](https://img.shields.io/badge/React-18.2.0-61DAFB.svg)](https://reactjs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0.2-3178C6.svg)](https://www.typescriptlang.org)
 [![Claude](https://img.shields.io/badge/Claude-claude--sonnet--4-CC785C.svg)](https://anthropic.com)
+[![LangChain](https://img.shields.io/badge/LangChain-AgentExecutor-1C3C3C.svg)](https://python.langchain.com)
 [![OpenAI](https://img.shields.io/badge/OpenAI-Embeddings-412991.svg)](https://openai.com)
 [![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248.svg)](https://www.mongodb.com)
 [![ChromaDB](https://img.shields.io/badge/ChromaDB-1.5.5-FF6B35.svg)](https://www.trychroma.com)
@@ -19,11 +20,11 @@ ProcureAI supports bid comparison, supplier lookup, report generation, and docum
 ProcureAI combines a robust backend with an intelligent LLM agent and a modern frontend chat interface.
 
 - **Backend**: FastAPI, MongoDB, ChromaDB, and local vector store for RAG.
-- **Agent**: ReAct-style prompt routing powered by **Anthropic Claude** (`claude-sonnet-4-20250514`) for intent classification and response synthesis.
-- **Embeddings**: OpenAI `text-embedding-3-small` for vector search.
+- **Agent**: **LangChain `AgentExecutor` + `create_react_agent`** with `ChatAnthropic` (`claude-sonnet-4-20250514`). Four tools implemented with LangChain's `@tool` decorator: `document_qa`, `bid_comparison`, `supplier_lookup`, `report_generation`.
+- **Embeddings**: OpenAI `text-embedding-3-small` for ChromaDB vector search.
 - **Frontend**: React + TypeScript + Tailwind CSS dashboard for chat and results.
 
-> Architecture: frontend React app → FastAPI backend → MongoDB + ChromaDB + Anthropic Claude + OpenAI embeddings.
+> Architecture: frontend React app → FastAPI backend → LangChain AgentExecutor → MongoDB + ChromaDB + Anthropic Claude + OpenAI embeddings.
 
 ## Architecture
 
@@ -38,7 +39,8 @@ ProcureAI combines a robust backend with an intelligent LLM agent and a modern f
 - 🐍 Python 3.14+ (FastAPI, Motor, Pydantic)
 - ⚛️ React 18.2.0 (TypeScript)
 - 🟦 TypeScript 5.0.2
-- 🧠 Custom ReAct-style agent with Anthropic Claude (`claude-sonnet-4-20250514`)
+- 🦜 **LangChain** `AgentExecutor` + `create_react_agent` + `@tool` decorator
+- 🧠 **Anthropic Claude** `claude-sonnet-4-20250514` via `ChatAnthropic`
 - 🔗 OpenAI `text-embedding-3-small` for RAG vector search
 - 🍃 MongoDB Atlas (async Motor driver)
 - 🔶 ChromaDB vector store (RAG pipeline)
