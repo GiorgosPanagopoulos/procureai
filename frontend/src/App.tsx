@@ -42,6 +42,7 @@ function App() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [bids, setBids] = useState<Bid[]>([]);
+  const [isDarkMode, setIsDarkMode] = useState(false);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -50,6 +51,32 @@ function App() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  useEffect(() => {
+    // Load dark mode preference from localStorage
+    const saved = localStorage.getItem('darkMode');
+    const isDark = saved ? JSON.parse(saved) : false;
+    setIsDarkMode(isDark);
+    
+    // Apply dark class to document
+    if (isDark) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, []);
+
+  const toggleDarkMode = () => {
+    const newDarkMode = !isDarkMode;
+    setIsDarkMode(newDarkMode);
+    localStorage.setItem('darkMode', JSON.stringify(newDarkMode));
+    
+    if (newDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  };
 
   const fetchWithTimeout = async (input: RequestInfo, init?: RequestInit, timeout = 15000) => {
     const controller = new AbortController();
@@ -233,19 +260,34 @@ function App() {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-gray-50">
+    <div className="h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
       {/* Top Bar */}
-      <header className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
+      <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 px-6 py-4">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-900">ProcureAI</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">ProcureAI</h1>
           <div className="flex items-center space-x-4">
+            <button
+              onClick={toggleDarkMode}
+              className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 transition-colors"
+              title={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+            >
+              {isDarkMode ? (
+                <svg className="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clipRule="evenodd" />
+                </svg>
+              ) : (
+                <svg className="w-5 h-5 text-gray-700 dark:text-gray-300" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+                </svg>
+              )}
+            </button>
             <div className="flex items-center space-x-2">
               <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
-              <span className="text-sm text-gray-600">
+              <span className="text-sm text-gray-600 dark:text-gray-400">
                 {isConnected ? 'Connected' : 'Disconnected'}
               </span>
             </div>
-            <label className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg cursor-pointer transition-colors">
+            <label className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 text-white px-4 py-2 rounded-lg cursor-pointer transition-colors">
               <span>Upload PDF</span>
               <input
                 type="file"
@@ -261,11 +303,11 @@ function App() {
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
         {/* Left Panel - Chat */}
-        <div className="w-full lg:w-1/2 flex flex-col border-r border-gray-200">
+        <div className="w-full lg:w-1/2 flex flex-col border-r border-gray-200 dark:border-gray-700">
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
             {messages.length === 0 && (
-              <div className="text-center text-gray-500 mt-8">
+              <div className="text-center text-gray-500 dark:text-gray-400 mt-8">
                 <p className="text-lg mb-2">Welcome to ProcureAI!</p>
                 <p>Ask me anything about procurement, bids, suppliers, or contracts.</p>
               </div>
@@ -280,7 +322,7 @@ function App() {
                   className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
                     message.sender === 'user'
                       ? 'bg-blue-600 text-white'
-                      : 'bg-white border border-gray-200 text-gray-900'
+                      : 'bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white'
                   }`}
                 >
                   <p className="text-sm">{message.text}</p>
@@ -298,10 +340,10 @@ function App() {
 
             {isLoading && (
               <div className="flex justify-start">
-                <div className="bg-white border border-gray-200 px-4 py-2 rounded-lg">
+                <div className="bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 px-4 py-2 rounded-lg">
                   <div className="flex items-center space-x-2">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                    <span className="text-sm text-gray-600">Agent is thinking...</span>
+                    <span className="text-sm text-gray-600 dark:text-gray-300">Agent is thinking...</span>
                   </div>
                 </div>
               </div>
@@ -311,14 +353,14 @@ function App() {
           </div>
 
           {/* Input Area */}
-          <div className="border-t border-gray-200 p-4">
+          <div className="border-t border-gray-200 dark:border-gray-700 p-4">
             {/* Suggestion Chips */}
             <div className="flex flex-wrap gap-2 mb-4">
               {suggestionChips.map((suggestion, index) => (
                 <button
                   key={index}
                   onClick={() => handleSuggestionClick(suggestion)}
-                  className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded-full text-sm transition-colors"
+                  className="bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 px-3 py-1 rounded-full text-sm transition-colors"
                 >
                   {suggestion}
                 </button>
@@ -332,13 +374,13 @@ function App() {
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 placeholder="Ask about procurement, bids, suppliers..."
-                className="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="flex-1 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 disabled={isLoading}
               />
               <button
                 type="submit"
                 disabled={isLoading || !inputValue.trim()}
-                className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-6 py-2 rounded-lg transition-colors"
+                className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 disabled:bg-gray-400 dark:disabled:bg-gray-600 text-white px-6 py-2 rounded-lg transition-colors"
               >
                 Send
               </button>
@@ -347,9 +389,9 @@ function App() {
         </div>
 
         {/* Right Panel - Results */}
-        <div className="w-full lg:w-1/2 p-6 overflow-y-auto">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-4">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Data Inspector</h2>
+        <div className="w-full lg:w-1/2 p-6 overflow-y-auto bg-gray-50 dark:bg-gray-900">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-4">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Data Inspector</h2>
             <div className="flex flex-wrap gap-2 mb-4">
               <button
                 onClick={handleLoadSuppliers}
@@ -364,15 +406,15 @@ function App() {
                 Load Bids
               </button>
             </div>
-            <div className="mb-3 text-sm text-gray-700">
+            <div className="mb-3 text-sm text-gray-700 dark:text-gray-300">
               Suppliers loaded: {suppliers.length}, Bids loaded: {bids.length}
             </div>
             {(suppliers.length > 0 || bids.length > 0) && (
               <div className="space-y-3">
                 {suppliers.length > 0 && (
                   <div>
-                    <h3 className="font-medium text-gray-800">Suppliers ({suppliers.length})</h3>
-                    <ul className="list-disc list-inside text-sm text-gray-700 max-h-40 overflow-y-auto">
+                    <h3 className="font-medium text-gray-800 dark:text-gray-200">Suppliers ({suppliers.length})</h3>
+                    <ul className="list-disc list-inside text-sm text-gray-700 dark:text-gray-300 max-h-40 overflow-y-auto">
                       {suppliers.slice(0, 5).map((s, idx) => (
                         <li key={idx}>{s.name} ({s.category}, rating {s.rating})</li>
                       ))}
@@ -381,8 +423,8 @@ function App() {
                 )}
                 {bids.length > 0 && (
                   <div>
-                    <h3 className="font-medium text-gray-800">Bids ({bids.length})</h3>
-                    <ul className="list-disc list-inside text-sm text-gray-700 max-h-40 overflow-y-auto">
+                    <h3 className="font-medium text-gray-800 dark:text-gray-200">Bids ({bids.length})</h3>
+                    <ul className="list-disc list-inside text-sm text-gray-700 dark:text-gray-300 max-h-40 overflow-y-auto">
                       {bids.slice(0, 5).map((b, idx) => (
                         <li key={idx}>Bid from supplier {b.supplier_id}, total ${b.total_price}, status {b.status}</li>
                       ))}
@@ -392,7 +434,7 @@ function App() {
               </div>
             )}
             {errorMessage && (
-              <div className="mt-4 text-sm text-red-600 border border-red-200 bg-red-50 p-3 rounded">
+              <div className="mt-4 text-sm text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-3 rounded">
                 {errorMessage}
               </div>
             )}
