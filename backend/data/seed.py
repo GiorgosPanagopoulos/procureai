@@ -2,6 +2,7 @@ import asyncio
 from motor.motor_asyncio import AsyncIOMotorClient
 from models import Supplier, Bid, BidItem, BidStatus
 import os
+from dotenv import load_dotenv
 
 # Mock suppliers data
 mock_suppliers = [
@@ -161,7 +162,8 @@ mock_bids = [
 ]
 
 async def seed_database():
-    mongodb_url = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
+    load_dotenv()
+    mongodb_url = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
     client = AsyncIOMotorClient(mongodb_url)
     db = client.procureai
 
