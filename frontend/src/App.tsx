@@ -37,9 +37,6 @@ function App() {
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-  const [bids, setBids] = useState<Bid[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
