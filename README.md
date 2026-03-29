@@ -16,6 +16,8 @@ ProcureAI supports bid comparison, supplier lookup, report generation, and docum
 [![ChromaDB](https://img.shields.io/badge/ChromaDB-1.5.5-FF6B35.svg)](https://www.trychroma.com)
 [![Tailwind CSS](https://img.shields.io/badge/TailwindCSS-4.x-38B2AC.svg)](https://tailwindcss.com)
 
+![ProcureAI Demo](docs/screenshots/demo.gif)
+
 ## Project Description
 
 ProcureAI combines a robust backend with an intelligent LLM agent and a modern frontend chat interface.
