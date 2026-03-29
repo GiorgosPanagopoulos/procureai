@@ -15,9 +15,12 @@ An AI-native procurement assistant that turns procurement workflows into natural
 
 ProcureAI combines a robust backend with an intelligent LLM agent and a modern frontend chat interface.
 
-- **Backend**: FastAPI, MongoDB, ChromaDB, OpenAI, and local vector store for RAG
-- **Agent**: ReAct-style prompt routing to tools for bid comparison, supplier lookup, report generation, and document query
-- **Frontend**: React + TypeScript + Tailwind CSS dashboard for chat and results
+- **Backend**: FastAPI, MongoDB, ChromaDB, OpenAI, and local vector store for RAG.
+- **Agent**: ReAct-style prompt routing to tools for bid comparison, supplier lookup, report generation, and document query.
+- **Frontend**: React + TypeScript + Tailwind CSS dashboard for chat and results.
+
+> Architecture: frontend React app → FastAPI backend → MongoDB + ChromaDB + OpenAI.
+
 
 ## Architecture
 
