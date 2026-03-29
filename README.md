@@ -5,13 +5,13 @@ An AI-native procurement assistant that turns procurement workflows into natural
 ProcureAI supports bid comparison, supplier lookup, report generation, and document Q&A via a React chat interface backed by FastAPI, MongoDB, ChromaDB, and OpenAI.
 
 [![Python](https://img.shields.io/badge/Python-3.14.3-blue.svg)](https://www.python.org)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.104.1-009688.svg)](https://fastapi.tiangolo.com)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.135%2B-009688.svg)](https://fastapi.tiangolo.com)
 [![React](https://img.shields.io/badge/React-18.2.0-61DAFB.svg)](https://reactjs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0.2-3178C6.svg)](https://www.typescriptlang.org)
-[![LangChain](https://img.shields.io/badge/LangChain-0.1.0-000000.svg)](https://python.langchain.com)
-[![MongoDB](https://img.shields.io/badge/MongoDB-4.6-47A248.svg)](https://www.mongodb.com)
+[![OpenAI](https://img.shields.io/badge/OpenAI-GPT--3.5--turbo-412991.svg)](https://openai.com)
+[![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248.svg)](https://www.mongodb.com)
 [![ChromaDB](https://img.shields.io/badge/ChromaDB-1.5.5-FF6B35.svg)](https://www.trychroma.com)
-[![Tailwind CSS](https://img.shields.io/badge/TailwindCSS-3.3.0-38B2AC.svg)](https://tailwindcss.com)
+[![Tailwind CSS](https://img.shields.io/badge/TailwindCSS-4.x-38B2AC.svg)](https://tailwindcss.com)
 
 ## Project Description
 
@@ -33,13 +33,13 @@ ProcureAI combines a robust backend with an intelligent LLM agent and a modern f
 
 ## Tech Stack
 
-- 🐍 Python 3.14.3 (FastAPI, Motor, Pydantic)
+- 🐍 Python 3.14+ (FastAPI, Motor, Pydantic)
 - ⚛️ React 18.2.0 (TypeScript)
 - 🟦 TypeScript 5.0.2
-- 🧠 LangChain-style ReAct agent (customized from template)
-- 🍃 MongoDB (async Motor driver)
-- 🔶 ChromaDB vector store
-- 🎨 Tailwind CSS frontend styling
+- 🧠 Custom ReAct-style agent with OpenAI GPT-3.5-turbo
+- 🍃 MongoDB Atlas (async Motor driver)
+- 🔶 ChromaDB vector store (RAG pipeline)
+- 🎨 Tailwind CSS v4 frontend styling
 
 ## Setup Instructions
 
@@ -69,7 +69,7 @@ npm install
 npm run dev
 ```
 
-Frontend runs at `http://localhost:3000`.
+Frontend runs at `http://localhost:5173` (Vite default).
 
 ### 3. One-shot script
 

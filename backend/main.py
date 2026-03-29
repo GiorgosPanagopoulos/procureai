@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -21,7 +22,22 @@ from openai import OpenAI
 # Load environment variables from backend directory
 load_dotenv(Path(__file__).resolve().parent / ".env")
 
-app = FastAPI(title="ProcureAI API", version="2.0.0")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Ingest mock PDFs on startup if vector store is empty."""
+    if is_vectorstore_empty():
+        pdf_dir = Path(__file__).resolve().parent / "data" / "pdfs"
+        if pdf_dir.exists():
+            for pdf_path in pdf_dir.glob("*.pdf"):
+                try:
+                    ingested = ingest_pdf_file(pdf_path)
+                    print(f"Ingested {ingested['chunks']} chunks from {ingested['file']}")
+                except Exception as exc:
+                    print(f"Failed to ingest {pdf_path.name}: {exc}")
+    yield
+
+
+app = FastAPI(title="ProcureAI API", version="2.0.0", lifespan=lifespan)
 
 # CORS middleware
 app.add_middleware(
@@ -421,7 +437,7 @@ Format: {{"intent": "...", "params": {{...}}}}"""
             # Run multiple relevant tools
             doc_qa_result = document_qa(user_input, k=3)
             bid_result = await bid_comparison_tool(max_results=3)
-            supplier_result = await supplier_lookup_tool(max_results=3)
+            supplier_result = await supplier_lookup_tool()
             
             tool_result = f"""
 Document Search: {doc_qa_result.get('answer', 'N/A')}
@@ -463,19 +479,6 @@ Provide a concise, actionable response that directly addresses the user's query.
 
 
 # ============= END AGENT TOOLS =============
-
-@app.on_event("startup")
-async def startup_event():
-    """Ingest mock PDFs on startup if vector store is empty."""
-    if is_vectorstore_empty():
-        pdf_dir = Path(__file__).resolve().parent / "data" / "pdfs"
-        if pdf_dir.exists():
-            for pdf_path in pdf_dir.glob("*.pdf"):
-                try:
-                    ingested = ingest_pdf_file(pdf_path)
-                    print(f"Ingested {ingested['chunks']} chunks from {ingested['file']}")
-                except Exception as exc:
-                    print(f"Failed to ingest {pdf_path.name}: {exc}")
 
 @app.get("/")
 async def root():

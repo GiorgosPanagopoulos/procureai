@@ -9,6 +9,4 @@ class Supplier(BaseModel):
     contact: str  # email or phone
     rating: float = Field(ge=0.0, le=5.0)
 
-    class Config:
-        allow_population_by_field_name = True
-        json_encoders = {ObjectId: str}
+    model_config = {"populate_by_name": True}
