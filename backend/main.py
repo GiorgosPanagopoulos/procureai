@@ -16,8 +16,11 @@ from dotenv import load_dotenv
 from chromadb import Client as ChromaClient
 from chromadb.config import Settings
 
-# OpenAI for embeddings and LLM
+# OpenAI for embeddings only
 from openai import OpenAI
+
+# Anthropic Claude for LLM
+import anthropic
 
 # Load environment variables from backend directory
 load_dotenv(Path(__file__).resolve().parent / ".env")
@@ -56,12 +59,20 @@ db = client.procureai
 class ChatRequest(BaseModel):
     message: str
 
-# OpenAI and Chroma setup
+# OpenAI for embeddings only
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 if not OPENAI_API_KEY:
-    print("Warning: OPENAI_API_KEY is not set. Embeddings/LLM calls will fail until set.")
+    print("Warning: OPENAI_API_KEY is not set. Embeddings will fail until set.")
 
 openai_client = OpenAI(api_key=OPENAI_API_KEY)
+
+# Anthropic Claude for LLM
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
+if not ANTHROPIC_API_KEY:
+    print("Warning: ANTHROPIC_API_KEY is not set. LLM calls will fail until set.")
+
+claude_client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+CLAUDE_MODEL = "claude-sonnet-4-20250514"
 
 CHROMA_DIR = Path(__file__).resolve().parent / "chroma_db"
 CHROMA_DIR.mkdir(exist_ok=True)
@@ -245,12 +256,12 @@ Question: {question}
 Answer:"""
 
     try:
-        response = openai_client.chat.completions.create(
-            model="gpt-3.5-turbo",
+        response = claude_client.messages.create(
+            model=CLAUDE_MODEL,
+            max_tokens=1024,
             messages=[{"role": "user", "content": prompt}],
-            temperature=0,
         )
-        answer = response.choices[0].message.content
+        answer = response.content[0].text
     except Exception as e:
         answer = f"Error generating answer: {e}"
 
@@ -395,12 +406,12 @@ Respond with ONLY the classification (e.g., "bid_comparison") and any tool param
 Format: {{"intent": "...", "params": {{...}}}}"""
     
     try:
-        intent_response = openai_client.chat.completions.create(
-            model="gpt-3.5-turbo",
+        intent_response = claude_client.messages.create(
+            model=CLAUDE_MODEL,
+            max_tokens=256,
             messages=[{"role": "user", "content": intent_prompt}],
-            temperature=0,
         )
-        intent_text = intent_response.choices[0].message.content.strip()
+        intent_text = intent_response.content[0].text.strip()
         
         # Parse intent
         try:
@@ -460,13 +471,13 @@ Tool Results:
 
 Provide a concise, actionable response that directly addresses the user's query."""
         
-        final_response = openai_client.chat.completions.create(
-            model="gpt-3.5-turbo",
+        final_response = claude_client.messages.create(
+            model=CLAUDE_MODEL,
+            max_tokens=1024,
             messages=[{"role": "user", "content": final_prompt}],
-            temperature=0,
         )
-        
-        answer = final_response.choices[0].message.content
+
+        answer = final_response.content[0].text
         
         return {
             "response": answer,
