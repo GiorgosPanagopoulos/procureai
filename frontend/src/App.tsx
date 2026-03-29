@@ -58,16 +58,19 @@ function App() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    localStorage.setItem('darkMode', JSON.stringify(isDarkMode));
+    // Apply initial dark mode from localStorage
     if (isDarkMode) {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
     }
-  }, [isDarkMode]);
+  }, []); // Only run on mount
 
   const toggleDarkMode = () => {
-    setIsDarkMode((prev) => !prev);
+    document.documentElement.classList.toggle('dark');
+    const newDarkMode = document.documentElement.classList.contains('dark');
+    setIsDarkMode(newDarkMode);
+    localStorage.setItem('darkMode', JSON.stringify(newDarkMode));
   };
 
   const fetchWithTimeout = async (input: RequestInfo, init?: RequestInit, timeout = 15000) => {
