@@ -1,6 +1,8 @@
 # ProcureAI
 
-An AI-native procurement assistant that turns procurement workflows into natural language actions. ProcureAI supports bid comparison, supplier lookup, report generation, and document Q&A via a React chat interface backed by FastAPI + MongoDB + ChromaDB + OpenAI.
+An AI-native procurement assistant that turns procurement workflows into natural language actions.
+
+ProcureAI supports bid comparison, supplier lookup, report generation, and document Q&A via a React chat interface backed by FastAPI, MongoDB, ChromaDB, and OpenAI.
 
 [![Python](https://img.shields.io/badge/Python-3.14.3-blue.svg)](https://www.python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.104.1-009688.svg)](https://fastapi.tiangolo.com)
@@ -96,5 +98,5 @@ Run `./start.sh` from repo root (created below) to start both services.
 
 Developed by **[Georgios Panagopoulos](https://github.com/GiorgosPanagopoulos)**.
 
-- GitHub: https://github.com/GiorgosPanagopoulos
-- LinkedIn: https://linkedin.com/in/georgios-panagopoulos-9253842ba
+- GitHub: [github.com/GiorgosPanagopoulos](https://github.com/GiorgosPanagopoulos)
+- LinkedIn: [linkedin.com/in/georgios-panagopoulos-9253842ba](https://linkedin.com/in/georgios-panagopoulos-9253842ba)
