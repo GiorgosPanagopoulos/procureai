@@ -9,6 +9,7 @@ from io import BytesIO
 from pypdf import PdfReader
 from pydantic import BaseModel
 import json
+from dotenv import load_dotenv
 
 # Chromadb for vector store
 from chromadb import Client as ChromaClient
@@ -16,6 +17,9 @@ from chromadb.config import Settings
 
 # OpenAI for embeddings and LLM
 from openai import OpenAI
+
+# Load environment variables from backend directory
+load_dotenv(Path(__file__).resolve().parent / ".env")
 
 app = FastAPI(title="ProcureAI API", version="2.0.0")
 
