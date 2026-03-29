@@ -8,6 +8,7 @@ ProcureAI supports bid comparison, supplier lookup, report generation, and docum
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.135%2B-009688.svg)](https://fastapi.tiangolo.com)
 [![React](https://img.shields.io/badge/React-18.2.0-61DAFB.svg)](https://reactjs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0.2-3178C6.svg)](https://www.typescriptlang.org)
+[![UI](https://img.shields.io/badge/UI-React%20%2B%20TypeScript-blue)](https://reactjs.org)
 [![Claude](https://img.shields.io/badge/Claude-claude--sonnet--4-CC785C.svg)](https://anthropic.com)
 [![LangChain](https://img.shields.io/badge/LangChain-AgentExecutor-1C3C3C.svg)](https://python.langchain.com)
 [![OpenAI](https://img.shields.io/badge/OpenAI-Embeddings-412991.svg)](https://openai.com)
@@ -45,6 +46,26 @@ ProcureAI combines a robust backend with an intelligent LLM agent and a modern f
 - 🍃 MongoDB Atlas (async Motor driver)
 - 🔶 ChromaDB vector store (RAG pipeline)
 - 🎨 Tailwind CSS v4 frontend styling
+
+## 📸 Screenshots
+
+### Supplier Lookup
+
+Natural language queries against the supplier database.
+![Supplier Lookup](docs/screenshots/supplier-lookup.png)
+
+### Bid Comparison
+
+Ranked bid analysis with pricing, delivery terms, and status indicators.
+![Bid Comparison](docs/screenshots/bid-comparison.png)
+
+### Document Q&A (RAG)
+
+Ask questions about uploaded procurement contracts and PDFs.
+![Document QA](docs/screenshots/document-qa.png)
+
+---
+> 🌐 Bilingual UI — English & Greek with automatic locale switching
 
 ## Setup Instructions
 
