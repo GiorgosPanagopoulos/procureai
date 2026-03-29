@@ -252,7 +252,7 @@ function App() {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-white dark:bg-gray-900">
+    <div className="h-screen flex flex-col bg-gray-50 dark:bg-gray-950">
       {/* Top Bar */}
       <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 px-6 py-4">
         <div className="flex items-center justify-between">
@@ -275,7 +275,7 @@ function App() {
             </button>
             <div className="flex items-center space-x-2">
               <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
-              <span className="text-sm text-gray-600 dark:text-gray-400">
+              <span className="text-sm text-gray-600 dark:text-gray-300">
                 {isConnected ? 'Connected' : 'Disconnected'}
               </span>
             </div>
@@ -299,7 +299,7 @@ function App() {
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
             {messages.length === 0 && (
-              <div className="text-center text-gray-500 dark:text-gray-400 mt-8">
+              <div className="text-center text-gray-600 dark:text-gray-300 mt-8">
                 <p className="text-lg mb-2">Welcome to ProcureAI!</p>
                 <p>Ask me anything about procurement, bids, suppliers, or contracts.</p>
               </div>
@@ -314,7 +314,7 @@ function App() {
                   className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
                     message.sender === 'user'
                       ? 'bg-blue-600 text-white'
-                      : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white'
+                      : 'bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white'
                   }`}
                 >
                   <p className="text-sm">{message.text}</p>
@@ -332,7 +332,7 @@ function App() {
 
             {isLoading && (
               <div className="flex justify-start">
-                <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 px-4 py-2 rounded-lg">
+                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-600 px-4 py-2 rounded-lg">
                   <div className="flex items-center space-x-2">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
                     <span className="text-sm text-gray-600 dark:text-gray-300">Agent is thinking...</span>
@@ -352,7 +352,7 @@ function App() {
                 <button
                   key={index}
                   onClick={() => handleSuggestionClick(suggestion)}
-                  className="bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 px-3 py-1 rounded-full text-sm transition-colors"
+                  className="bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-3 py-1 rounded-full text-sm transition-colors"
                 >
                   {suggestion}
                 </button>
@@ -381,7 +381,7 @@ function App() {
         </div>
 
         {/* Right Panel - Results */}
-        <div className="w-full lg:w-1/2 p-6 overflow-y-auto bg-gray-50 dark:bg-gray-900">
+        <div className="w-full lg:w-1/2 p-6 overflow-y-auto bg-gray-50 dark:bg-gray-950">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-4">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Data Inspector</h2>
             <div className="flex flex-wrap gap-2 mb-4">
@@ -405,7 +405,7 @@ function App() {
               <div className="space-y-3">
                 {suppliers.length > 0 && (
                   <div>
-                    <h3 className="font-medium text-gray-800 dark:text-gray-200">Suppliers ({suppliers.length})</h3>
+                    <h3 className="font-medium text-gray-800 dark:text-white">Suppliers ({suppliers.length})</h3>
                     <ul className="list-disc list-inside text-sm text-gray-700 dark:text-gray-300 max-h-40 overflow-y-auto">
                       {suppliers.slice(0, 5).map((s, idx) => (
                         <li key={idx}>{s.name} ({s.category}, rating {s.rating})</li>
@@ -415,7 +415,7 @@ function App() {
                 )}
                 {bids.length > 0 && (
                   <div>
-                    <h3 className="font-medium text-gray-800 dark:text-gray-200">Bids ({bids.length})</h3>
+                    <h3 className="font-medium text-gray-800 dark:text-white">Bids ({bids.length})</h3>
                     <ul className="list-disc list-inside text-sm text-gray-700 dark:text-gray-300 max-h-40 overflow-y-auto">
                       {bids.slice(0, 5).map((b, idx) => (
                         <li key={idx}>Bid from supplier {b.supplier_id}, total ${b.total_price}, status {b.status}</li>
@@ -436,7 +436,7 @@ function App() {
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Results</h2>
 
             {messages.length === 0 ? (
-              <div className="text-center text-gray-500 dark:text-gray-400 py-8">
+              <div className="text-center text-gray-600 dark:text-gray-300 py-8">
                 <p>Agent responses will appear here</p>
                 <p className="text-sm mt-2">Try asking about bids, suppliers, or contracts</p>
               </div>
@@ -446,7 +446,7 @@ function App() {
                   .filter(msg => msg.sender === 'agent')
                   .slice(-3) // Show last 3 agent responses
                   .map((message) => (
-                    <div key={message.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-white dark:bg-gray-800">
+                    <div key={message.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-white dark:bg-gray-900">
                       <div className="flex items-start justify-between mb-2">
                         <h3 className="font-medium text-gray-900 dark:text-gray-100">Agent Response</h3>
                         {message.toolUsed && (
@@ -455,8 +455,8 @@ function App() {
                           </span>
                         )}
                       </div>
-                      <p className="text-gray-700 dark:text-gray-200 whitespace-pre-wrap">{message.text}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                      <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{message.text}</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-300 mt-2">
                         {message.timestamp.toLocaleString()}
                       </p>
                     </div>
