@@ -53,6 +53,15 @@ function App() {
     return false;
   });
 
+  const [language, setLanguage] = useState<'en' | 'gr'>(() => {
+    if (typeof window === 'undefined') {
+      return 'en';
+    }
+
+    const stored = localStorage.getItem('language');
+    return (stored === 'gr') ? 'gr' : 'en';
+  });
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -69,6 +78,10 @@ function App() {
     }
     localStorage.setItem('darkMode', String(isDarkMode));
   }, [isDarkMode]);
+
+  useEffect(() => {
+    localStorage.setItem('language', language);
+  }, [language]);
 
   const fetchWithTimeout = async (input: RequestInfo, init?: RequestInit, timeout = 15000) => {
     const controller = new AbortController();
@@ -208,14 +221,56 @@ function App() {
     }
   };
 
-  const suggestionChips = [
-    "Compare bids for office equipment",
-    "Find suppliers for IT hardware",
-    "Generate procurement report",
-    "What are payment terms in contracts?",
-    "Show me medical equipment bids",
-    "Find high-rated suppliers"
-  ];
+  const translations = {
+    en: {
+      connected: "Connected",
+      disconnected: "Disconnected",
+      uploadPdf: "Upload PDF",
+      welcome: "Welcome to ProcureAI!",
+      welcomeDesc: "Ask me anything about procurement, bids, suppliers, or contracts.",
+      placeholder: "Ask about procurement, bids, suppliers...",
+      dataInspector: "Data Inspector",
+      loadSuppliers: "Load Suppliers",
+      loadBids: "Load Bids",
+      results: "Results",
+      agentResponses: "Agent responses will appear here",
+      agentResponsesDesc: "Try asking about bids, suppliers, or contracts",
+      send: "Send",
+      suggestionChips: [
+        "Compare bids for office equipment",
+        "Find suppliers for IT hardware",
+        "Generate procurement report",
+        "What are payment terms in contracts?",
+        "Show me medical equipment bids",
+        "Find high-rated suppliers"
+      ]
+    },
+    gr: {
+      connected: "Συνδεδεμένο",
+      disconnected: "Αποσυνδεδεμένο",
+      uploadPdf: "Ανέβασμα PDF",
+      welcome: "Καλώς ήρθατε στο ProcureAI!",
+      welcomeDesc: "Ρωτήστε με οτιδήποτε για προμήθειες, προσφορές, προμηθευτές ή συμβάσεις.",
+      placeholder: "Ρωτήστε για προμήθειες, προσφορές, προμηθευτές...",
+      dataInspector: "Επισκόπηση Δεδομένων",
+      loadSuppliers: "Φόρτωση Προμηθευτών",
+      loadBids: "Φόρτωση Προσφορών",
+      results: "Αποτελέσματα",
+      agentResponses: "Οι απαντήσεις του agent θα εμφανιστούν εδώ",
+      agentResponsesDesc: "Δοκιμάστε να ρωτήσετε για προσφορές, προμηθευτές ή συμβάσεις",
+      send: "Αποστολή",
+      suggestionChips: [
+        "Σύγκριση προσφορών εξοπλισμού",
+        "Εύρεση προμηθευτών IT",
+        "Δημιουργία αναφοράς προμηθειών",
+        "Όροι πληρωμής στα συμβόλαια;",
+        "Προσφορές ιατρικού εξοπλισμού",
+        "Εύρεση κορυφαίων προμηθευτών"
+      ]
+    }
+  };
+
+  const t = translations[language];
 
   const handleSuggestionClick = (suggestion: string) => {
     setInputValue(suggestion);
@@ -273,14 +328,21 @@ function App() {
                 </svg>
               )}
             </button>
+            <button
+              onClick={() => setLanguage(prev => prev === 'en' ? 'gr' : 'en')}
+              className="px-3 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 transition-colors text-sm font-medium"
+              title={`Switch to ${language === 'en' ? 'Greek' : 'English'}`}
+            >
+              {language.toUpperCase()}
+            </button>
             <div className="flex items-center space-x-2">
               <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
               <span className="text-sm text-gray-600 dark:text-gray-300">
-                {isConnected ? 'Connected' : 'Disconnected'}
+                {isConnected ? t.connected : t.disconnected}
               </span>
             </div>
             <label className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 text-white px-4 py-2 rounded-lg cursor-pointer transition-colors">
-              <span>Upload PDF</span>
+              <span>{t.uploadPdf}</span>
               <input
                 type="file"
                 accept=".pdf"
@@ -300,8 +362,8 @@ function App() {
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
             {messages.length === 0 && (
               <div className="text-center text-gray-600 dark:text-gray-300 mt-8">
-                <p className="text-lg mb-2">Welcome to ProcureAI!</p>
-                <p>Ask me anything about procurement, bids, suppliers, or contracts.</p>
+                <p className="text-lg mb-2">{t.welcome}</p>
+                <p>{t.welcomeDesc}</p>
               </div>
             )}
 
@@ -348,7 +410,7 @@ function App() {
           <div className="border-t border-gray-200 dark:border-gray-700 p-4">
             {/* Suggestion Chips */}
             <div className="flex flex-wrap gap-2 mb-4">
-              {suggestionChips.map((suggestion, index) => (
+              {t.suggestionChips.map((suggestion, index) => (
                 <button
                   key={index}
                   onClick={() => handleSuggestionClick(suggestion)}
@@ -365,7 +427,7 @@ function App() {
                 type="text"
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
-                placeholder="Ask about procurement, bids, suppliers..."
+                placeholder={t.placeholder}
                 className="flex-1 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 disabled={isLoading}
               />
@@ -374,7 +436,7 @@ function App() {
                 disabled={isLoading || !inputValue.trim()}
                 className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 disabled:bg-gray-400 dark:disabled:bg-gray-600 text-white px-6 py-2 rounded-lg transition-colors"
               >
-                Send
+                {t.send}
               </button>
             </form>
           </div>
@@ -383,19 +445,19 @@ function App() {
         {/* Right Panel - Results */}
         <div className="w-full lg:w-1/2 p-6 overflow-y-auto bg-gray-50 dark:bg-gray-950">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-4">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Data Inspector</h2>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">{t.dataInspector}</h2>
             <div className="flex flex-wrap gap-2 mb-4">
               <button
                 onClick={handleLoadSuppliers}
                 className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg text-sm"
               >
-                Load Suppliers
+                {t.loadSuppliers}
               </button>
               <button
                 onClick={handleLoadBids}
                 className="bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-2 rounded-lg text-sm"
               >
-                Load Bids
+                {t.loadBids}
               </button>
             </div>
             <div className="mb-3 text-sm text-gray-700 dark:text-gray-300">
@@ -433,12 +495,12 @@ function App() {
           </div>
 
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Results</h2>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">{t.results}</h2>
 
             {messages.length === 0 ? (
               <div className="text-center text-gray-600 dark:text-gray-300 py-8">
-                <p>Agent responses will appear here</p>
-                <p className="text-sm mt-2">Try asking about bids, suppliers, or contracts</p>
+                <p>{t.agentResponses}</p>
+                <p className="text-sm mt-2">{t.agentResponsesDesc}</p>
               </div>
             ) : (
               <div className="space-y-4">
