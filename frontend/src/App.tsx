@@ -389,7 +389,7 @@ function App() {
         </div>
 
         {/* Right Panel - Results */}
-        <div className="w-full lg:w-1/2 p-6 overflow-y-auto bg-gray-50 dark:bg-gray-900">
+        <div className="w-full lg:w-1/2 p-6 overflow-y-auto bg-gray-100 dark:bg-gray-950">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-4">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Data Inspector</h2>
             <div className="flex flex-wrap gap-2 mb-4">
@@ -440,11 +440,11 @@ function App() {
             )}
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Results</h2>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Results</h2>
 
             {messages.length === 0 ? (
-              <div className="text-center text-gray-500 py-8">
+              <div className="text-center text-gray-500 dark:text-gray-400 py-8">
                 <p>Agent responses will appear here</p>
                 <p className="text-sm mt-2">Try asking about bids, suppliers, or contracts</p>
               </div>
@@ -454,17 +454,17 @@ function App() {
                   .filter(msg => msg.sender === 'agent')
                   .slice(-3) // Show last 3 agent responses
                   .map((message) => (
-                    <div key={message.id} className="border border-gray-200 rounded-lg p-4">
+                    <div key={message.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-white dark:bg-gray-900">
                       <div className="flex items-start justify-between mb-2">
-                        <h3 className="font-medium text-gray-900">Agent Response</h3>
+                        <h3 className="font-medium text-gray-900 dark:text-gray-100">Agent Response</h3>
                         {message.toolUsed && (
-                          <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
+                          <span className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs px-2 py-1 rounded">
                             {message.toolUsed}
                           </span>
                         )}
                       </div>
-                      <p className="text-gray-700 whitespace-pre-wrap">{message.text}</p>
-                      <p className="text-xs text-gray-500 mt-2">
+                      <p className="text-gray-700 dark:text-gray-200 whitespace-pre-wrap">{message.text}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
                         {message.timestamp.toLocaleString()}
                       </p>
                     </div>
