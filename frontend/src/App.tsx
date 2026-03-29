@@ -314,7 +314,7 @@ function App() {
                   className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
                     message.sender === 'user'
                       ? 'bg-blue-600 text-white'
-                      : 'bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white'
+                      : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white'
                   }`}
                 >
                   <p className="text-sm">{message.text}</p>
@@ -332,7 +332,7 @@ function App() {
 
             {isLoading && (
               <div className="flex justify-start">
-                <div className="bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 px-4 py-2 rounded-lg">
+                <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 px-4 py-2 rounded-lg">
                   <div className="flex items-center space-x-2">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
                     <span className="text-sm text-gray-600 dark:text-gray-300">Agent is thinking...</span>
@@ -366,7 +366,7 @@ function App() {
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 placeholder="Ask about procurement, bids, suppliers..."
-                className="flex-1 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="flex-1 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 disabled={isLoading}
               />
               <button
@@ -381,7 +381,7 @@ function App() {
         </div>
 
         {/* Right Panel - Results */}
-        <div className="w-full lg:w-1/2 p-6 overflow-y-auto bg-gray-100 dark:bg-gray-950">
+        <div className="w-full lg:w-1/2 p-6 overflow-y-auto bg-gray-50 dark:bg-gray-900">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-4">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Data Inspector</h2>
             <div className="flex flex-wrap gap-2 mb-4">
@@ -446,7 +446,7 @@ function App() {
                   .filter(msg => msg.sender === 'agent')
                   .slice(-3) // Show last 3 agent responses
                   .map((message) => (
-                    <div key={message.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-white dark:bg-gray-900">
+                    <div key={message.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-white dark:bg-gray-800">
                       <div className="flex items-start justify-between mb-2">
                         <h3 className="font-medium text-gray-900 dark:text-gray-100">Agent Response</h3>
                         {message.toolUsed && (
