@@ -42,10 +42,14 @@ function App() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [bids, setBids] = useState<Bid[]>([]);
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('darkMode') === 'true';
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
+    if (typeof window === 'undefined') {
+      return false;
     }
+
+    const stored = localStorage.getItem('darkMode');
+    if (stored === 'true') return true;
+    if (stored === 'false') return false;
     return false;
   });
 
@@ -248,7 +252,7 @@ function App() {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
+    <div className="h-screen flex flex-col bg-white dark:bg-gray-900">
       {/* Top Bar */}
       <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 px-6 py-4">
         <div className="flex items-center justify-between">
