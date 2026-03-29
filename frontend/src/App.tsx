@@ -42,7 +42,11 @@ function App() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [bids, setBids] = useState<Bid[]>([]);
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    const saved = localStorage.getItem('darkMode');
+    return saved ? JSON.parse(saved) : false;
+  });
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -53,29 +57,17 @@ function App() {
   }, [messages]);
 
   useEffect(() => {
-    // Load dark mode preference from localStorage
-    const saved = localStorage.getItem('darkMode');
-    const isDark = saved ? JSON.parse(saved) : false;
-    setIsDarkMode(isDark);
-    
-    // Apply dark class to document
-    if (isDark) {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem('darkMode', JSON.stringify(isDarkMode));
+    if (isDarkMode) {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
     }
-  }, []);
+  }, [isDarkMode]);
 
   const toggleDarkMode = () => {
-    const newDarkMode = !isDarkMode;
-    setIsDarkMode(newDarkMode);
-    localStorage.setItem('darkMode', JSON.stringify(newDarkMode));
-    
-    if (newDarkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
+    setIsDarkMode((prev) => !prev);
   };
 
   const fetchWithTimeout = async (input: RequestInfo, init?: RequestInit, timeout = 15000) => {
