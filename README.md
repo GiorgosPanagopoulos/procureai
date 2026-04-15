@@ -257,9 +257,9 @@ This project is licensed under the [MIT License](LICENSE).
 ---
 
 <div align="center">
-<p>⚡ Built by — <strong>Georgios Panagopoulos</strong> — Full-Stack Developer</p>
-<a href="https://github.com/GiorgosPanagopoulos"><img src="https://img.shields.io/badge/GitHub-GiorgosPanagopoulos-181717?style=for-the-badge&logo=github" alt="GitHub" /></a>
-<a href="https://linkedin.com/in/georgios-panagopoulos-9253842ba"><img src="https://img.shields.io/badge/LinkedIn-Connect-0A66C2?style=for-the-badge&logo=linkedin" alt="LinkedIn" /></a>
-<br><br>
-<em>☕ Powered by mass amounts of caffeine & mass amounts of curiosity</em>
+**⚡ Built by [Georgios Panagopoulos](https://github.com/GiorgosPanagopoulos)**  
+*"I build things I'd trust with something that matters."*
+
+[![GitHub](https://img.shields.io/badge/GitHub-100000?style=for-the-badge&logo=github&logoColor=white)](https://github.com/GiorgosPanagopoulos)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://linkedin.com/in/georgios-panagopoulos-9253842ba)
 </div>
