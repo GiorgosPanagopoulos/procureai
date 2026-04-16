@@ -342,7 +342,22 @@ function App() {
       {/* ── Header ── */}
       <header className="header-glass px-6 py-4">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold shimmer-title">ProcureAI</h1>
+          <h1 className="text-2xl font-bold shimmer-title">ProcureAI<svg style={{marginLeft:'8px',display:'inline-block',verticalAlign:'middle'}} width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <style>{`
+                .bar1 { animation: signal 1.2s ease-in-out infinite; animation-delay: 0s; }
+                .bar2 { animation: signal 1.2s ease-in-out infinite; animation-delay: 0.2s; }
+                .bar3 { animation: signal 1.2s ease-in-out infinite; animation-delay: 0.4s; }
+                .bar4 { animation: signal 1.2s ease-in-out infinite; animation-delay: 0.6s; }
+                @keyframes signal {
+                  0%, 100% { opacity: 0.2; }
+                  50% { opacity: 1; }
+                }
+              `}</style>
+              <rect className="bar1" x="1" y="16" width="3" height="6" rx="1" fill="#0ea5e9"/>
+              <rect className="bar2" x="6" y="11" width="3" height="11" rx="1" fill="#0ea5e9"/>
+              <rect className="bar3" x="11" y="6" width="3" height="16" rx="1" fill="#0ea5e9"/>
+              <rect className="bar4" x="16" y="1" width="3" height="21" rx="1" fill="#0ea5e9"/>
+            </svg></h1>
           <div className="flex items-center gap-3">
             {/* Dark mode toggle */}
             <button
