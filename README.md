@@ -111,23 +111,23 @@ graph TD
 
 ## 📸 Screenshots
 
-### 🔍 Supplier Lookup
+### 🖥️ Welcome State
 
-Natural language queries against the supplier database.
+Split-panel UI with drag-and-drop PDF upload, suggestion chips, and animated signal icon.
 
-![Supplier Lookup](docs/screenshots/supplier-lookup.png)
+![Welcome State](docs/screenshots/welcome-state.png)
 
-### 📊 Bid Comparison
+### ⏳ Typing Indicator
 
-Ranked bid analysis with pricing, delivery terms, and status indicators.
+Real-time animated typing indicator while the ReAct agent processes the query.
 
-![Bid Comparison](docs/screenshots/bid-comparison.png)
+![Typing Indicator](docs/screenshots/typing-indicator.png)
 
-### 📄 Document Q&A (RAG)
+### 🔍 Agent Response
 
-Ask questions about uploaded procurement contracts and PDFs.
+Markdown-rendered response with tool usage badge and mirrored results panel.
 
-![Document QA](docs/screenshots/document-qa.png)
+![Agent Response](docs/screenshots/agent-response.png)
 
 ---
 
