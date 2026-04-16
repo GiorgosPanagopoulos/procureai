@@ -143,17 +143,22 @@ cd procureai
 ### 2. Backend setup
 
 ```bash
-cd backend
-python -m venv .venv
-source .venv/bin/activate        # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-cp .env.example .env             # then fill in your API keys
-python data/seed.py              # seed MongoDB with sample data
+cp backend/.env.example backend/.env   # then fill in your API keys
+python backend/data/seed.py            # seed MongoDB with sample data
 ```
 
 Start the backend server:
 
 ```bash
+# Create and activate virtual environment (from project root)
+python3.12 -m venv .venv
+source .venv/bin/activate
+
+# Install dependencies
+pip install -r backend/requirements.txt
+
+# Start the backend
+cd backend
 PYTHONPATH=./ uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
