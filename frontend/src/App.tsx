@@ -1,4 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { toast, Toaster } from 'sonner';
 import './App.css';
 
 interface Message {
@@ -32,21 +35,37 @@ interface Bid {
   status: string;
 }
 
+function StarRating({ rating }: { rating: number }) {
+  return (
+    <span>
+      {Array.from({ length: 5 }).map((_, i) => (
+        <span key={i} className={i < Math.round(rating) ? 'star-filled' : 'star-empty'}>★</span>
+      ))}
+    </span>
+  );
+}
+
+function StatusPill({ status }: { status: string }) {
+  const s = status.toLowerCase();
+  const cls =
+    s === 'accepted' ? 'status-pill status-pill-accepted' :
+    s === 'rejected' ? 'status-pill status-pill-rejected' :
+                       'status-pill status-pill-pending';
+  return <span className={cls}>{status}</span>;
+}
+
 function App() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [bids, setBids] = useState<Bid[]>([]);
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
-    if (typeof window === 'undefined') {
-      return false;
-    }
-
+    if (typeof window === 'undefined') return false;
     const stored = localStorage.getItem('darkMode');
     if (stored === 'true') return true;
     if (stored === 'false') return false;
@@ -54,13 +73,16 @@ function App() {
   });
 
   const [language, setLanguage] = useState<'en' | 'gr'>(() => {
-    if (typeof window === 'undefined') {
-      return 'en';
-    }
-
+    if (typeof window === 'undefined') return 'en';
     const stored = localStorage.getItem('language');
-    return (stored === 'gr') ? 'gr' : 'en';
+    return stored === 'gr' ? 'gr' : 'en';
   });
+
+  // UI-only state
+  const [isDragging, setIsDragging] = useState(false);
+  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
+  const [showMoreSuppliers, setShowMoreSuppliers] = useState(false);
+  const [showMoreBids, setShowMoreBids] = useState(false);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -94,17 +116,15 @@ function App() {
     }
   };
 
-  // Check backend connection
   useEffect(() => {
     const checkConnection = async () => {
       try {
         const response = await fetch('http://localhost:8000/');
         setIsConnected(response.ok);
-      } catch (error) {
+      } catch {
         setIsConnected(false);
       }
     };
-
     checkConnection();
     const interval = setInterval(checkConnection, 5000);
     return () => clearInterval(interval);
@@ -126,18 +146,13 @@ function App() {
     setIsLoading(true);
 
     try {
-      setErrorMessage(null);
       const response = await fetchWithTimeout('http://localhost:8000/chat', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: userMessage.text }),
       }, 20000);
 
-      if (!response) {
-        throw new Error('No response from server');
-      }
+      if (!response) throw new Error('No response from server');
 
       if (!response.ok) {
         const errorPayload = await response.json().catch(() => null);
@@ -159,8 +174,6 @@ function App() {
       setMessages(prev => [...prev, agentMessage]);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error occurred';
-      setErrorMessage(message);
-
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         text: `Error: ${message}`,
@@ -173,32 +186,27 @@ function App() {
     }
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const processFile = async (file: File) => {
     const formData = new FormData();
     formData.append('file', file);
-
     setIsLoading(true);
-    setErrorMessage(null);
     try {
       const response = await fetchWithTimeout('http://localhost:8000/upload', {
         method: 'POST',
         body: formData,
       }, 20000);
 
-      if (!response) {
-        throw new Error('No response from upload endpoint');
-      }
+      if (!response) throw new Error('No response from upload endpoint');
 
       if (!response.ok) {
         const errorPayload = await response.json().catch(() => null);
-        const errorMessage = errorPayload?.detail || response.statusText || 'Upload failed';
-        throw new Error(`Failed to upload file: ${errorMessage}`);
+        const msg = errorPayload?.detail || response.statusText || 'Upload failed';
+        throw new Error(`Failed to upload file: ${msg}`);
       }
 
       const result = await response.json();
+      setUploadedFileName(file.name);
+      toast.success(`Uploaded "${file.name}" successfully`);
 
       const uploadMessage: Message = {
         id: Date.now().toString(),
@@ -206,12 +214,13 @@ function App() {
         sender: 'agent',
         timestamp: new Date(),
       };
-
       setMessages(prev => [...prev, uploadMessage]);
     } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Unknown error';
+      toast.error(`Upload failed: ${msg}`);
       const errorMessage: Message = {
         id: Date.now().toString(),
-        text: `Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        text: `Upload failed: ${msg}`,
         sender: 'agent',
         timestamp: new Date(),
       };
@@ -221,53 +230,76 @@ function App() {
     }
   };
 
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    processFile(file);
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = () => setIsDragging(false);
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+    if (file.type !== 'application/pdf') {
+      toast.error('Please upload a PDF file');
+      return;
+    }
+    processFile(file);
+  };
+
   const translations = {
     en: {
-      connected: "Connected",
-      disconnected: "Disconnected",
-      uploadPdf: "Upload PDF",
-      welcome: "Welcome to ProcureAI!",
-      welcomeDesc: "Ask me anything about procurement, bids, suppliers, or contracts.",
-      placeholder: "Ask about procurement, bids, suppliers...",
-      dataInspector: "Data Inspector",
-      loadSuppliers: "Load Suppliers",
-      loadBids: "Load Bids",
-      results: "Results",
-      agentResponses: "Agent responses will appear here",
-      agentResponsesDesc: "Try asking about bids, suppliers, or contracts",
-      send: "Send",
+      connected: 'Connected',
+      disconnected: 'Disconnected',
+      welcome: 'Welcome to ProcureAI!',
+      welcomeDesc: 'Ask me anything about procurement, bids, suppliers, or contracts.',
+      placeholder: 'Ask about procurement, bids, suppliers...',
+      dataInspector: 'Data Inspector',
+      loadSuppliers: 'Load Suppliers',
+      loadBids: 'Load Bids',
+      results: 'Results',
+      agentResponses: 'Agent responses will appear here',
+      agentResponsesDesc: 'Try asking about bids, suppliers, or contracts',
+      send: 'Send',
       suggestionChips: [
-        "Compare bids for office equipment",
-        "Find suppliers for IT hardware",
-        "Generate procurement report",
-        "What are payment terms in contracts?",
-        "Show me medical equipment bids",
-        "Find high-rated suppliers"
-      ]
+        'Compare bids for office equipment',
+        'Find suppliers for IT hardware',
+        'Generate procurement report',
+        'What are payment terms in contracts?',
+        'Show me medical equipment bids',
+        'Find high-rated suppliers',
+      ],
     },
     gr: {
-      connected: "Συνδεδεμένο",
-      disconnected: "Αποσυνδεδεμένο",
-      uploadPdf: "Ανέβασμα PDF",
-      welcome: "Καλώς ήρθατε στο ProcureAI!",
-      welcomeDesc: "Ρωτήστε με οτιδήποτε για προμήθειες, προσφορές, προμηθευτές ή συμβάσεις.",
-      placeholder: "Ρωτήστε για προμήθειες, προσφορές, προμηθευτές...",
-      dataInspector: "Επισκόπηση Δεδομένων",
-      loadSuppliers: "Φόρτωση Προμηθευτών",
-      loadBids: "Φόρτωση Προσφορών",
-      results: "Αποτελέσματα",
-      agentResponses: "Οι απαντήσεις του agent θα εμφανιστούν εδώ",
-      agentResponsesDesc: "Δοκιμάστε να ρωτήσετε για προσφορές, προμηθευτές ή συμβάσεις",
-      send: "Αποστολή",
+      connected: 'Συνδεδεμένο',
+      disconnected: 'Αποσυνδεδεμένο',
+      welcome: 'Καλώς ήρθατε στο ProcureAI!',
+      welcomeDesc: 'Ρωτήστε με οτιδήποτε για προμήθειες, προσφορές, προμηθευτές ή συμβάσεις.',
+      placeholder: 'Ρωτήστε για προμήθειες, προσφορές, προμηθευτές...',
+      dataInspector: 'Επισκόπηση Δεδομένων',
+      loadSuppliers: 'Φόρτωση Προμηθευτών',
+      loadBids: 'Φόρτωση Προσφορών',
+      results: 'Αποτελέσματα',
+      agentResponses: 'Οι απαντήσεις του agent θα εμφανιστούν εδώ',
+      agentResponsesDesc: 'Δοκιμάστε να ρωτήσετε για προσφορές, προμηθευτές ή συμβάσεις',
+      send: 'Αποστολή',
       suggestionChips: [
-        "Σύγκριση προσφορών εξοπλισμού",
-        "Εύρεση προμηθευτών IT",
-        "Δημιουργία αναφοράς προμηθειών",
-        "Όροι πληρωμής στα συμβόλαια;",
-        "Προσφορές ιατρικού εξοπλισμού",
-        "Εύρεση κορυφαίων προμηθευτών"
-      ]
-    }
+        'Σύγκριση προσφορών εξοπλισμού',
+        'Εύρεση προμηθευτών IT',
+        'Δημιουργία αναφοράς προμηθειών',
+        'Όροι πληρωμής στα συμβόλαια;',
+        'Προσφορές ιατρικού εξοπλισμού',
+        'Εύρεση κορυφαίων προμηθευτών',
+      ],
+    },
   };
 
   const t = translations[language];
@@ -278,126 +310,131 @@ function App() {
 
   const handleLoadSuppliers = async () => {
     try {
-      setErrorMessage(null);
       const response = await fetchWithTimeout('http://localhost:8000/suppliers', undefined, 15000);
-      if (!response || !response.ok) {
-        throw new Error('Failed to fetch suppliers');
-      }
+      if (!response || !response.ok) throw new Error('Failed to fetch suppliers');
       const data = await response.json();
       setSuppliers(data);
-      setErrorMessage(`Loaded ${data.length} suppliers`);
+      toast.success(`Loaded ${data.length} suppliers`);
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Failed to load suppliers');
+      toast.error(error instanceof Error ? error.message : 'Failed to load suppliers');
     }
   };
 
   const handleLoadBids = async () => {
     try {
-      setErrorMessage(null);
       const response = await fetchWithTimeout('http://localhost:8000/bids', undefined, 15000);
-      if (!response || !response.ok) {
-        throw new Error('Failed to fetch bids');
-      }
+      if (!response || !response.ok) throw new Error('Failed to fetch bids');
       const data = await response.json();
       setBids(data);
-      setErrorMessage(`Loaded ${data.length} bids`);
+      toast.success(`Loaded ${data.length} bids`);
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Failed to load bids');
+      toast.error(error instanceof Error ? error.message : 'Failed to load bids');
     }
   };
 
+  const visibleSuppliers = showMoreSuppliers ? suppliers : suppliers.slice(0, 5);
+  const visibleBids = showMoreBids ? bids : bids.slice(0, 5);
+
   return (
-    <div className="h-screen flex flex-col bg-gray-50 dark:bg-gray-950">
-      {/* Top Bar */}
-      <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 px-6 py-4">
+    <div className="h-screen flex flex-col dot-grid">
+      <Toaster position="bottom-right" theme={isDarkMode ? 'dark' : 'light'} />
+
+      {/* ── Header ── */}
+      <header className="header-glass px-6 py-4">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">ProcureAI</h1>
-          <div className="flex items-center space-x-4">
+          <h1 className="text-2xl font-bold shimmer-title">ProcureAI</h1>
+          <div className="flex items-center gap-3">
+            {/* Dark mode toggle */}
             <button
               onClick={() => setIsDarkMode(prev => !prev)}
-              className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 transition-colors"
+              className="icon-btn"
               title={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
             >
               {isDarkMode ? (
-                <svg className="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+                <svg className="w-5 h-5" style={{ color: '#f59e0b' }} fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clipRule="evenodd" />
                 </svg>
               ) : (
-                <svg className="w-5 h-5 text-gray-700 dark:text-gray-300" fill="currentColor" viewBox="0 0 20 20">
+                <svg className="w-5 h-5" style={{ color: 'var(--text-secondary)' }} fill="currentColor" viewBox="0 0 20 20">
                   <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
                 </svg>
               )}
             </button>
+
+            {/* Language toggle */}
             <button
               onClick={() => setLanguage(prev => prev === 'en' ? 'gr' : 'en')}
-              className="px-3 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 transition-colors text-sm font-medium"
+              className="lang-btn"
               title={`Switch to ${language === 'en' ? 'Greek' : 'English'}`}
             >
               {language.toUpperCase()}
             </button>
-            <div className="flex items-center space-x-2">
-              <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
-              <span className="text-sm text-gray-600 dark:text-gray-300">
+
+            {/* Connection status */}
+            <div className="flex items-center gap-2">
+              <div className={`status-dot ${isConnected ? 'status-dot-connected' : 'status-dot-disconnected'}`} />
+              <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>
                 {isConnected ? t.connected : t.disconnected}
               </span>
             </div>
-            <label className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 text-white px-4 py-2 rounded-lg cursor-pointer transition-colors">
-              <span>{t.uploadPdf}</span>
-              <input
-                type="file"
-                accept=".pdf"
-                onChange={handleFileUpload}
-                className="hidden"
-              />
-            </label>
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left Panel - Chat */}
-        <div className="w-full lg:w-1/2 flex flex-col border-r border-gray-200 dark:border-gray-700">
+      {/* ── Main Content ── */}
+      <div className="flex-1 flex overflow-hidden p-3 gap-3">
+
+        {/* ── Left Panel — Chat ── */}
+        <div className="w-full lg:w-1/2 flex flex-col panel-glass overflow-hidden">
+
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
             {messages.length === 0 && (
-              <div className="text-center text-gray-600 dark:text-gray-300 mt-8">
-                <p className="text-lg mb-2">{t.welcome}</p>
-                <p>{t.welcomeDesc}</p>
+              <div className="text-center mt-10 space-y-2">
+                <p className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>{t.welcome}</p>
+                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{t.welcomeDesc}</p>
               </div>
             )}
 
-            {messages.map((message) => (
+            {messages.map(message => (
               <div
                 key={message.id}
                 className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
               >
-                <div
-                  className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                    message.sender === 'user'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white'
-                  }`}
-                >
-                  <p className="text-sm">{message.text}</p>
-                  {message.toolUsed && (
-                    <p className="text-xs mt-1 opacity-75">
-                      Tool: {message.toolUsed}
-                    </p>
-                  )}
-                  <p className="text-xs mt-1 opacity-50">
-                    {message.timestamp.toLocaleTimeString()}
-                  </p>
-                </div>
+                {message.sender === 'agent' ? (
+                  <div>
+                    <div className="agent-sender-label">ProcureAI</div>
+                    <div className="bubble-agent">
+                      <div className="prose-agent">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {message.text}
+                        </ReactMarkdown>
+                      </div>
+                      {message.toolUsed && (
+                        <div className="tool-badge">⚙ {message.toolUsed}</div>
+                      )}
+                      <div className="bubble-timestamp">{message.timestamp.toLocaleTimeString()}</div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bubble-user">
+                    <p className="text-sm">{message.text}</p>
+                    <div className="bubble-timestamp">{message.timestamp.toLocaleTimeString()}</div>
+                  </div>
+                )}
               </div>
             ))}
 
             {isLoading && (
               <div className="flex justify-start">
-                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-600 px-4 py-2 rounded-lg">
-                  <div className="flex items-center space-x-2">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                    <span className="text-sm text-gray-600 dark:text-gray-300">Agent is thinking...</span>
+                <div>
+                  <div className="agent-sender-label">ProcureAI</div>
+                  <div className="bubble-agent">
+                    <div className="flex items-center gap-1" style={{ padding: '2px 0' }}>
+                      <span className="typing-dot" />
+                      <span className="typing-dot" />
+                      <span className="typing-dot" />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -407,14 +444,56 @@ function App() {
           </div>
 
           {/* Input Area */}
-          <div className="border-t border-gray-200 dark:border-gray-700 p-4">
+          <div className="p-4 space-y-3" style={{ borderTop: '1px solid var(--border-color)' }}>
+
+            {/* Drop Zone */}
+            <div
+              className={`drop-zone ${isDragging ? 'dragover' : ''}`}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <svg
+                className="mx-auto mb-2"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#0ea5e9"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
+              </svg>
+              {uploadedFileName ? (
+                <p className="text-sm font-medium" style={{ color: '#0ea5e9' }}>
+                  {uploadedFileName}
+                </p>
+              ) : (
+                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                  Drag &amp; drop PDF here, or <span style={{ color: '#0ea5e9' }}>click to upload</span>
+                </p>
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf"
+                onChange={handleFileInputChange}
+                style={{ display: 'none' }}
+              />
+            </div>
+
             {/* Suggestion Chips */}
-            <div className="flex flex-wrap gap-2 mb-4">
+            <div className="flex flex-wrap gap-2">
               {t.suggestionChips.map((suggestion, index) => (
                 <button
                   key={index}
                   onClick={() => handleSuggestionClick(suggestion)}
-                  className="bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-3 py-1 rounded-full text-sm transition-colors"
+                  className="suggestion-chip"
                 >
                   {suggestion}
                 </button>
@@ -422,19 +501,19 @@ function App() {
             </div>
 
             {/* Message Input */}
-            <form onSubmit={handleSubmit} className="flex space-x-2">
+            <form onSubmit={handleSubmit} className="flex gap-2">
               <input
                 type="text"
                 value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
+                onChange={e => setInputValue(e.target.value)}
                 placeholder={t.placeholder}
-                className="flex-1 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="chat-input"
                 disabled={isLoading}
               />
               <button
                 type="submit"
                 disabled={isLoading || !inputValue.trim()}
-                className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 disabled:bg-gray-400 dark:disabled:bg-gray-600 text-white px-6 py-2 rounded-lg transition-colors"
+                className="btn-send"
               >
                 {t.send}
               </button>
@@ -442,85 +521,121 @@ function App() {
           </div>
         </div>
 
-        {/* Right Panel - Results */}
-        <div className="w-full lg:w-1/2 p-6 overflow-y-auto bg-gray-50 dark:bg-gray-950">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-4">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">{t.dataInspector}</h2>
+        {/* ── Right Panel — Data Inspector ── */}
+        <div className="w-full lg:w-1/2 flex flex-col gap-3 overflow-y-auto">
+
+          {/* Data Inspector Card */}
+          <div className="panel-glass p-5">
+            <h2 className="text-base font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>
+              {t.dataInspector}
+            </h2>
+
             <div className="flex flex-wrap gap-2 mb-4">
-              <button
-                onClick={handleLoadSuppliers}
-                className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg text-sm"
-              >
-                {t.loadSuppliers}
-              </button>
-              <button
-                onClick={handleLoadBids}
-                className="bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-2 rounded-lg text-sm"
-              >
-                {t.loadBids}
-              </button>
+              <button onClick={handleLoadSuppliers} className="btn-outlined">{t.loadSuppliers}</button>
+              <button onClick={handleLoadBids} className="btn-outlined">{t.loadBids}</button>
             </div>
-            <div className="mb-3 text-sm text-gray-700 dark:text-gray-300">
-              Suppliers loaded: {suppliers.length}, Bids loaded: {bids.length}
-            </div>
-            {(suppliers.length > 0 || bids.length > 0) && (
-              <div className="space-y-3">
-                {suppliers.length > 0 && (
-                  <div>
-                    <h3 className="font-medium text-gray-800 dark:text-white">Suppliers ({suppliers.length})</h3>
-                    <ul className="list-disc list-inside text-sm text-gray-700 dark:text-gray-300 max-h-40 overflow-y-auto">
-                      {suppliers.slice(0, 5).map((s, idx) => (
-                        <li key={idx}>{s.name} ({s.category}, rating {s.rating})</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-                {bids.length > 0 && (
-                  <div>
-                    <h3 className="font-medium text-gray-800 dark:text-white">Bids ({bids.length})</h3>
-                    <ul className="list-disc list-inside text-sm text-gray-700 dark:text-gray-300 max-h-40 overflow-y-auto">
-                      {bids.slice(0, 5).map((b, idx) => (
-                        <li key={idx}>Bid from supplier {b.supplier_id}, total ${b.total_price}, status {b.status}</li>
-                      ))}
-                    </ul>
-                  </div>
+
+            <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>
+              Suppliers: {suppliers.length} &nbsp;·&nbsp; Bids: {bids.length}
+            </p>
+
+            {/* Supplier Cards */}
+            {suppliers.length > 0 && (
+              <div className="mb-4">
+                <p className="section-label">Suppliers ({suppliers.length})</p>
+                <div className="space-y-2">
+                  {visibleSuppliers.map((s, idx) => (
+                    <div key={idx} className="data-card">
+                      <div className="flex items-center justify-between flex-wrap gap-1 mb-1">
+                        <span className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>{s.name}</span>
+                        <span className="category-badge">{s.category}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <StarRating rating={s.rating} />
+                        <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{s.contact}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {suppliers.length > 5 && (
+                  <button className="show-more-btn" onClick={() => setShowMoreSuppliers(p => !p)}>
+                    {showMoreSuppliers ? 'Show less' : `Show ${suppliers.length - 5} more`}
+                  </button>
                 )}
               </div>
             )}
-            {errorMessage && (
-              <div className="mt-4 text-sm text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-3 rounded">
-                {errorMessage}
+
+            {/* Bid Cards */}
+            {bids.length > 0 && (
+              <div>
+                <p className="section-label">Bids ({bids.length})</p>
+                <div className="space-y-2">
+                  {visibleBids.map((b, idx) => (
+                    <div key={idx} className="data-card">
+                      <div className="flex items-center justify-between flex-wrap gap-1 mb-1">
+                        <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>
+                          Supplier: <span style={{ color: 'var(--text-primary)' }}>{b.supplier_id}</span>
+                        </span>
+                        <StatusPill status={b.status} />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-semibold" style={{ color: '#0ea5e9' }}>
+                          {b.total_price.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
+                        </span>
+                        <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                          {b.delivery_days}d delivery
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {bids.length > 5 && (
+                  <button className="show-more-btn" onClick={() => setShowMoreBids(p => !p)}>
+                    {showMoreBids ? 'Show less' : `Show ${bids.length - 5} more`}
+                  </button>
+                )}
               </div>
             )}
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">{t.results}</h2>
+          {/* Results Card */}
+          <div className="panel-glass p-5 flex-1">
+            <h2 className="text-base font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>
+              {t.results}
+            </h2>
 
-            {messages.length === 0 ? (
-              <div className="text-center text-gray-600 dark:text-gray-300 py-8">
-                <p>{t.agentResponses}</p>
-                <p className="text-sm mt-2">{t.agentResponsesDesc}</p>
+            {messages.filter(m => m.sender === 'agent').length === 0 ? (
+              <div className="text-center py-8 space-y-1">
+                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{t.agentResponses}</p>
+                <p className="text-xs" style={{ color: 'var(--text-secondary)', opacity: 0.7 }}>{t.agentResponsesDesc}</p>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {messages
                   .filter(msg => msg.sender === 'agent')
-                  .slice(-3) // Show last 3 agent responses
-                  .map((message) => (
-                    <div key={message.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-white dark:bg-gray-900">
-                      <div className="flex items-start justify-between mb-2">
-                        <h3 className="font-medium text-gray-900 dark:text-gray-100">Agent Response</h3>
+                  .slice(-3)
+                  .map(message => (
+                    <div key={message.id} className="data-card">
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <span className="text-xs font-semibold" style={{ color: '#0ea5e9' }}>ProcureAI</span>
                         {message.toolUsed && (
-                          <span className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs px-2 py-1 rounded">
-                            {message.toolUsed}
-                          </span>
+                          <span className="tool-badge">⚙ {message.toolUsed}</span>
                         )}
                       </div>
-                      <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{message.text}</p>
-                      <p className="text-xs text-gray-600 dark:text-gray-300 mt-2">
-                        {message.timestamp.toLocaleString()}
-                      </p>
+                      <div
+                        className="prose-agent"
+                        style={{
+                          fontFamily: "'JetBrains Mono', monospace",
+                          fontSize: '0.78rem',
+                          lineHeight: '1.6',
+                          color: 'var(--text-primary)',
+                        }}
+                      >
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {message.text}
+                        </ReactMarkdown>
+                      </div>
+                      <p className="bubble-timestamp">{message.timestamp.toLocaleString()}</p>
                     </div>
                   ))}
               </div>
