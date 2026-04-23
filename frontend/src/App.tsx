@@ -4,17 +4,41 @@ import remarkGfm from 'remark-gfm';
 import { toast, Toaster } from 'sonner';
 import './App.css';
 
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface TraceStep {
+  type: 'thought' | 'tool_call' | 'observation';
+  content?: string;
+  tool?: string;
+  input?: string;
+}
+
+interface UsageInfo {
+  input_tokens: number;
+  output_tokens: number;
+  cost_usd: number;
+  cache_creation_tokens?: number;
+  cache_read_tokens?: number;
+  tool_calls_count?: number;
+}
+
 interface Message {
   id: string;
   text: string;
   sender: 'user' | 'agent';
   timestamp: Date;
   toolUsed?: string;
+  trace?: TraceStep[];
+  usage?: UsageInfo;
+  conversationId?: string;
 }
 
 interface AgentResponse {
   response: string;
   tool_used?: string;
+  conversation_id?: string;
+  usage?: UsageInfo;
+  trace?: TraceStep[];
 }
 
 interface Supplier {
@@ -53,6 +77,7 @@ const Icon = ({ name, size = 16, color = 'currentColor' }: { name: string; size?
     refresh:   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>,
     search:    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
     globe:     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>,
+    brain:     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round"><path d="M9.5 2a2.5 2.5 0 014.8.9A3 3 0 0117 6a3 3 0 01-1.5 2.6A3 3 0 0118 11a3 3 0 01-2.5 3A2.5 2.5 0 0114 16.5V22"/><path d="M9.5 2a2.5 2.5 0 00-4.8.9A3 3 0 006 6a3 3 0 001.5 2.6A3 3 0 006 11a3 3 0 002.5 3A2.5 2.5 0 0110 16.5V22"/></svg>,
   };
   return icons[name] ?? null;
 };
@@ -84,6 +109,66 @@ const TypingDots = () => (
   </div>
 );
 
+// ─── Trace panel ─────────────────────────────────────────────────────────────
+const STEP_META: Record<TraceStep['type'], { icon: string; label_en: string; label_gr: string }> = {
+  thought:     { icon: '🤔', label_en: 'Thought',      label_gr: 'Σκέψη' },
+  tool_call:   { icon: '🔧', label_en: 'Tool call',    label_gr: 'Κλήση εργαλείου' },
+  observation: { icon: '📋', label_en: 'Observation',  label_gr: 'Παρατήρηση' },
+};
+
+function TracePanel({ trace, lang, viewLabel, hideLabel }: {
+  trace: TraceStep[];
+  lang: 'en' | 'gr';
+  viewLabel: string;
+  hideLabel: string;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="trace-panel">
+      <button className="trace-toggle" onClick={() => setOpen(p => !p)}>
+        <span className="trace-toggle-icon">{open ? '▲' : '▼'}</span>
+        {open ? hideLabel : viewLabel}
+      </button>
+      {open && (
+        <div className="trace-steps">
+          {trace.map((step, i) => {
+            const meta = STEP_META[step.type];
+            const label = lang === 'gr' ? meta.label_gr : meta.label_en;
+            const body = step.type === 'tool_call'
+              ? `${step.tool}(${step.input ?? ''})`
+              : (step.content ?? '');
+            return (
+              <div key={i} className={`trace-step trace-step-${step.type}`}>
+                <span className="trace-step-icon">{meta.icon}</span>
+                <div className="trace-step-body">
+                  <span className="trace-step-label">{label}</span>
+                  <p className="trace-step-text">{body}</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Usage badge ─────────────────────────────────────────────────────────────
+function UsageBadge({ usage }: { usage: UsageInfo }) {
+  const tooltip = [
+    `Input: ${usage.input_tokens} tokens`,
+    `Output: ${usage.output_tokens} tokens`,
+    usage.cache_creation_tokens ? `Cache write: ${usage.cache_creation_tokens}` : '',
+    usage.cache_read_tokens     ? `Cache read: ${usage.cache_read_tokens}` : '',
+  ].filter(Boolean).join(' · ');
+
+  return (
+    <div className="usage-badge" title={tooltip}>
+      ↑{usage.input_tokens} ↓{usage.output_tokens} · ${usage.cost_usd.toFixed(4)}
+    </div>
+  );
+}
+
 // ─── Suggestion data ──────────────────────────────────────────────────────────
 const SUGGESTIONS = {
   en: [
@@ -114,6 +199,8 @@ const TRANSLATIONS = {
     agentResponses: 'Agent Responses',
     noResults: 'No results yet',
     noResultsDesc: 'Start a conversation to see AI responses here',
+    viewReasoning: 'View reasoning',
+    hideReasoning: 'Hide reasoning',
   },
   gr: {
     connected: 'Συνδεδεμένο', disconnected: 'Αποσυνδεδεμένο',
@@ -124,6 +211,8 @@ const TRANSLATIONS = {
     agentResponses: 'Απαντήσεις',
     noResults: 'Δεν υπάρχουν αποτελέσματα',
     noResultsDesc: 'Ξεκινήστε μια συζήτηση για να δείτε απαντήσεις εδώ',
+    viewReasoning: 'Εμφάνιση λογικής',
+    hideReasoning: 'Απόκρυψη λογικής',
   },
 };
 
@@ -161,13 +250,8 @@ function App() {
       chatRef.current.scrollTop = chatRef.current.scrollHeight;
   }, [messages]);
 
-  useEffect(() => {
-    localStorage.setItem('darkMode', String(isDark));
-  }, [isDark]);
-
-  useEffect(() => {
-    localStorage.setItem('language', language);
-  }, [language]);
+  useEffect(() => { localStorage.setItem('darkMode', String(isDark)); }, [isDark]);
+  useEffect(() => { localStorage.setItem('language', language); }, [language]);
 
   const fetchWithTimeout = async (input: RequestInfo, init?: RequestInit, timeout = 15000) => {
     const ctrl = new AbortController();
@@ -217,6 +301,9 @@ function App() {
         sender: 'agent',
         timestamp: new Date(),
         toolUsed: data.tool_used,
+        trace: data.trace,
+        usage: data.usage,
+        conversationId: data.conversation_id,
       }]);
       setRightTab('results');
     } catch (err) {
@@ -406,7 +493,16 @@ function App() {
                         {msg.toolUsed && (
                           <div className="tool-badge">⚙ {msg.toolUsed}</div>
                         )}
+                        {msg.usage && <UsageBadge usage={msg.usage} />}
                       </div>
+                      {msg.trace && msg.trace.length > 0 && (
+                        <TracePanel
+                          trace={msg.trace}
+                          lang={language}
+                          viewLabel={t.viewReasoning}
+                          hideLabel={t.hideReasoning}
+                        />
+                      )}
                       <div className="msg-time">
                         {msg.timestamp.toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit' })}
                       </div>
@@ -561,7 +657,7 @@ function App() {
                   </div>
                 )}
 
-                {/* Quick stats (when bids loaded) */}
+                {/* Quick stats */}
                 {bids.length > 0 && (
                   <div className="quick-stats">
                     <p className="section-label">Quick Stats</p>
@@ -662,9 +758,11 @@ function App() {
                           {msg.text.length > 160 ? msg.text.slice(0, 157) + '…' : msg.text}
                         </div>
                         <div className="result-card-tags">
-                          <span className="result-tag">AI</span>
                           <span className="result-tag">Procurement</span>
                           {msg.toolUsed && <span className="result-tag">{msg.toolUsed}</span>}
+                          {msg.usage && (
+                            <span className="result-tag">${msg.usage.cost_usd.toFixed(4)}</span>
+                          )}
                         </div>
                       </div>
                     ))}
