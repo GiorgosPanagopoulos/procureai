@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend:
+    name: Backend (ruff · mypy · pytest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          pip install ruff mypy pytest
+
+      - name: Ruff lint
+        run: ruff check backend/ --ignore E501
+
+      - name: Mypy type check
+        run: mypy backend/ --ignore-missing-imports --exclude backend/tests
+
+      - name: Unit tests
+        run: |
+          cd backend
+          PYTHONPATH=. python -m pytest tests/ -v
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY || 'sk-ant-placeholder' }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || 'sk-placeholder' }}
+          MONGODB_URI: mongodb://localhost:27017
+
+  frontend:
+    name: Frontend (eslint · tsc · build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: cd frontend && npm ci
+
+      - name: ESLint
+        run: cd frontend && npm run lint
+
+      - name: TypeScript check
+        run: cd frontend && npx tsc --noEmit
+
+      - name: Vite build
+        run: cd frontend && npm run build

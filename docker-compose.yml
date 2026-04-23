@@ -1,0 +1,43 @@
+version: "3.9"
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    ports:
+      - "8000:8000"
+    environment:
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      MONGODB_URI: mongodb://mongo:27017
+      CHROMA_PATH: /app/chroma_db
+      ALLOWED_ORIGINS: http://localhost:3000,http://frontend
+      USE_RERANKER: ${USE_RERANKER:-false}
+    volumes:
+      - chroma_data:/app/chroma_db
+    depends_on:
+      - mongo
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  mongo:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    restart: unless-stopped
+
+volumes:
+  chroma_data:
+  mongo_data:

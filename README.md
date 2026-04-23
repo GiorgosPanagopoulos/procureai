@@ -8,16 +8,16 @@
 
 <div align="center">
 
-![Python](https://img.shields.io/badge/Python-3.11-3776AB?style=for-the-badge&logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.135+-009688?style=for-the-badge&logo=fastapi&logoColor=white)
-![React](https://img.shields.io/badge/React-18.2.0-61DAFB?style=for-the-badge&logo=react&logoColor=black)
+[![CI](https://github.com/GiorgosPanagopoulos/procureai/actions/workflows/ci.yml/badge.svg)](https://github.com/GiorgosPanagopoulos/procureai/actions/workflows/ci.yml)
+![Python](https://img.shields.io/badge/Python-3.12-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![Node](https://img.shields.io/badge/Node-20-339933?style=for-the-badge&logo=node.js&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-009688?style=for-the-badge&logo=fastapi&logoColor=white)
+![React](https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react&logoColor=black)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
 ![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-v4-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)
-![LangChain](https://img.shields.io/badge/LangChain-AgentExecutor-1C3C3C?style=for-the-badge&logo=chainlink&logoColor=white)
+![LangChain](https://img.shields.io/badge/LangChain-ReAct-1C3C3C?style=for-the-badge&logo=chainlink&logoColor=white)
 ![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248?style=for-the-badge&logo=mongodb&logoColor=white)
-![ChromaDB](https://img.shields.io/badge/ChromaDB-1.5.5-FF6B35?style=for-the-badge&logo=databricks&logoColor=white)
-![Anthropic](https://img.shields.io/badge/Anthropic-Claude_Sonnet-CC785C?style=for-the-badge&logo=anthropic&logoColor=white)
-![OpenAI](https://img.shields.io/badge/OpenAI-Embeddings-412991?style=for-the-badge&logo=openai&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
 
 </div>
 
@@ -50,44 +50,56 @@
 
 ```mermaid
 graph TD
-    subgraph Frontend["⚛️ Frontend (React + TypeScript)"]
-        UI["Chat Interface\n/chat · /upload · /reports"]
+    User["👤 User"] -->|HTTP/JSON| React
+
+    subgraph Frontend["⚛️ React · TypeScript · Tailwind v4"]
+        React["Chat UI\nTrace panel · Usage badge\nDark/light · EN/GR i18n"]
     end
 
-    subgraph Backend["⚙️ Backend (FastAPI)"]
-        API["REST API\n/chat · /suppliers · /bids\n/upload · /doc_qa · /reports"]
+    subgraph Backend["⚙️ FastAPI · Python 3.12"]
+        MW["Middleware\nCORS · Rate limit · Correlation ID\nPII redaction · structlog"]
+        API["REST API v4\n/chat · /suppliers · /bids\n/upload · /conversations/{id}/trace"]
     end
 
-    subgraph AgentLayer["🦜 Agent Layer (LangChain ReAct)"]
-        AGENT["AgentExecutor\ncreate_react_agent"]
-        T1["🔍 Supplier Lookup"]
-        T2["📊 Bid Comparison"]
-        T3["📄 Document Q&A"]
-        T4["📋 Report Generator"]
+    subgraph Agent["🦜 LangChain ReAct Agent"]
+        EXEC["AgentExecutor\nreturn_intermediate_steps=True"]
+        T1["🔍 supplier_lookup"]
+        T2["📊 bid_comparison"]
+        T3["📄 document_qa\n+ prompt caching"]
+        T4["📋 report_generation"]
     end
 
-    subgraph DataLayer["🗄️ Data Layer"]
-        MONGO["MongoDB Atlas\nSuppliers · Bids"]
+    subgraph Data["🗄️ Data Layer"]
+        MONGO["MongoDB Atlas\nSuppliers · Bids · Usage · Conversations"]
         CHROMA["ChromaDB\nVector Store"]
-        EMBED["OpenAI\ntext-embedding-3-small"]
+        RERANK["CrossEncoder Reranker\nms-marco-MiniLM (optional)"]
     end
 
-    subgraph LLM["🧠 LLM Layer"]
-        CLAUDE["Anthropic Claude\nclaude-sonnet-4-20250514"]
+    subgraph LLM["🧠 LLM"]
+        CLAUDE["Anthropic Claude Sonnet\nPrompt caching · Token tracking"]
+        EMBED["OpenAI text-embedding-3-small"]
     end
 
-    UI -->|HTTP / JSON| API
-    API --> AGENT
-    AGENT --> T1
-    AGENT --> T2
-    AGENT --> T3
-    AGENT --> T4
-    T1 --> MONGO
-    T2 --> MONGO
-    T3 --> EMBED
-    EMBED --> CHROMA
-    CHROMA -->|Retrieved context| T3
-    AGENT <-->|Reasoning & tool calls| CLAUDE
+    React -->|POST /chat| MW
+    MW --> API
+    API --> EXEC
+    EXEC --> T1 & T2 & T4
+    EXEC --> T3
+    T1 & T2 & T4 --> MONGO
+    T3 --> EMBED --> CHROMA
+    CHROMA -->|top-N chunks| RERANK -->|top-5 reranked| T3
+    T3 -->|cached context| CLAUDE
+    EXEC <-->|ReAct reasoning| CLAUDE
+    API -->|persist trace + usage| MONGO
+```
+
+### One-command Docker start
+
+```bash
+cp backend/.env.example backend/.env   # add your API keys
+docker compose up --build
+# frontend → http://localhost:3000
+# backend  → http://localhost:8000
 ```
 
 ---
@@ -186,25 +198,28 @@ From the repo root, run both services with:
 
 Copy `backend/.env.example` to `backend/.env` and fill in the values below:
 
-| Variable | Description | Required |
-|----------|-------------|:--------:|
-| `ANTHROPIC_API_KEY` | Claude API key for LLM reasoning | ✅ |
-| `OPENAI_API_KEY` | OpenAI API key for document embeddings | ✅ |
-| `MONGODB_URI` | MongoDB Atlas connection string | ✅ |
+| Variable | Description | Required | Default |
+|----------|-------------|----------|---------|
+| `ANTHROPIC_API_KEY` | Claude API key for LLM reasoning | ✅ | — |
+| `OPENAI_API_KEY` | OpenAI API key for document embeddings | ✅ | — |
+| `MONGODB_URI` | MongoDB Atlas connection string | ✅ | `mongodb://localhost:27017` |
+| `ALLOWED_ORIGINS` | Comma-separated CORS origins | ➖ | `http://localhost:3000,http://localhost:5173` |
+| `CHROMA_PATH` | Path to ChromaDB persistence directory | ➖ | `./chroma_db` |
+| `USE_RERANKER` | Enable CrossEncoder reranker for RAG | ➖ | `false` |
 
 ---
 
 ## 📡 API Endpoints
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/` | Health check |
-| `GET` | `/suppliers` | Return all supplier records |
-| `GET` | `/bids` | Return all bid records |
-| `POST` | `/chat` | Send a message `{"message": "..."}` to the ReAct agent |
-| `POST` | `/upload` | Upload a PDF document (multipart form) |
-| `GET` | `/reports` | Retrieve procurement report data |
-| `POST` | `/doc_qa` | Ask a question about an uploaded document (`?question=...`) |
+| Method | Endpoint | Rate limit | Description |
+| ------ | -------- | ---------- | ----------- |
+| `GET` | `/` | — | Health check |
+| `GET` | `/suppliers` | 30/min | Return all supplier records |
+| `GET` | `/bids` | 30/min | Return all bid records |
+| `POST` | `/chat` | 10/min | Send `{"message":"…"}` to ReAct agent; returns `response`, `trace`, `usage`, `conversation_id` |
+| `POST` | `/upload` | 30/min | Upload a PDF document (multipart form) |
+| `GET` | `/conversations/{id}/trace` | — | Get ReAct reasoning trace for a conversation |
+| `POST` | `/doc_qa` | 30/min | Ask a question directly (`?question=…`) |
 
 ---
 
