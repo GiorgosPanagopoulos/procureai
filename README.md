@@ -46,6 +46,20 @@
 
 ---
 
+## 📸 Screenshots
+
+![Demo](docs/screenshots/demo.gif)
+
+| Welcome State | Agent Response |
+|:---:|:---:|
+| ![Welcome](docs/screenshots/welcome.png) | ![Agent Response](docs/screenshots/agent_response.png) |
+
+| Typing Indicator |
+|:---:|
+| ![Typing](docs/screenshots/typing.png) |
+
+---
+
 ## 🏗️ Architecture
 
 ```mermaid
@@ -121,27 +135,6 @@ docker compose up --build
 
 ---
 
-## 📸 Screenshots
-
-### 🖥️ Welcome State
-
-Split-panel UI with drag-and-drop PDF upload, suggestion chips, and animated signal icon.
-
-![Welcome State](docs/screenshots/welcome-state.png)
-
-### ⏳ Typing Indicator
-
-Real-time animated typing indicator while the ReAct agent processes the query.
-
-![Typing Indicator](docs/screenshots/typing-indicator.png)
-
-### 🔍 Agent Response
-
-Markdown-rendered response with tool usage badge and mirrored results panel.
-
-![Agent Response](docs/screenshots/agent-response.png)
-
----
 
 ## 🚀 Quick Start
 
