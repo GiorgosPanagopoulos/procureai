@@ -48,15 +48,17 @@
 
 ## 📸 Screenshots
 
-| Welcome State | Agent Response |
-|:---:|:---:|
-| ![Welcome](docs/screenshots/welcome.png) | ![Agent Response](docs/screenshots/agent_response.png) |
+| Welcome State |
+|:---:|
+| ![Welcome](docs/screenshots/welcome.png) | 
 
 | Typing Indicator |
 |:---:|
 | ![Typing](docs/screenshots/typing.png) |
 
----
+| Agent Response |
+|:---:|
+![Agent Response](docs/screenshots/agent_response.png) |---
 
 ## 🏗️ Architecture
 
