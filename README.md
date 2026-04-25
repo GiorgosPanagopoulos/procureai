@@ -48,8 +48,6 @@
 
 ## 📸 Screenshots
 
-![Demo](docs/screenshots/demo.gif)
-
 | Welcome State | Agent Response |
 |:---:|:---:|
 | ![Welcome](docs/screenshots/welcome.png) | ![Agent Response](docs/screenshots/agent_response.png) |
