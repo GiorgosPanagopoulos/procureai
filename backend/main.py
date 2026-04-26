@@ -264,8 +264,12 @@ def ingest_text(source: str, text: str) -> int:
     ids = [f"{source}_chunk_{i}" for i in range(len(chunks))]
     embeddings = [embed_text(c) for c in chunks]
     metadatas: List[Dict[str, str]] = [{"source": source, "chunk": str(i)} for i in range(len(chunks))]
+    safe_metadatas: List[Dict[str, str]] = [
+        {str(k): str(v) for k, v in m.items()}
+        for m in (metadatas or [])
+    ]
     try:
-        chroma_collection.add(ids=ids, metadatas=metadatas, documents=chunks, embeddings=np.array(embeddings))
+        chroma_collection.add(ids=ids, metadatas=safe_metadatas, documents=chunks, embeddings=np.array(embeddings))
     except Exception as exc:
         log.error("chroma_add_failed", error=str(exc))
     return len(chunks)
@@ -323,8 +327,7 @@ def document_qa(question: str) -> str:
             if dl is not None:
                 all_docs.extend(dl)
         for ml in results.get("metadatas") or []:
-            if ml is not None:
-                all_metas.extend(ml)
+            all_metas.extend(list(ml) if ml is not None else [])
 
     if settings.USE_RERANKER and all_docs:
         reranker = _get_reranker()
