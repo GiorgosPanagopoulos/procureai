@@ -193,3 +193,6 @@ typings/
 # ChromaDB
 .chroma/.DS_Store
 .DS_Store
+
+# Claude Code
+.claude/
