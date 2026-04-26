@@ -269,7 +269,7 @@ def ingest_text(source: str, text: str) -> int:
         for m in (metadatas or [])
     ]
     try:
-        chroma_collection.add(ids=ids, metadatas=safe_metadatas, documents=chunks, embeddings=np.array(embeddings))
+        chroma_collection.add(ids=ids, metadatas=safe_metadatas, documents=chunks, embeddings=np.array(embeddings))  # type: ignore[arg-type]
     except Exception as exc:
         log.error("chroma_add_failed", error=str(exc))
     return len(chunks)
@@ -327,7 +327,7 @@ def document_qa(question: str) -> str:
             if dl is not None:
                 all_docs.extend(dl)
         for ml in results.get("metadatas") or []:
-            all_metas.extend(list(ml) if ml is not None else [])
+            all_metas.extend(list(ml) if ml is not None else [])  # type: ignore[arg-type]
 
     if settings.USE_RERANKER and all_docs:
         reranker = _get_reranker()
