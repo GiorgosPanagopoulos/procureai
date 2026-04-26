@@ -193,6 +193,8 @@ typings/
 # ChromaDB
 .chroma/.DS_Store
 .DS_Store
+backend/chroma_db/
+backend/chroma_db_test/
 
 # Claude Code
 .claude/
