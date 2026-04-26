@@ -11,7 +11,8 @@ from fastapi import FastAPI, HTTPException, Request, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
-from pydantic import BaseModel
+import numpy as np
+from pydantic import BaseModel, SecretStr
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
@@ -190,7 +191,7 @@ _raw_anthropic = anthropic_sdk.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
 
 claude_llm = ChatAnthropic(  # type: ignore[call-arg]
     model=MODEL_NAME,
-    api_key=settings.ANTHROPIC_API_KEY,
+    api_key=SecretStr(settings.ANTHROPIC_API_KEY),
     temperature=0,
     max_tokens=1024,
     callbacks=[_UsageCallback()],
@@ -262,9 +263,9 @@ def ingest_text(source: str, text: str) -> int:
         return 0
     ids = [f"{source}_chunk_{i}" for i in range(len(chunks))]
     embeddings = [embed_text(c) for c in chunks]
-    metadatas = [{"source": source, "chunk": i} for i in range(len(chunks))]
+    metadatas: List[Dict[str, str]] = [{"source": source, "chunk": str(i)} for i in range(len(chunks))]
     try:
-        chroma_collection.add(ids=ids, metadatas=metadatas, documents=chunks, embeddings=embeddings)
+        chroma_collection.add(ids=ids, metadatas=metadatas, documents=chunks, embeddings=np.array(embeddings))
     except Exception as exc:
         log.error("chroma_add_failed", error=str(exc))
     return len(chunks)
@@ -308,7 +309,7 @@ def document_qa(question: str) -> str:
 
     try:
         results = chroma_collection.query(
-            query_embeddings=[query_embedding],
+            query_embeddings=np.array([query_embedding]),
             n_results=n_retrieve,
             include=["documents", "metadatas"],
         )
@@ -317,11 +318,13 @@ def document_qa(question: str) -> str:
 
     all_docs: List[str] = []
     all_metas: List[Dict] = []
-    if results and results.get("documents"):
-        for dl in results["documents"]:
-            all_docs.extend(dl)
-        for ml in results.get("metadatas", []):
-            all_metas.extend(ml)
+    if results:
+        for dl in results.get("documents") or []:
+            if dl is not None:
+                all_docs.extend(dl)
+        for ml in results.get("metadatas") or []:
+            if ml is not None:
+                all_metas.extend(ml)
 
     if settings.USE_RERANKER and all_docs:
         reranker = _get_reranker()
