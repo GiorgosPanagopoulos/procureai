@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import List, Dict, Optional
+from typing import List, Optional
 from bson import ObjectId
 from enum import Enum
 

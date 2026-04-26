@@ -5,7 +5,6 @@ Tests intent routing and tool selection with example procurement queries
 """
 
 import asyncio
-import json
 
 # Mock the router_agent function for testing (since we can't import with dependencies)
 test_queries = [
@@ -42,18 +41,18 @@ async def test_agent_routing():
         expected = expected_intents.get(query, "multi_tool")
         print(f"Query {i}: {query}")
         print(f"  → Expected Intent: {expected}")
-        print(f"  → Tool(s):")
+        print("  → Tool(s):")
         
         if expected == "document_qa":
-            print(f"     - Document Q&A: Search ChromaDB for contract terms")
+            print("     - Document Q&A: Search ChromaDB for contract terms")
         elif expected == "bid_comparison":
-            print(f"     - Bid Comparison: Query MongoDB bids, rank by price/delivery")
+            print("     - Bid Comparison: Query MongoDB bids, rank by price/delivery")
         elif expected == "supplier_lookup":
-            print(f"     - Supplier Lookup: Query MongoDB suppliers with filters")
+            print("     - Supplier Lookup: Query MongoDB suppliers with filters")
         elif expected == "report":
-            print(f"     - Report Generation: Aggregate data from MongoDB")
+            print("     - Report Generation: Aggregate data from MongoDB")
         elif expected == "multi_tool":
-            print(f"     - Multi-Tool: Combine document search, bid comparison, supplier lookup")
+            print("     - Multi-Tool: Combine document search, bid comparison, supplier lookup")
         
         print()
     

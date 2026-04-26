@@ -4,13 +4,13 @@ from datetime import datetime
 
 try:
     from reportlab.lib.pagesizes import letter
-    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.styles import getSampleStyleSheet
     from reportlab.lib.units import inch
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
     from reportlab.lib import colors
 except ImportError:
     # If reportlab is not available, use fpdf2
-    from fpdf import FPDF
+    pass
 
 def create_contract_buildpro():
     """Create a sample construction contract PDF."""
