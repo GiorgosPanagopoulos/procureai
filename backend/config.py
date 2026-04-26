@@ -14,8 +14,8 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    ANTHROPIC_API_KEY: str
-    OPENAI_API_KEY: str
+    ANTHROPIC_API_KEY: str = ""
+    OPENAI_API_KEY: str = ""
     MONGODB_URI: str = "mongodb://localhost:27017"
     CHROMA_PATH: str = str(_BACKEND_DIR / "chroma_db")
     ALLOWED_ORIGINS: str = "http://localhost:3000,http://localhost:5173"

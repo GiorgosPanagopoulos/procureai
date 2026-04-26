@@ -18,6 +18,7 @@ from slowapi.util import get_remote_address
 from pypdf import PdfReader
 
 import anthropic as anthropic_sdk
+from anthropic.types import TextBlock
 from chromadb import Client as ChromaClient
 from chromadb.config import Settings as ChromaSettings
 from openai import OpenAI
@@ -155,7 +156,7 @@ limiter = Limiter(key_func=get_remote_address)
 
 app = FastAPI(title="ProcureAI API", version="4.0.0", lifespan=lifespan)
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]
 
 
 class CorrelationIDMiddleware(BaseHTTPMiddleware):
@@ -181,13 +182,13 @@ app.add_middleware(
 
 # ── External clients ──────────────────────────────────────────────────────────
 
-mongo_client = AsyncIOMotorClient(settings.MONGODB_URI)
+mongo_client: AsyncIOMotorClient = AsyncIOMotorClient(settings.MONGODB_URI)
 db = mongo_client.procureai
 
 openai_client = OpenAI(api_key=settings.OPENAI_API_KEY)
 _raw_anthropic = anthropic_sdk.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
 
-claude_llm = ChatAnthropic(
+claude_llm = ChatAnthropic(  # type: ignore[call-arg]
     model=MODEL_NAME,
     api_key=settings.ANTHROPIC_API_KEY,
     temperature=0,
@@ -353,7 +354,8 @@ def document_qa(question: str) -> str:
         accum = _current_usage.get()
         if accum is not None:
             accum.add_anthropic(response.usage)
-        answer: str = response.content[0].text
+        first_block = response.content[0]
+        answer: str = first_block.text if isinstance(first_block, TextBlock) else str(first_block)
     except Exception as exc:
         answer = f"Error generating answer: {exc}"
 
