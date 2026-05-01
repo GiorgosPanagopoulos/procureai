@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import structlog
-from fastapi import FastAPI, HTTPException, Request, UploadFile, File
+from fastapi import Depends, FastAPI, HTTPException, Request, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -33,6 +33,8 @@ from langchain_core.prompts import PromptTemplate
 from config import settings
 from models import Supplier, Bid
 from security.pii import redact_pii
+from auth.dependencies import get_current_user
+from api.routes.auth import router as auth_router
 
 # ── Logging ──────────────────────────────────────────────────────────────────
 
@@ -180,6 +182,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(auth_router)
 
 # ── External clients ──────────────────────────────────────────────────────────
 
@@ -575,7 +579,7 @@ async def root():
 
 @app.get("/suppliers", response_model=List[Supplier])
 @limiter.limit("30/minute")
-async def get_suppliers(request: Request):
+async def get_suppliers(request: Request, current_user: dict = Depends(get_current_user)):
     suppliers = []
     async for supplier in db.suppliers.find():
         suppliers.append(Supplier(**supplier))
@@ -584,7 +588,7 @@ async def get_suppliers(request: Request):
 
 @app.get("/bids", response_model=List[Bid])
 @limiter.limit("30/minute")
-async def get_bids(request: Request):
+async def get_bids(request: Request, current_user: dict = Depends(get_current_user)):
     bids = []
     async for bid in db.bids.find():
         bids.append(Bid(**bid))
@@ -593,7 +597,7 @@ async def get_bids(request: Request):
 
 @app.post("/chat")
 @limiter.limit("10/minute")
-async def chat(request: Request, payload: ChatRequest):
+async def chat(request: Request, payload: ChatRequest, current_user: dict = Depends(get_current_user)):
     if not payload.message.strip():
         raise HTTPException(status_code=400, detail="Message cannot be empty")
     cid = payload.conversation_id or str(uuid.uuid4())
@@ -611,7 +615,7 @@ async def chat(request: Request, payload: ChatRequest):
 
 @app.post("/upload")
 @limiter.limit("30/minute")
-async def upload_file(request: Request, file: UploadFile = File(...)):
+async def upload_file(request: Request, file: UploadFile = File(...), current_user: dict = Depends(get_current_user)):
     if file.content_type != "application/pdf":
         raise HTTPException(status_code=400, detail="Only PDF uploads are supported")
     content = await file.read()
@@ -624,12 +628,12 @@ async def upload_file(request: Request, file: UploadFile = File(...)):
 
 @app.post("/doc_qa")
 @limiter.limit("30/minute")
-async def qna(request: Request, question: str):
+async def qna(request: Request, question: str, current_user: dict = Depends(get_current_user)):
     return {"answer": document_qa.invoke(question), "question": question}
 
 
 @app.get("/conversations/{conversation_id}/trace")
-async def get_trace(conversation_id: str):
+async def get_trace(conversation_id: str, current_user: dict = Depends(get_current_user)):
     doc = await db.conversations.find_one({"conversation_id": conversation_id})
     if not doc:
         raise HTTPException(status_code=404, detail="Conversation not found")
@@ -638,7 +642,7 @@ async def get_trace(conversation_id: str):
 
 @app.get("/reports")
 @limiter.limit("30/minute")
-async def get_reports(request: Request):
+async def get_reports(request: Request, current_user: dict = Depends(get_current_user)):
     return {"reports": []}
 
 
