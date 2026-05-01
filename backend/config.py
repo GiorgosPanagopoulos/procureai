@@ -21,6 +21,18 @@ class Settings(BaseSettings):
     ALLOWED_ORIGINS: str = "http://localhost:3000,http://localhost:5173"
     USE_RERANKER: bool = False
 
+    SECRET_KEY: str = "changethis"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    FIRST_SUPERUSER_EMAIL: str = "admin@procureai.local"
+    FIRST_SUPERUSER_PASSWORD: str = "changethis"
+
+    @field_validator("SECRET_KEY")
+    @classmethod
+    def warn_if_default_secret(cls, v: str) -> str:
+        if v == "changethis":
+            print("WARNING: SECRET_KEY is set to the default value. Change it before deploying to production.")
+        return v
+
     @field_validator("ANTHROPIC_API_KEY", "OPENAI_API_KEY")
     @classmethod
     def must_not_be_empty(cls, v: str) -> str:
