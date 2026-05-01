@@ -151,6 +151,26 @@ async def lifespan(app: FastAPI):
                     log.info("pdf_ingested", file=result["file"], chunks=result["chunks"])
                 except Exception as exc:
                     log.error("pdf_ingest_failed", file=pdf_path.name, error=str(exc))
+    # --- Superuser seed ---
+    from crud.user import get_user_by_email, create_user
+    from schemas.user import UserCreate
+
+    existing = await get_user_by_email(db, settings.FIRST_SUPERUSER_EMAIL)
+    if not existing:
+        superuser_in = UserCreate(
+            email=settings.FIRST_SUPERUSER_EMAIL,
+            password=settings.FIRST_SUPERUSER_PASSWORD,
+            full_name="Admin",
+        )
+        user_doc = await create_user(db, superuser_in)
+        if user_doc:
+            await db.users.update_one(
+                {"email": settings.FIRST_SUPERUSER_EMAIL},
+                {"$set": {"is_superuser": True}}
+            )
+            log.info("superuser_created", email=settings.FIRST_SUPERUSER_EMAIL)
+    else:
+        log.info("superuser_exists", email=settings.FIRST_SUPERUSER_EMAIL)
     yield
 
 # ── FastAPI app ───────────────────────────────────────────────────────────────
