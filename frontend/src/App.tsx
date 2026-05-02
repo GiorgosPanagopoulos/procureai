@@ -3,6 +3,8 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { toast, Toaster } from 'sonner';
 import './App.css';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import LoginPage from './pages/LoginPage';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -217,7 +219,7 @@ const TRANSLATIONS = {
 };
 
 // ─── App ──────────────────────────────────────────────────────────────────────
-function App() {
+function AppContent() {
   const [messages, setMessages]       = useState<Message[]>([]);
   const [inputValue, setInputValue]   = useState('');
   const [isLoading, setIsLoading]     = useState(false);
@@ -257,7 +259,7 @@ function App() {
     const ctrl = new AbortController();
     const id = setTimeout(() => ctrl.abort(), timeout);
     try {
-      return await fetch(input, { ...init, signal: ctrl.signal });
+      return await fetch(input, { ...init, signal: ctrl.signal, credentials: 'include' as RequestCredentials });
     } finally {
       clearTimeout(id);
     }
@@ -400,6 +402,10 @@ function App() {
   const visibleSuppliers = showMoreSuppliers ? suppliers : suppliers.slice(0, 5);
   const visibleBids      = showMoreBids      ? bids      : bids.slice(0, 5);
 
+  const { user, isLoading: authLoading, logout } = useAuth();
+  if (authLoading) return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)', color: 'var(--text)' }}>Loading...</div>;
+  if (!user) return <LoginPage />;
+
   return (
     <div className={`app-root${isDark ? '' : ' light'}`}>
       <Toaster position="bottom-right" theme="dark" />
@@ -435,6 +441,9 @@ function App() {
           >
             <Icon name="globe" size={13} color="var(--text2)" />
             {language.toUpperCase()}
+          </button>
+          <button className="header-btn" title="Logout" onClick={logout}>
+            <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="var(--text2)" strokeWidth="2" strokeLinecap="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
           </button>
           <div className={`connection-badge ${isConnected ? 'connected' : 'disconnected'}`}>
             <div className="pulse-dot" />
@@ -784,6 +793,14 @@ function App() {
         </div>
       </div>
     </div>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }
 
