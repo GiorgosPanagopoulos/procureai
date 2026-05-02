@@ -1,22 +1,27 @@
-import asyncio
 import uuid
 
 import pytest
+from fastapi import Depends, FastAPI
 from httpx import AsyncClient, ASGITransport
 
-from main import app
+from api.routes.auth import router as auth_router
+from auth.dependencies import get_current_user
 
 
-@pytest.fixture(scope="session")
-def event_loop():
-    loop = asyncio.new_event_loop()
-    yield loop
-    loop.close()
+def _make_app() -> FastAPI:
+    app = FastAPI()
+    app.include_router(auth_router)
+
+    @app.get("/suppliers")
+    async def suppliers(_user: dict = Depends(get_current_user)):
+        return []
+
+    return app
 
 
 @pytest.fixture
 async def client():
-    transport = ASGITransport(app=app)
+    transport = ASGITransport(app=_make_app())
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac
 

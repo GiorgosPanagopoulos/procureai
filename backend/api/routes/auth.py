@@ -32,7 +32,7 @@ async def login(body: LoginRequest) -> JSONResponse:
     token = create_access_token(subject=user["email"])
     response = JSONResponse(content={
         "message": "Login successful",
-        "user": UserRead(**user).model_dump(by_alias=True),
+        "user": UserRead(**user).model_dump(mode="json", by_alias=True),
     })
     set_auth_cookie(response, token)
     return response
@@ -45,7 +45,7 @@ async def register(user_in: UserCreate) -> JSONResponse:
     if user is None:
         raise HTTPException(status_code=400, detail="Email already registered")
     token = create_access_token(subject=user["email"])
-    response = JSONResponse(content=UserRead(**user).model_dump(by_alias=True))
+    response = JSONResponse(content=UserRead(**user).model_dump(mode="json", by_alias=True))
     set_auth_cookie(response, token)
     return response
 
@@ -69,4 +69,4 @@ async def me(request: Request) -> JSONResponse:
     user = await get_user_by_email(db, payload.sub)
     if user is None:
         raise HTTPException(status_code=401, detail="User not found")
-    return JSONResponse(content=UserRead(**user).model_dump(by_alias=True))
+    return JSONResponse(content=UserRead(**user).model_dump(mode="json", by_alias=True))
