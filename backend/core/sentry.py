@@ -57,6 +57,7 @@ def init_sentry(dsn: str | None, environment: str, release: str) -> None:
             StarletteIntegration(),
             FastApiIntegration(),
         ],
+        auto_enabling_integrations=False,
         before_send=_before_send,
         before_send_transaction=_before_send_transaction,
     )
