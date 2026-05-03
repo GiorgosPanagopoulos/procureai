@@ -1,8 +1,9 @@
-from typing import Any, Dict
+from typing import Any
 
 import sentry_sdk
 from sentry_sdk.integrations.fastapi import FastApiIntegration
 from sentry_sdk.integrations.starlette import StarletteIntegration
+from sentry_sdk.types import Event, Hint
 
 _SENSITIVE_KEYS = frozenset({
     "api_key", "apikey", "password", "passwd", "token", "secret",
@@ -21,7 +22,7 @@ def _scrub_dict(obj: Any) -> Any:
     return obj
 
 
-def _before_send(event: Dict, hint: Any) -> Dict:
+def _before_send(event: Event, hint: Hint) -> Event | None:
     for exc in (event.get("exception") or {}).get("values") or []:
         for frame in (exc.get("stacktrace") or {}).get("frames") or []:
             if "vars" in frame:
@@ -29,9 +30,10 @@ def _before_send(event: Dict, hint: Any) -> Dict:
     return event
 
 
-def _before_send_transaction(event: Dict, hint: Any) -> Any:
-    transaction_name = event.get("transaction", "")
-    url = (event.get("request") or {}).get("url", "")
+def _before_send_transaction(event: Event, hint: Hint) -> Event | None:
+    transaction_name = str(event.get("transaction", ""))
+    request = event.get("request")
+    url = str(request.get("url", "")) if isinstance(request, dict) else ""
     if url.endswith("/health") or url.endswith("/api/health"):
         return None
     if transaction_name in {"/health", "/api/health"}:
