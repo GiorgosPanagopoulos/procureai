@@ -13,7 +13,7 @@ async def get_current_user(request: Request) -> dict:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
     from motor.motor_asyncio import AsyncIOMotorClient
     from config import settings
-    client = AsyncIOMotorClient(settings.MONGODB_URI)
+    client: AsyncIOMotorClient = AsyncIOMotorClient(settings.MONGODB_URI)
     db = client.procureai
     user = await get_user_by_email(db, payload.sub)
     if user is None:
