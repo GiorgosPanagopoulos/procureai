@@ -6,6 +6,7 @@ from io import BytesIO
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+import sentry_sdk
 import structlog
 from fastapi import Depends, FastAPI, HTTPException, Request, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
@@ -31,10 +32,13 @@ from langchain_anthropic import ChatAnthropic
 from langchain_core.prompts import PromptTemplate
 
 from config import settings
+from core.sentry import init_sentry
 from models import Supplier, Bid
 from security.pii import redact_pii
 from auth.dependencies import get_current_user
 from api.routes.auth import router as auth_router
+
+init_sentry(settings.SENTRY_DSN, settings.SENTRY_ENVIRONMENT, settings.APP_VERSION)
 
 # ── Logging ──────────────────────────────────────────────────────────────────
 
@@ -335,12 +339,16 @@ def document_qa(question: str) -> str:
     query_embedding = embed_text(question)
     n_retrieve = 20 if settings.USE_RERANKER else 4
 
+    sentry_sdk.add_breadcrumb(category="rag", message="RAG retrieval start", level="info")
     try:
-        results = chroma_collection.query(
-            query_embeddings=np.array([query_embedding]),
-            n_results=n_retrieve,
-            include=["documents", "metadatas"],
-        )
+        with sentry_sdk.start_span(op="db.chromadb", description="RAG vector search") as _span:
+            _span.set_data("collection", "procureai_documents")
+            _span.set_data("n_results", n_retrieve)
+            results = chroma_collection.query(
+                query_embeddings=np.array([query_embedding]),
+                n_results=n_retrieve,
+                include=["documents", "metadatas"],
+            )
     except Exception as exc:
         return f"Error searching documents: {exc}"
 
@@ -364,23 +372,28 @@ def document_qa(question: str) -> str:
     context = "\n".join(all_docs) if all_docs else "No relevant documents found."
     source_refs = list({m.get("source", "unknown") for m in all_metas})
 
+    sentry_sdk.add_breadcrumb(category="llm", message="LLM call start", level="info")
     try:
-        response = _raw_anthropic.messages.create(
-            model=MODEL_NAME,
-            max_tokens=1024,
-            system=[{"type": "text", "text": _SYSTEM_PROMPT,
-                     "cache_control": {"type": "ephemeral"}}],
-            messages=[{
-                "role": "user",
-                "content": [
-                    {"type": "text",
-                     "text": f"Context:\n{context}",
-                     "cache_control": {"type": "ephemeral"}},
-                    {"type": "text",
-                     "text": f"\nQuestion: {question}\n\nAnswer:"},
-                ],
-            }],
-        )
+        with sentry_sdk.start_span(op="llm.invoke", description="Claude API call") as _span:
+            _span.set_data("model", MODEL_NAME)
+            _span.set_data("tool", "document_qa")
+            response = _raw_anthropic.messages.create(
+                model=MODEL_NAME,
+                max_tokens=1024,
+                system=[{"type": "text", "text": _SYSTEM_PROMPT,
+                         "cache_control": {"type": "ephemeral"}}],
+                messages=[{
+                    "role": "user",
+                    "content": [
+                        {"type": "text",
+                         "text": f"Context:\n{context}",
+                         "cache_control": {"type": "ephemeral"}},
+                        {"type": "text",
+                         "text": f"\nQuestion: {question}\n\nAnswer:"},
+                    ],
+                }],
+            )
+            _span.set_data("tokens_used", getattr(response.usage, "output_tokens", "N/A"))
         accum = _current_usage.get()
         if accum is not None:
             accum.add_anthropic(response.usage)
@@ -553,9 +566,19 @@ async def run_agent(user_input: str, conversation_id: str) -> Dict:
 
     accum = _UsageAccum()
     token = _current_usage.set(accum)
+    sentry_sdk.add_breadcrumb(category="agent", message="Agent invocation start", level="info")
     try:
-        result = await agent_executor.ainvoke({"input": clean_input})
+        with sentry_sdk.start_span(op="llm.invoke", description="Claude API call") as _span:
+            _span.set_data("model", MODEL_NAME)
+            _span.set_data("tool", "agent_executor")
+            result = await agent_executor.ainvoke({"input": clean_input})
+            _span.set_data("tool_calls", len(result.get("intermediate_steps", [])))
     except Exception as exc:
+        sentry_sdk.set_context("agent_input", {
+            "query": clean_input[:500],
+            "conversation_id": conversation_id,
+        })
+        sentry_sdk.capture_exception(exc)
         log.error("agent_error", error=str(exc), conversation_id=conversation_id)
         return {"response": f"Error processing query: {exc}", "tool_used": "error",
                 "conversation_id": conversation_id, "trace": [], "usage": {}}
@@ -564,6 +587,11 @@ async def run_agent(user_input: str, conversation_id: str) -> Dict:
 
     steps = result.get("intermediate_steps", [])
     tool_used = steps[0][0].tool if steps else "unknown"
+    if steps:
+        sentry_sdk.add_breadcrumb(
+            category="agent", message=f"Agent selected tool: {tool_used}", level="info"
+        )
+    sentry_sdk.add_breadcrumb(category="agent", message="Response generation complete", level="info")
     trace = _build_trace(steps)
     usage = accum.to_dict()
 
@@ -639,7 +667,16 @@ async def upload_file(request: Request, file: UploadFile = File(...), current_us
     if file.content_type != "application/pdf":
         raise HTTPException(status_code=400, detail="Only PDF uploads are supported")
     content = await file.read()
-    chunks = ingest_pdf(file.filename or "uploaded.pdf", content)
+    try:
+        chunks = ingest_pdf(file.filename or "uploaded.pdf", content)
+    except Exception as e:
+        sentry_sdk.set_context("document", {
+            "filename": file.filename,
+            "content_type": file.content_type,
+            "size_bytes": len(content),
+        })
+        sentry_sdk.capture_exception(e)
+        raise
     if chunks == 0:
         raise HTTPException(status_code=400, detail="PDF had no extractable text")
     log.info("pdf_uploaded", file=file.filename, chunks=chunks)

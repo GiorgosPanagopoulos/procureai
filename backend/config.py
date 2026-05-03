@@ -26,6 +26,10 @@ class Settings(BaseSettings):
     FIRST_SUPERUSER_EMAIL: str = "admin@procureai.local"
     FIRST_SUPERUSER_PASSWORD: str = "changethis"
 
+    SENTRY_DSN: str | None = None
+    SENTRY_ENVIRONMENT: str = "development"
+    APP_VERSION: str = "procureai@dev"
+
     @field_validator("SECRET_KEY")
     @classmethod
     def warn_if_default_secret(cls, v: str) -> str:
