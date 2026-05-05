@@ -14,6 +14,7 @@ from anthropic.types import TextBlock
 from api.routes.auth import router as auth_router
 from auth.dependencies import get_current_user
 from chromadb import Client as ChromaClient
+from chromadb.api.types import Metadata as ChromaMetadata
 from chromadb.config import Settings as ChromaSettings
 from config import settings
 from core.sentry import init_sentry
@@ -308,11 +309,11 @@ def ingest_text(source: str, text: str) -> int:
         return 0
     ids = [f"{source}_chunk_{i}" for i in range(len(chunks))]
     embeddings = [embed_text(c) for c in chunks]
-    metadatas: List[Dict[str, str]] = [
+    raw_metadatas: List[Dict[str, str]] = [
         {"source": source, "chunk": str(i)} for i in range(len(chunks))
     ]
-    safe_metadatas: List[Dict[str, str]] = [
-        {str(k): str(v) for k, v in m.items()} for m in (metadatas or [])
+    safe_metadatas: List[ChromaMetadata] = [
+        {str(k): str(v) for k, v in m.items()} for m in raw_metadatas
     ]
     try:
         chroma_collection.add(
