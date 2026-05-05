@@ -34,7 +34,9 @@ class Settings(BaseSettings):
     @classmethod
     def warn_if_default_secret(cls, v: str) -> str:
         if v == "changethis":
-            print("WARNING: SECRET_KEY is set to the default value. Change it before deploying to production.")
+            print(
+                "WARNING: SECRET_KEY is set to the default value. Change it before deploying to production."
+            )
         return v
 
     @field_validator("ANTHROPIC_API_KEY", "OPENAI_API_KEY")

@@ -6,37 +6,35 @@ from io import BytesIO
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+import anthropic as anthropic_sdk
+import numpy as np
 import sentry_sdk
 import structlog
-from fastapi import Depends, FastAPI, HTTPException, Request, UploadFile, File
+from anthropic.types import TextBlock
+from api.routes.auth import router as auth_router
+from auth.dependencies import get_current_user
+from chromadb import Client as ChromaClient
+from chromadb.config import Settings as ChromaSettings
+from config import settings
+from core.sentry import init_sentry
+from fastapi import Depends, FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from starlette.middleware.base import BaseHTTPMiddleware
+from langchain_anthropic import ChatAnthropic
+from langchain_classic.agents import AgentExecutor, create_react_agent
+from langchain_core.callbacks import BaseCallbackHandler
+from langchain_core.outputs import LLMResult
+from langchain_core.prompts import PromptTemplate
+from langchain_core.tools import tool
+from models import Bid, Supplier
 from motor.motor_asyncio import AsyncIOMotorClient
-import numpy as np
+from openai import OpenAI
 from pydantic import BaseModel, SecretStr
+from pypdf import PdfReader
+from security.pii import redact_pii
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
-from pypdf import PdfReader
-
-import anthropic as anthropic_sdk
-from anthropic.types import TextBlock
-from chromadb import Client as ChromaClient
-from chromadb.config import Settings as ChromaSettings
-from openai import OpenAI
-from langchain_core.callbacks import BaseCallbackHandler
-from langchain_core.outputs import LLMResult
-from langchain_core.tools import tool
-from langchain_classic.agents import AgentExecutor, create_react_agent
-from langchain_anthropic import ChatAnthropic
-from langchain_core.prompts import PromptTemplate
-
-from config import settings
-from core.sentry import init_sentry
-from models import Supplier, Bid
-from security.pii import redact_pii
-from auth.dependencies import get_current_user
-from api.routes.auth import router as auth_router
+from starlette.middleware.base import BaseHTTPMiddleware
 
 init_sentry(settings.SENTRY_DSN, settings.SENTRY_ENVIRONMENT, settings.APP_VERSION)
 
@@ -63,8 +61,9 @@ COST_PER_CACHE_WRITE = 3.75 / 1_000_000
 COST_PER_CACHE_READ = 0.30 / 1_000_000
 
 
-def _compute_cost(input_tokens: int, output_tokens: int,
-                  cache_creation: int = 0, cache_read: int = 0) -> float:
+def _compute_cost(
+    input_tokens: int, output_tokens: int, cache_creation: int = 0, cache_read: int = 0
+) -> float:
     return (
         input_tokens * COST_PER_INPUT_TOKEN
         + output_tokens * COST_PER_OUTPUT_TOKEN
@@ -72,10 +71,18 @@ def _compute_cost(input_tokens: int, output_tokens: int,
         + cache_read * COST_PER_CACHE_READ
     )
 
+
 # ── Per-request usage accumulator (ContextVar for async safety) ──────────────
 
+
 class _UsageAccum:
-    __slots__ = ("input_tokens", "output_tokens", "cache_creation", "cache_read", "tool_calls")
+    __slots__ = (
+        "input_tokens",
+        "output_tokens",
+        "cache_creation",
+        "cache_read",
+        "tool_calls",
+    )
 
     def __init__(self) -> None:
         self.input_tokens = 0
@@ -91,8 +98,9 @@ class _UsageAccum:
         self.cache_read += getattr(usage, "cache_read_input_tokens", 0)
 
     def to_dict(self) -> Dict:
-        cost = _compute_cost(self.input_tokens, self.output_tokens,
-                             self.cache_creation, self.cache_read)
+        cost = _compute_cost(
+            self.input_tokens, self.output_tokens, self.cache_creation, self.cache_read
+        )
         return {
             "input_tokens": self.input_tokens,
             "output_tokens": self.output_tokens,
@@ -106,6 +114,7 @@ class _UsageAccum:
 _current_usage: ContextVar[Optional[_UsageAccum]] = ContextVar("current_usage", default=None)
 
 # ── LangChain callback to capture agent LLM usage ────────────────────────────
+
 
 class _UsageCallback(BaseCallbackHandler):
     def on_llm_end(self, response: LLMResult, **kwargs: Any) -> None:
@@ -126,6 +135,7 @@ class _UsageCallback(BaseCallbackHandler):
         if accum:
             accum.tool_calls += 1
 
+
 # ── Reranker (lazy-loaded) ────────────────────────────────────────────────────
 
 _reranker: Any = None
@@ -136,13 +146,16 @@ def _get_reranker() -> Any:
     if _reranker is None:
         try:
             from sentence_transformers import CrossEncoder
+
             _reranker = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
             log.info("reranker_loaded", model="cross-encoder/ms-marco-MiniLM-L-6-v2")
         except Exception as exc:
             log.warning("reranker_unavailable", error=str(exc))
     return _reranker
 
+
 # ── Lifespan ──────────────────────────────────────────────────────────────────
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -156,7 +169,7 @@ async def lifespan(app: FastAPI):
                 except Exception as exc:
                     log.error("pdf_ingest_failed", file=pdf_path.name, error=str(exc))
     # --- Superuser seed ---
-    from crud.user import get_user_by_email, create_user
+    from crud.user import create_user, get_user_by_email
     from schemas.user import UserCreate
 
     existing = await get_user_by_email(db, settings.FIRST_SUPERUSER_EMAIL)
@@ -170,12 +183,13 @@ async def lifespan(app: FastAPI):
         if user_doc:
             await db.users.update_one(
                 {"email": settings.FIRST_SUPERUSER_EMAIL},
-                {"$set": {"is_superuser": True}}
+                {"$set": {"is_superuser": True}},
             )
             log.info("superuser_created", email=settings.FIRST_SUPERUSER_EMAIL)
     else:
         log.info("superuser_exists", email=settings.FIRST_SUPERUSER_EMAIL)
     yield
+
 
 # ── FastAPI app ───────────────────────────────────────────────────────────────
 
@@ -228,17 +242,18 @@ claude_llm = ChatAnthropic(  # type: ignore[call-arg]
 chroma_client = ChromaClient(
     settings=ChromaSettings(persist_directory=settings.CHROMA_PATH, is_persistent=True)
 )
-chroma_collection = chroma_client.create_collection(
-    name="procureai_documents", get_or_create=True
-)
+chroma_collection = chroma_client.create_collection(name="procureai_documents", get_or_create=True)
 
 # ── Request / response models ─────────────────────────────────────────────────
+
 
 class ChatRequest(BaseModel):
     message: str
     conversation_id: Optional[str] = None
 
+
 # ── RAG helpers ───────────────────────────────────────────────────────────────
+
 
 def split_text_chunks(text: str, chunk_size: int = 500, overlap: int = 50) -> List[str]:
     if not text.strip():
@@ -266,9 +281,11 @@ def embed_text(text: str) -> List[float]:
     if not text.strip():
         return [0.0] * 1536
     try:
-        return openai_client.embeddings.create(
-            model="text-embedding-3-small", input=text[:8191]
-        ).data[0].embedding
+        return (
+            openai_client.embeddings.create(model="text-embedding-3-small", input=text[:8191])
+            .data[0]
+            .embedding
+        )
     except Exception as exc:
         log.error("embed_failed", error=str(exc))
         return [0.0] * 1536
@@ -291,13 +308,19 @@ def ingest_text(source: str, text: str) -> int:
         return 0
     ids = [f"{source}_chunk_{i}" for i in range(len(chunks))]
     embeddings = [embed_text(c) for c in chunks]
-    metadatas: List[Dict[str, str]] = [{"source": source, "chunk": str(i)} for i in range(len(chunks))]
+    metadatas: List[Dict[str, str]] = [
+        {"source": source, "chunk": str(i)} for i in range(len(chunks))
+    ]
     safe_metadatas: List[Dict[str, str]] = [
-        {str(k): str(v) for k, v in m.items()}
-        for m in (metadatas or [])
+        {str(k): str(v) for k, v in m.items()} for m in (metadatas or [])
     ]
     try:
-        chroma_collection.add(ids=ids, metadatas=safe_metadatas, documents=chunks, embeddings=np.array(embeddings))  # type: ignore[arg-type]
+        chroma_collection.add(
+            ids=ids,
+            metadatas=safe_metadatas,
+            documents=chunks,
+            embeddings=np.array(embeddings),
+        )  # type: ignore[arg-type]
     except Exception as exc:
         log.error("chroma_add_failed", error=str(exc))
     return len(chunks)
@@ -321,12 +344,14 @@ def is_vectorstore_empty() -> bool:
     except Exception:
         return True
 
+
 # ── LangChain tools ───────────────────────────────────────────────────────────
 
 _SYSTEM_PROMPT = (
     "You are a helpful assistant answering questions about procurement documents. "
     "Use the provided context to answer accurately and concisely."
 )
+
 
 @tool
 def document_qa(question: str) -> str:
@@ -380,18 +405,29 @@ def document_qa(question: str) -> str:
             response = _raw_anthropic.messages.create(
                 model=MODEL_NAME,
                 max_tokens=1024,
-                system=[{"type": "text", "text": _SYSTEM_PROMPT,
-                         "cache_control": {"type": "ephemeral"}}],
-                messages=[{
-                    "role": "user",
-                    "content": [
-                        {"type": "text",
-                         "text": f"Context:\n{context}",
-                         "cache_control": {"type": "ephemeral"}},
-                        {"type": "text",
-                         "text": f"\nQuestion: {question}\n\nAnswer:"},
-                    ],
-                }],
+                system=[
+                    {
+                        "type": "text",
+                        "text": _SYSTEM_PROMPT,
+                        "cache_control": {"type": "ephemeral"},
+                    }
+                ],
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": f"Context:\n{context}",
+                                "cache_control": {"type": "ephemeral"},
+                            },
+                            {
+                                "type": "text",
+                                "text": f"\nQuestion: {question}\n\nAnswer:",
+                            },
+                        ],
+                    }
+                ],
             )
             _span.set_data("tokens_used", getattr(response.usage, "output_tokens", "N/A"))
         accum = _current_usage.get()
@@ -415,8 +451,10 @@ async def bid_comparison(category: str = "") -> str:
         bids_list = await db.bids.find({}).limit(10).to_list(length=10)
         if not bids_list:
             return "No bids found in the system."
-        sorted_bids = sorted(bids_list,
-                             key=lambda x: (x.get("total_price", 0), x.get("delivery_days", 0)))
+        sorted_bids = sorted(
+            bids_list,
+            key=lambda x: (x.get("total_price", 0), x.get("delivery_days", 0)),
+        )
         result = "Bid Comparison Results:\n"
         for i, bid in enumerate(sorted_bids, 1):
             result += (
@@ -478,7 +516,9 @@ async def report_generation(report_type: str = "procurement") -> str:
         if suppliers_list:
             avg_rating = sum(s.get("rating", 0) for s in suppliers_list) / len(suppliers_list)
             categories = sorted({s.get("category", "unknown") for s in suppliers_list})
-            report += f"- Average Rating: {avg_rating:.2f}/5.0\n- Categories: {', '.join(categories)}\n"
+            report += (
+                f"- Average Rating: {avg_rating:.2f}/5.0\n- Categories: {', '.join(categories)}\n"
+            )
 
         report += f"\nBIDS SUMMARY:\n- Total Bids: {len(bids_list)}\n"
         if bids_list:
@@ -496,6 +536,7 @@ async def report_generation(report_type: str = "procurement") -> str:
         return report
     except Exception as exc:
         return f"Error generating report: {exc}"
+
 
 # ── LangChain ReAct agent ─────────────────────────────────────────────────────
 
@@ -549,16 +590,20 @@ def _build_trace(steps: List) -> List[Dict]:
             thought = (log_text[start:end] if end > start else log_text[start:]).strip()
         if thought:
             trace.append({"type": "thought", "content": thought})
-        trace.append({"type": "tool_call", "tool": action.tool,
-                      "input": str(action.tool_input)})
+        trace.append({"type": "tool_call", "tool": action.tool, "input": str(action.tool_input)})
         trace.append({"type": "observation", "content": str(observation)[:500]})
     return trace
 
 
 async def run_agent(user_input: str, conversation_id: str) -> Dict:
     if not user_input.strip():
-        return {"response": "Please provide a query.", "tool_used": "none",
-                "conversation_id": conversation_id, "trace": [], "usage": {}}
+        return {
+            "response": "Please provide a query.",
+            "tool_used": "none",
+            "conversation_id": conversation_id,
+            "trace": [],
+            "usage": {},
+        }
 
     clean_input, redaction_count = redact_pii(user_input)
     if redaction_count:
@@ -574,14 +619,22 @@ async def run_agent(user_input: str, conversation_id: str) -> Dict:
             result = await agent_executor.ainvoke({"input": clean_input})
             _span.set_data("tool_calls", len(result.get("intermediate_steps", [])))
     except Exception as exc:
-        sentry_sdk.set_context("agent_input", {
-            "query": clean_input[:500],
-            "conversation_id": conversation_id,
-        })
+        sentry_sdk.set_context(
+            "agent_input",
+            {
+                "query": clean_input[:500],
+                "conversation_id": conversation_id,
+            },
+        )
         sentry_sdk.capture_exception(exc)
         log.error("agent_error", error=str(exc), conversation_id=conversation_id)
-        return {"response": f"Error processing query: {exc}", "tool_used": "error",
-                "conversation_id": conversation_id, "trace": [], "usage": {}}
+        return {
+            "response": f"Error processing query: {exc}",
+            "tool_used": "error",
+            "conversation_id": conversation_id,
+            "trace": [],
+            "usage": {},
+        }
     finally:
         _current_usage.reset(token)
 
@@ -591,25 +644,40 @@ async def run_agent(user_input: str, conversation_id: str) -> Dict:
         sentry_sdk.add_breadcrumb(
             category="agent", message=f"Agent selected tool: {tool_used}", level="info"
         )
-    sentry_sdk.add_breadcrumb(category="agent", message="Response generation complete", level="info")
+    sentry_sdk.add_breadcrumb(
+        category="agent", message="Response generation complete", level="info"
+    )
     trace = _build_trace(steps)
     usage = accum.to_dict()
 
-    await db.usage.insert_one({
-        "conversation_id": conversation_id,
-        "timestamp": datetime.now(timezone.utc),
-        "model": MODEL_NAME,
-        **usage,
-    })
+    await db.usage.insert_one(
+        {
+            "conversation_id": conversation_id,
+            "timestamp": datetime.now(timezone.utc),
+            "model": MODEL_NAME,
+            **usage,
+        }
+    )
     await db.conversations.update_one(
         {"conversation_id": conversation_id},
-        {"$set": {"conversation_id": conversation_id, "trace": trace,
-                  "query": clean_input, "updated_at": datetime.now(timezone.utc)}},
+        {
+            "$set": {
+                "conversation_id": conversation_id,
+                "trace": trace,
+                "query": clean_input,
+                "updated_at": datetime.now(timezone.utc),
+            }
+        },
         upsert=True,
     )
-    log.info("agent_done", conversation_id=conversation_id, tool=tool_used,
-             input_tok=usage["input_tokens"], output_tok=usage["output_tokens"],
-             cost=usage["cost_usd"])
+    log.info(
+        "agent_done",
+        conversation_id=conversation_id,
+        tool=tool_used,
+        input_tok=usage["input_tokens"],
+        output_tok=usage["output_tokens"],
+        cost=usage["cost_usd"],
+    )
     return {
         "response": result["output"],
         "tool_used": tool_used,
@@ -618,7 +686,9 @@ async def run_agent(user_input: str, conversation_id: str) -> Dict:
         "usage": usage,
     }
 
+
 # ── FastAPI endpoints ─────────────────────────────────────────────────────────
+
 
 @app.get("/")
 async def root():
@@ -645,7 +715,11 @@ async def get_bids(request: Request, current_user: dict = Depends(get_current_us
 
 @app.post("/chat")
 @limiter.limit("10/minute")
-async def chat(request: Request, payload: ChatRequest, current_user: dict = Depends(get_current_user)):
+async def chat(
+    request: Request,
+    payload: ChatRequest,
+    current_user: dict = Depends(get_current_user),
+):
     if not payload.message.strip():
         raise HTTPException(status_code=400, detail="Message cannot be empty")
     cid = payload.conversation_id or str(uuid.uuid4())
@@ -663,24 +737,35 @@ async def chat(request: Request, payload: ChatRequest, current_user: dict = Depe
 
 @app.post("/upload")
 @limiter.limit("30/minute")
-async def upload_file(request: Request, file: UploadFile = File(...), current_user: dict = Depends(get_current_user)):
+async def upload_file(
+    request: Request,
+    file: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user),
+):
     if file.content_type != "application/pdf":
         raise HTTPException(status_code=400, detail="Only PDF uploads are supported")
     content = await file.read()
     try:
         chunks = ingest_pdf(file.filename or "uploaded.pdf", content)
     except Exception as e:
-        sentry_sdk.set_context("document", {
-            "filename": file.filename,
-            "content_type": file.content_type,
-            "size_bytes": len(content),
-        })
+        sentry_sdk.set_context(
+            "document",
+            {
+                "filename": file.filename,
+                "content_type": file.content_type,
+                "size_bytes": len(content),
+            },
+        )
         sentry_sdk.capture_exception(e)
         raise
     if chunks == 0:
         raise HTTPException(status_code=400, detail="PDF had no extractable text")
     log.info("pdf_uploaded", file=file.filename, chunks=chunks)
-    return {"message": "PDF ingested successfully", "chunks": chunks, "file": file.filename}
+    return {
+        "message": "PDF ingested successfully",
+        "chunks": chunks,
+        "file": file.filename,
+    }
 
 
 @app.post("/doc_qa")
@@ -705,4 +790,5 @@ async def get_reports(request: Request, current_user: dict = Depends(get_current
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8000)

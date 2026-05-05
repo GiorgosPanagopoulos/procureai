@@ -1,11 +1,10 @@
 import uuid
 
 import pytest
-from fastapi import Depends, FastAPI
-from httpx import AsyncClient, ASGITransport
-
 from api.routes.auth import router as auth_router
 from auth.dependencies import get_current_user
+from fastapi import Depends, FastAPI
+from httpx import ASGITransport, AsyncClient
 
 
 def _make_app() -> FastAPI:

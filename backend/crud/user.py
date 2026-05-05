@@ -1,10 +1,9 @@
 from datetime import datetime
 from typing import Optional
 
+from auth.security import get_password_hash, verify_password
 from bson import ObjectId
 from motor.motor_asyncio import AsyncIOMotorDatabase
-
-from auth.security import get_password_hash, verify_password
 from schemas.user import UserCreate
 
 

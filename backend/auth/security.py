@@ -1,11 +1,10 @@
 from datetime import datetime, timedelta
 from typing import Optional
 
-from passlib.context import CryptContext
-from jose import jwt, JWTError
-from fastapi import Response
-
 from config import settings
+from fastapi import Response
+from jose import JWTError, jwt
+from passlib.context import CryptContext
 from schemas.auth import TokenPayload
 
 ALGORITHM = "HS256"

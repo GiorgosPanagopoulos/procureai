@@ -1,6 +1,8 @@
-from pydantic import BaseModel, Field
 from typing import Optional
+
 from bson import ObjectId
+from pydantic import BaseModel, Field
+
 
 class Supplier(BaseModel):
     id: Optional[str] = Field(default_factory=lambda: str(ObjectId()), alias="_id")

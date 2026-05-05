@@ -5,6 +5,7 @@ golden-set queries for each, using cosine similarity over OpenAI embeddings.
 Usage:
     python scripts/inspect_chunks.py [--n 20]
 """
+
 import argparse
 import json
 import os
@@ -15,8 +16,8 @@ from pathlib import Path
 _ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_ROOT / "backend"))
 
-from chromadb import Client as ChromaClient          # type: ignore
-from chromadb.config import Settings as ChromaSettings  # type: ignore
+from chromadb import Client as ChromaClient  # type: ignore  # noqa: E402
+from chromadb.config import Settings as ChromaSettings  # type: ignore  # noqa: E402
 
 try:
     import numpy as np
@@ -36,9 +37,11 @@ def cosine_similarity(a: list[float], b: list[float]) -> float:
 
 
 def embed(text: str, client: OpenAI) -> list[float]:
-    return client.embeddings.create(
-        model="text-embedding-3-small", input=text[:8191]
-    ).data[0].embedding
+    return (
+        client.embeddings.create(model="text-embedding-3-small", input=text[:8191])
+        .data[0]
+        .embedding
+    )
 
 
 def main():
@@ -83,7 +86,9 @@ def main():
     query_embeddings = [embed(q, client) for q in queries]
 
     print(f"Sampling {n} / {len(all_ids)} chunks …\n")
-    print(f"| {'Chunk ID':<28} | {'Source':<22} | {'Preview (80 chars)':<82} | Top-3 similar queries |")
+    print(
+        f"| {'Chunk ID':<28} | {'Source':<22} | {'Preview (80 chars)':<82} | Top-3 similar queries |"
+    )
     print("|" + "-" * 30 + "|" + "-" * 24 + "|" + "-" * 84 + "|" + "-" * 55 + "|")
 
     for idx in indices:

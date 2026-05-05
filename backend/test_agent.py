@@ -14,8 +14,9 @@ test_queries = [
     "What are the payment terms in the BuildPro contract?",
     "Show me the cheapest bids with fast delivery",
     "Find high-rated suppliers in the IT category",
-    "Give me a comprehensive procurement summary"
+    "Give me a comprehensive procurement summary",
 ]
+
 
 async def test_agent_routing():
     """
@@ -26,7 +27,7 @@ async def test_agent_routing():
     print("ProcureAI ReAct Agent - Intent Routing Test")
     print("=" * 70)
     print()
-    
+
     expected_intents = {
         "Compare bids for office equipment": "bid_comparison",
         "Find suppliers for medical supplies": "supplier_lookup",
@@ -34,15 +35,15 @@ async def test_agent_routing():
         "What are the payment terms in the BuildPro contract?": "document_qa",
         "Show me the cheapest bids with fast delivery": "bid_comparison",
         "Find high-rated suppliers in the IT category": "supplier_lookup",
-        "Give me a comprehensive procurement summary": "multi_tool"
+        "Give me a comprehensive procurement summary": "multi_tool",
     }
-    
+
     for i, query in enumerate(test_queries, 1):
         expected = expected_intents.get(query, "multi_tool")
         print(f"Query {i}: {query}")
         print(f"  → Expected Intent: {expected}")
         print("  → Tool(s):")
-        
+
         if expected == "document_qa":
             print("     - Document Q&A: Search ChromaDB for contract terms")
         elif expected == "bid_comparison":
@@ -53,9 +54,9 @@ async def test_agent_routing():
             print("     - Report Generation: Aggregate data from MongoDB")
         elif expected == "multi_tool":
             print("     - Multi-Tool: Combine document search, bid comparison, supplier lookup")
-        
+
         print()
-    
+
     print("=" * 70)
     print("Agent Architecture Summary:")
     print("=" * 70)
@@ -78,7 +79,7 @@ async def test_agent_routing():
    - Accepts user query
    - Returns agent response with tool attribution
     """)
-    
+
     print("=" * 70)
     print("Agent Implementation Details:")
     print("=" * 70)
@@ -104,6 +105,7 @@ Integration Points:
 - ChromaDB: Vector store for procurement documents
 - OpenAI API: Embeddings and LLM inference
     """)
+
 
 if __name__ == "__main__":
     print("\nStarting agent routing tests...\n")

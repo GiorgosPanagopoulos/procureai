@@ -1,11 +1,15 @@
+from auth.security import (
+    clear_auth_cookie,
+    create_access_token,
+    decode_access_token,
+    set_auth_cookie,
+)
+from config import settings
+from crud.user import authenticate_user, create_user, get_user_by_email
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
 from motor.motor_asyncio import AsyncIOMotorClient
-
-from config import settings
-from crud.user import create_user, authenticate_user, get_user_by_email
-from auth.security import create_access_token, set_auth_cookie, clear_auth_cookie, decode_access_token
+from pydantic import BaseModel
 from schemas.user import UserCreate, UserRead
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -30,10 +34,12 @@ async def login(body: LoginRequest) -> JSONResponse:
     if not user["is_active"]:
         raise HTTPException(status_code=403, detail="Inactive account")
     token = create_access_token(subject=user["email"])
-    response = JSONResponse(content={
-        "message": "Login successful",
-        "user": UserRead(**user).model_dump(mode="json", by_alias=True),
-    })
+    response = JSONResponse(
+        content={
+            "message": "Login successful",
+            "user": UserRead(**user).model_dump(mode="json", by_alias=True),
+        }
+    )
     set_auth_cookie(response, token)
     return response
 

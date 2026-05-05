@@ -81,9 +81,7 @@ async def test_protected_endpoint_with_auth(client: AsyncClient, test_user: dict
 async def test_logout(client: AsyncClient, test_user: dict):
     reg_res = await client.post("/auth/register", json=test_user)
     token = _get_cookie(reg_res)
-    logout_res = await client.post(
-        "/auth/logout", headers={"Cookie": f"access_token={token}"}
-    )
+    logout_res = await client.post("/auth/logout", headers={"Cookie": f"access_token={token}"})
     assert logout_res.status_code == 200
     cookie_header = logout_res.headers.get("set-cookie", "")
     assert "access_token" in cookie_header

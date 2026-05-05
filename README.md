@@ -18,6 +18,7 @@
 ![LangChain](https://img.shields.io/badge/LangChain-ReAct-1C3C3C?style=for-the-badge&logo=chainlink&logoColor=white)
 ![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248?style=for-the-badge&logo=mongodb&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
+[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white&style=for-the-badge)](https://pre-commit.com)
 
 </div>
 
@@ -50,7 +51,7 @@
 
 | Welcome State |
 |:---:|
-| ![Welcome](docs/screenshots/welcome.png) | 
+| ![Welcome](docs/screenshots/welcome.png) |
 
 | Typing Indicator |
 |:---:|

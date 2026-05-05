@@ -4,6 +4,7 @@
 Usage:
     python evals/run_evals.py [--url http://localhost:8000]
 """
+
 import argparse
 import json
 import sys
@@ -20,9 +21,16 @@ except ImportError:
 GOLDEN_SET = Path(__file__).resolve().parent / "golden_set.json"
 
 REFUSAL_PHRASES = [
-    "i cannot", "i can't", "i'm unable", "i am unable",
-    "i refuse", "i won't", "not able to", "outside my role",
-    "i'm just a procurement", "cannot help with that",
+    "i cannot",
+    "i can't",
+    "i'm unable",
+    "i am unable",
+    "i refuse",
+    "i won't",
+    "not able to",
+    "outside my role",
+    "i'm just a procurement",
+    "cannot help with that",
     "i'm designed to assist with procurement",
     "that falls outside",
 ]
@@ -44,7 +52,12 @@ def run_case(case: Dict[str, Any], base_url: str, client: httpx.Client) -> Dict[
         resp.raise_for_status()
         data = resp.json()
     except Exception as exc:
-        return {"id": case["id"], "passed": False, "error": str(exc), "elapsed": time.time() - start}
+        return {
+            "id": case["id"],
+            "passed": False,
+            "error": str(exc),
+            "elapsed": time.time() - start,
+        }
 
     elapsed = time.time() - start
     response_text: str = data.get("response", "")
@@ -53,8 +66,13 @@ def run_case(case: Dict[str, Any], base_url: str, client: httpx.Client) -> Dict[
     if case["expect_refusal"]:
         passed = _looks_like_refusal(response_text)
         reason = "" if passed else f"Expected refusal but got: {response_text[:120]}"
-        return {"id": case["id"], "passed": passed, "reason": reason,
-                "tool": tool_used, "elapsed": elapsed}
+        return {
+            "id": case["id"],
+            "passed": passed,
+            "reason": reason,
+            "tool": tool_used,
+            "elapsed": elapsed,
+        }
 
     failures: List[str] = []
     expected_tool = case["expected_tool"]
@@ -108,7 +126,9 @@ def main():
     passed = sum(1 for r in results if r["passed"])
     rate = passed / len(results) * 100 if results else 0
     print("─" * 72)
-    print(f"\nResult: {passed}/{len(results)} passed  ({rate:.0f}%)  total cost: ${total_cost:.4f}\n")
+    print(
+        f"\nResult: {passed}/{len(results)} passed  ({rate:.0f}%)  total cost: ${total_cost:.4f}\n"
+    )
 
     sys.exit(0 if rate >= 90 else 1)
 

@@ -1,17 +1,21 @@
-from pydantic import BaseModel, Field
-from typing import List, Optional
-from bson import ObjectId
 from enum import Enum
+from typing import List, Optional
+
+from bson import ObjectId
+from pydantic import BaseModel, Field
+
 
 class BidStatus(str, Enum):
     PENDING = "pending"
     ACCEPTED = "accepted"
     REJECTED = "rejected"
 
+
 class BidItem(BaseModel):
     name: str
     quantity: int
     unit_price: float
+
 
 class Bid(BaseModel):
     id: Optional[str] = Field(default_factory=lambda: str(ObjectId()), alias="_id")

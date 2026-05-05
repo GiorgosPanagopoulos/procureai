@@ -198,3 +198,6 @@ backend/chroma_db_test/
 
 # Claude Code
 .claude/
+
+# detect-secrets
+.secrets.baseline

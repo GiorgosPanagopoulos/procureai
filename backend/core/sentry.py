@@ -5,10 +5,20 @@ from sentry_sdk.integrations.fastapi import FastApiIntegration
 from sentry_sdk.integrations.starlette import StarletteIntegration
 from sentry_sdk.types import Event, Hint
 
-_SENSITIVE_KEYS = frozenset({
-    "api_key", "apikey", "password", "passwd", "token", "secret",
-    "authorization", "auth", "credential", "private_key",
-})
+_SENSITIVE_KEYS = frozenset(
+    {
+        "api_key",
+        "apikey",
+        "password",
+        "passwd",
+        "token",
+        "secret",
+        "authorization",
+        "auth",
+        "credential",
+        "private_key",
+    }
+)
 
 
 def _scrub_dict(obj: Any) -> Any:
