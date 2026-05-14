@@ -1,9 +1,8 @@
 import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
-from io import BytesIO
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
 import numpy as np
 import sentry_sdk
@@ -11,9 +10,6 @@ import structlog
 from anthropic.types import TextBlock
 from api.routes.auth import router as auth_router
 from auth.dependencies import get_current_user
-from chromadb import Client as ChromaClient
-from chromadb.api.types import Metadata as ChromaMetadata
-from chromadb.config import Settings as ChromaSettings
 from config import settings
 from core.sentry import init_sentry
 from db import db
@@ -21,14 +17,17 @@ from fastapi import Depends, FastAPI, File, HTTPException, Request, UploadFile
 from langchain_classic.agents import AgentExecutor, create_react_agent
 from langchain_core.prompts import PromptTemplate
 from langchain_core.tools import tool
-from llm.clients import _raw_anthropic, claude_llm, openai_client
+from llm.clients import _raw_anthropic, claude_llm
 from llm.pricing import MODEL_NAME, _current_usage, _UsageAccum
 from middleware.correlation import CorrelationIDMiddleware
 from middleware.cors import setup_cors
 from middleware.rate_limit import limiter, setup_rate_limit
 from models import Bid, Supplier
 from pydantic import BaseModel
-from pypdf import PdfReader
+from rag.embeddings import embed_text
+from rag.ingest import ingest_pdf, ingest_pdf_file, is_vectorstore_empty
+from rag.reranker import _get_reranker
+from rag.vectorstore import chroma_collection
 from security.pii import redact_pii
 
 init_sentry(settings.SENTRY_DSN, settings.SENTRY_ENVIRONMENT, settings.APP_VERSION)
@@ -46,24 +45,6 @@ structlog.configure(
     cache_logger_on_first_use=True,
 )
 log = structlog.get_logger()
-
-# ── Reranker (lazy-loaded) ────────────────────────────────────────────────────
-
-_reranker: Any = None
-
-
-def _get_reranker() -> Any:
-    global _reranker
-    if _reranker is None:
-        try:
-            from sentence_transformers import CrossEncoder
-
-            _reranker = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
-            log.info("reranker_loaded", model="cross-encoder/ms-marco-MiniLM-L-6-v2")
-        except Exception as exc:
-            log.warning("reranker_unavailable", error=str(exc))
-    return _reranker
-
 
 # ── Lifespan ──────────────────────────────────────────────────────────────────
 
@@ -111,112 +92,12 @@ setup_cors(app)
 
 app.include_router(auth_router)
 
-# ── External clients ──────────────────────────────────────────────────────────
-
-chroma_client = ChromaClient(
-    settings=ChromaSettings(persist_directory=settings.CHROMA_PATH, is_persistent=True)
-)
-chroma_collection = chroma_client.create_collection(name="procureai_documents", get_or_create=True)
-
 # ── Request / response models ─────────────────────────────────────────────────
 
 
 class ChatRequest(BaseModel):
     message: str
     conversation_id: Optional[str] = None
-
-
-# ── RAG helpers ───────────────────────────────────────────────────────────────
-
-
-def split_text_chunks(text: str, chunk_size: int = 500, overlap: int = 50) -> List[str]:
-    if not text.strip():
-        return []
-    paragraphs = text.split("\n\n")
-    chunks: List[str] = []
-    current = ""
-    for para in paragraphs:
-        for line in para.split("\n"):
-            if len(current) + len(line) + 1 <= chunk_size:
-                current += line + "\n"
-            else:
-                if current.strip():
-                    chunks.append(current.strip())
-                current = line + "\n"
-        if current.strip() and len(current) > chunk_size // 2:
-            chunks.append(current.strip())
-            current = ""
-    if current.strip():
-        chunks.append(current.strip())
-    return [c for c in chunks if c.strip()]
-
-
-def embed_text(text: str) -> List[float]:
-    if not text.strip():
-        return [0.0] * 1536
-    try:
-        return (
-            openai_client.embeddings.create(model="text-embedding-3-small", input=text[:8191])
-            .data[0]
-            .embedding
-        )
-    except Exception as exc:
-        log.error("embed_failed", error=str(exc))
-        return [0.0] * 1536
-
-
-def extract_text_from_pdf(pdf_bytes: bytes) -> str:
-    try:
-        reader = PdfReader(BytesIO(pdf_bytes))
-        return "\n".join(page.extract_text() or "" for page in reader.pages).strip()
-    except Exception as exc:
-        log.error("pdf_extract_failed", error=str(exc))
-        return ""
-
-
-def ingest_text(source: str, text: str) -> int:
-    if not text.strip():
-        return 0
-    chunks = split_text_chunks(text)
-    if not chunks:
-        return 0
-    ids = [f"{source}_chunk_{i}" for i in range(len(chunks))]
-    embeddings = [embed_text(c) for c in chunks]
-    raw_metadatas: List[Dict[str, str]] = [
-        {"source": source, "chunk": str(i)} for i in range(len(chunks))
-    ]
-    safe_metadatas: List[ChromaMetadata] = [
-        {str(k): str(v) for k, v in m.items()} for m in raw_metadatas
-    ]
-    try:
-        chroma_collection.add(
-            ids=ids,
-            metadatas=safe_metadatas,
-            documents=chunks,
-            embeddings=np.array(embeddings),
-        )  # type: ignore[arg-type]
-    except Exception as exc:
-        log.error("chroma_add_failed", error=str(exc))
-    return len(chunks)
-
-
-def ingest_pdf(source: str, pdf_bytes: bytes) -> int:
-    return ingest_text(source, extract_text_from_pdf(pdf_bytes))
-
-
-def ingest_pdf_file(path: Path) -> Dict[str, Any]:
-    try:
-        return {"file": path.name, "chunks": ingest_pdf(path.name, path.read_bytes())}
-    except Exception as exc:
-        log.error("pdf_file_ingest_failed", file=path.name, error=str(exc))
-        return {"file": path.name, "chunks": 0}
-
-
-def is_vectorstore_empty() -> bool:
-    try:
-        return chroma_collection.count() == 0
-    except Exception:
-        return True
 
 
 # ── LangChain tools ───────────────────────────────────────────────────────────
