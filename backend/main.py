@@ -1,12 +1,10 @@
 import uuid
 from contextlib import asynccontextmanager
-from contextvars import ContextVar
 from datetime import datetime, timezone
 from io import BytesIO
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-import anthropic as anthropic_sdk
 import numpy as np
 import sentry_sdk
 import structlog
@@ -20,18 +18,16 @@ from config import settings
 from core.sentry import init_sentry
 from db import db
 from fastapi import Depends, FastAPI, File, HTTPException, Request, UploadFile
-from langchain_anthropic import ChatAnthropic
 from langchain_classic.agents import AgentExecutor, create_react_agent
-from langchain_core.callbacks import BaseCallbackHandler
-from langchain_core.outputs import LLMResult
 from langchain_core.prompts import PromptTemplate
 from langchain_core.tools import tool
+from llm.clients import _raw_anthropic, claude_llm, openai_client
+from llm.pricing import MODEL_NAME, _current_usage, _UsageAccum
 from middleware.correlation import CorrelationIDMiddleware
 from middleware.cors import setup_cors
 from middleware.rate_limit import limiter, setup_rate_limit
 from models import Bid, Supplier
-from openai import OpenAI
-from pydantic import BaseModel, SecretStr
+from pydantic import BaseModel
 from pypdf import PdfReader
 from security.pii import redact_pii
 
@@ -50,90 +46,6 @@ structlog.configure(
     cache_logger_on_first_use=True,
 )
 log = structlog.get_logger()
-
-# ── Claude pricing constants ─────────────────────────────────────────────────
-
-MODEL_NAME = "claude-sonnet-4-20250514"
-COST_PER_INPUT_TOKEN = 3.00 / 1_000_000
-COST_PER_OUTPUT_TOKEN = 15.00 / 1_000_000
-COST_PER_CACHE_WRITE = 3.75 / 1_000_000
-COST_PER_CACHE_READ = 0.30 / 1_000_000
-
-
-def _compute_cost(
-    input_tokens: int, output_tokens: int, cache_creation: int = 0, cache_read: int = 0
-) -> float:
-    return (
-        input_tokens * COST_PER_INPUT_TOKEN
-        + output_tokens * COST_PER_OUTPUT_TOKEN
-        + cache_creation * COST_PER_CACHE_WRITE
-        + cache_read * COST_PER_CACHE_READ
-    )
-
-
-# ── Per-request usage accumulator (ContextVar for async safety) ──────────────
-
-
-class _UsageAccum:
-    __slots__ = (
-        "input_tokens",
-        "output_tokens",
-        "cache_creation",
-        "cache_read",
-        "tool_calls",
-    )
-
-    def __init__(self) -> None:
-        self.input_tokens = 0
-        self.output_tokens = 0
-        self.cache_creation = 0
-        self.cache_read = 0
-        self.tool_calls = 0
-
-    def add_anthropic(self, usage: Any) -> None:
-        self.input_tokens += getattr(usage, "input_tokens", 0)
-        self.output_tokens += getattr(usage, "output_tokens", 0)
-        self.cache_creation += getattr(usage, "cache_creation_input_tokens", 0)
-        self.cache_read += getattr(usage, "cache_read_input_tokens", 0)
-
-    def to_dict(self) -> Dict:
-        cost = _compute_cost(
-            self.input_tokens, self.output_tokens, self.cache_creation, self.cache_read
-        )
-        return {
-            "input_tokens": self.input_tokens,
-            "output_tokens": self.output_tokens,
-            "cache_creation_tokens": self.cache_creation,
-            "cache_read_tokens": self.cache_read,
-            "cost_usd": round(cost, 6),
-            "tool_calls_count": self.tool_calls,
-        }
-
-
-_current_usage: ContextVar[Optional[_UsageAccum]] = ContextVar("current_usage", default=None)
-
-# ── LangChain callback to capture agent LLM usage ────────────────────────────
-
-
-class _UsageCallback(BaseCallbackHandler):
-    def on_llm_end(self, response: LLMResult, **kwargs: Any) -> None:
-        accum = _current_usage.get()
-        if accum is None:
-            return
-        for gens in response.generations:
-            for gen in gens:
-                msg = getattr(gen, "message", None)
-                if msg is None:
-                    continue
-                meta = getattr(msg, "usage_metadata", None) or {}
-                accum.input_tokens += meta.get("input_tokens", 0)
-                accum.output_tokens += meta.get("output_tokens", 0)
-
-    def on_tool_end(self, output: str, **kwargs: Any) -> None:
-        accum = _current_usage.get()
-        if accum:
-            accum.tool_calls += 1
-
 
 # ── Reranker (lazy-loaded) ────────────────────────────────────────────────────
 
@@ -200,17 +112,6 @@ setup_cors(app)
 app.include_router(auth_router)
 
 # ── External clients ──────────────────────────────────────────────────────────
-
-openai_client = OpenAI(api_key=settings.OPENAI_API_KEY)
-_raw_anthropic = anthropic_sdk.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
-
-claude_llm = ChatAnthropic(  # type: ignore[call-arg]
-    model=MODEL_NAME,
-    api_key=SecretStr(settings.ANTHROPIC_API_KEY),
-    temperature=0,
-    max_tokens=1024,
-    callbacks=[_UsageCallback()],
-)
 
 chroma_client = ChromaClient(
     settings=ChromaSettings(persist_directory=settings.CHROMA_PATH, is_persistent=True)
