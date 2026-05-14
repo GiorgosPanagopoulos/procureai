@@ -18,24 +18,22 @@ from chromadb.api.types import Metadata as ChromaMetadata
 from chromadb.config import Settings as ChromaSettings
 from config import settings
 from core.sentry import init_sentry
+from db import db
 from fastapi import Depends, FastAPI, File, HTTPException, Request, UploadFile
-from fastapi.middleware.cors import CORSMiddleware
 from langchain_anthropic import ChatAnthropic
 from langchain_classic.agents import AgentExecutor, create_react_agent
 from langchain_core.callbacks import BaseCallbackHandler
 from langchain_core.outputs import LLMResult
 from langchain_core.prompts import PromptTemplate
 from langchain_core.tools import tool
+from middleware.correlation import CorrelationIDMiddleware
+from middleware.cors import setup_cors
+from middleware.rate_limit import limiter, setup_rate_limit
 from models import Bid, Supplier
-from motor.motor_asyncio import AsyncIOMotorClient
 from openai import OpenAI
 from pydantic import BaseModel, SecretStr
 from pypdf import PdfReader
 from security.pii import redact_pii
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.errors import RateLimitExceeded
-from slowapi.util import get_remote_address
-from starlette.middleware.base import BaseHTTPMiddleware
 
 init_sentry(settings.SENTRY_DSN, settings.SENTRY_ENVIRONMENT, settings.APP_VERSION)
 
@@ -194,40 +192,14 @@ async def lifespan(app: FastAPI):
 
 # ── FastAPI app ───────────────────────────────────────────────────────────────
 
-limiter = Limiter(key_func=get_remote_address)
-
 app = FastAPI(title="ProcureAI API", version="4.0.0", lifespan=lifespan)
-app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]
-
-
-class CorrelationIDMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next: Any) -> Any:
-        cid = str(uuid.uuid4())
-        structlog.contextvars.bind_contextvars(correlation_id=cid)
-        try:
-            response = await call_next(request)
-            response.headers["X-Correlation-ID"] = cid
-            return response
-        finally:
-            structlog.contextvars.unbind_contextvars("correlation_id")
-
-
+setup_rate_limit(app)
 app.add_middleware(CorrelationIDMiddleware)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.allowed_origins_list,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+setup_cors(app)
 
 app.include_router(auth_router)
 
 # ── External clients ──────────────────────────────────────────────────────────
-
-mongo_client: AsyncIOMotorClient = AsyncIOMotorClient(settings.MONGODB_URI)
-db = mongo_client.procureai
 
 openai_client = OpenAI(api_key=settings.OPENAI_API_KEY)
 _raw_anthropic = anthropic_sdk.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
