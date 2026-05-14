@@ -222,28 +222,53 @@ Copy `backend/.env.example` to `backend/.env` and fill in the values below:
 ```text
 procureai/
 ├── backend/
+│   ├── main.py                 # App factory — lifespan, middleware, router wiring (89 LOC)
+│   ├── db.py                   # MongoDB Atlas client + database instance
+│   ├── config.py               # Pydantic Settings (.env)
+│   ├── exceptions.py           # Custom HTTP exceptions
+│   ├── middleware/
+│   │   ├── cors.py             # CORS setup
+│   │   ├── correlation.py      # X-Correlation-ID middleware
+│   │   └── rate_limit.py       # SlowAPI rate limiter
+│   ├── llm/
+│   │   ├── pricing.py          # Model constants, token cost calculator, usage accumulator
+│   │   ├── callbacks.py        # LangChain usage callback handler
+│   │   └── clients.py          # Anthropic + OpenAI client instances
+│   ├── rag/
+│   │   ├── vectorstore.py      # ChromaDB client + collection
+│   │   ├── embeddings.py       # OpenAI text-embedding-3-small
+│   │   ├── chunking.py         # Text splitting logic
+│   │   ├── ingest.py           # PDF extraction + document ingestion pipeline
+│   │   └── reranker.py         # CrossEncoder reranker (lazy-loaded)
+│   ├── agent/
+│   │   ├── prompt.py           # System prompt + ReAct template
+│   │   ├── tools.py            # @tool: document_qa, bid_comparison, supplier_lookup, report_generation
+│   │   └── executor.py         # AgentExecutor, trace builder, run_agent()
+│   ├── routers/
+│   │   ├── health.py           # GET /
+│   │   ├── chat.py             # /chat, /upload, /doc_qa, /conversations/{id}/trace
+│   │   ├── suppliers.py        # /suppliers, /bids
+│   │   └── reports.py          # /reports
+│   ├── schemas/                # Pydantic request/response models
+│   ├── models/                 # Pydantic domain models (Supplier, Bid)
+│   ├── auth/                   # JWT dependencies
+│   ├── security/               # PII redaction
+│   ├── core/                   # Sentry init
+│   ├── crud/                   # DB operations
+│   ├── api/routes/             # Auth router
 │   ├── data/
 │   │   ├── pdfs/               # Sample procurement contracts
 │   │   └── seed.py             # MongoDB seed script
-│   ├── models/
-│   │   ├── supplier.py         # Pydantic Supplier schema
-│   │   └── bid.py              # Pydantic Bid schema
-│   ├── main.py                 # FastAPI app + LangChain agent + all tools
 │   ├── requirements.txt
 │   └── .env.example
 ├── frontend/
 │   ├── src/
-│   │   ├── App.tsx             # Main React component
+│   │   ├── App.tsx
 │   │   └── main.tsx
 │   ├── package.json
 │   └── vite.config.ts
-├── docs/
-│   └── screenshots/
-│       ├── demo.gif
-│       ├── supplier-lookup.png
-│       ├── bid-comparison.png
-│       └── document-qa.png
-├── start.sh                    # One-shot startup script
+├── docs/screenshots/
+├── start.sh
 └── README.md
 ```
 
