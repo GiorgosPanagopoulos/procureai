@@ -1,10 +1,43 @@
 import { useState, useEffect, useRef } from 'react';
+import * as Sentry from '@sentry/react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { toast, Toaster } from 'sonner';
 import './App.css';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import LoginPage from './pages/LoginPage';
+
+function ErrorFallback({ error }: { error: Error }) {
+  return (
+    <div style={{
+      height: '100vh',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: '1rem',
+      background: 'var(--bg)',
+      color: 'var(--text)',
+    }}>
+      <h2 style={{ margin: 0, color: 'var(--text)' }}>Something went wrong</h2>
+      <p style={{ margin: 0, color: 'var(--text2)', fontSize: '0.875rem' }}>{error.message}</p>
+      <button
+        onClick={() => window.location.reload()}
+        style={{
+          padding: '0.5rem 1.25rem',
+          borderRadius: '6px',
+          border: 'none',
+          background: 'var(--accent2)',
+          color: '#fff',
+          cursor: 'pointer',
+          fontSize: '0.875rem',
+        }}
+      >
+        Reload
+      </button>
+    </div>
+  );
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -309,6 +342,7 @@ function AppContent() {
       }]);
       setRightTab('results');
     } catch (err) {
+      Sentry.captureException(err, { tags: { component: 'chat' }, extra: { query: txt } });
       const raw = err instanceof Error ? err.message : 'Unknown error';
       const isNetwork = raw === 'Load failed' || raw === 'Failed to fetch';
       const isTimeout = raw.includes('abort') || raw.includes('AbortError');
@@ -348,6 +382,7 @@ function AppContent() {
         timestamp: new Date(),
       }]);
     } catch (err) {
+      Sentry.captureException(err, { tags: { component: 'upload' }, extra: { filename: file.name } });
       toast.error(`Upload failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
       setIsLoading(false);
@@ -372,6 +407,7 @@ function AppContent() {
       setSuppliers(data);
       toast.success(`Loaded ${data.length} suppliers`);
     } catch (err) {
+      Sentry.captureException(err, { tags: { component: 'chat' } });
       toast.error(err instanceof Error ? err.message : 'Failed to load suppliers');
     } finally {
       setLoadingData(null);
@@ -387,6 +423,7 @@ function AppContent() {
       setBids(data);
       toast.success(`Loaded ${data.length} bids`);
     } catch (err) {
+      Sentry.captureException(err, { tags: { component: 'chat' } });
       toast.error(err instanceof Error ? err.message : 'Failed to load bids');
     } finally {
       setLoadingData(null);
@@ -798,9 +835,11 @@ function AppContent() {
 
 function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <Sentry.ErrorBoundary fallback={({ error }) => <ErrorFallback error={error as Error} />}>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </Sentry.ErrorBoundary>
   );
 }
 
