@@ -16,3 +16,13 @@ class DocumentIngestionError(ProcureAIException):
 class AgentExecutionError(ProcureAIException):
     def __init__(self, detail: str = "Agent execution failed"):
         super().__init__(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=detail)
+
+
+class NotFoundError(ProcureAIException):
+    def __init__(self, detail: str = "Resource not found"):
+        super().__init__(status_code=status.HTTP_404_NOT_FOUND, detail=detail)
+
+
+class ValidationError(ProcureAIException):
+    def __init__(self, detail: str = "Validation failed"):
+        super().__init__(status_code=status.HTTP_400_BAD_REQUEST, detail=detail)

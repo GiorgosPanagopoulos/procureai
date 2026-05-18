@@ -6,7 +6,9 @@ from api.routes.auth import router as auth_router
 from config import settings
 from core.sentry import init_sentry
 from db import db
-from fastapi import FastAPI
+from exceptions import ProcureAIException
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from middleware.correlation import CorrelationIDMiddleware
 from middleware.cors import setup_cors
 from middleware.rate_limit import setup_rate_limit
@@ -72,6 +74,22 @@ async def lifespan(app: FastAPI):
 # ── FastAPI app ───────────────────────────────────────────────────────────────
 
 app = FastAPI(title="ProcureAI API", version="4.0.0", lifespan=lifespan)
+
+
+@app.exception_handler(ProcureAIException)
+async def procureai_exception_handler(request: Request, exc: ProcureAIException) -> JSONResponse:
+    structlog.get_logger().warning(
+        "handled_error",
+        status=exc.status_code,
+        detail=exc.detail,
+        path=request.url.path,
+    )
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail, "type": type(exc).__name__},
+    )
+
+
 setup_rate_limit(app)
 app.add_middleware(CorrelationIDMiddleware)
 setup_cors(app)

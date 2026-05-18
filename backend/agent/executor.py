@@ -4,6 +4,7 @@ from typing import Dict, List
 import sentry_sdk
 import structlog
 from db import db
+from exceptions import AgentExecutionError
 from langchain_classic.agents import AgentExecutor, create_react_agent
 from llm.clients import claude_llm
 from llm.pricing import MODEL_NAME, _current_usage, _UsageAccum
@@ -75,13 +76,7 @@ async def run_agent(user_input: str, conversation_id: str) -> Dict:
         )
         sentry_sdk.capture_exception(exc)
         log.error("agent_error", error=str(exc), conversation_id=conversation_id)
-        return {
-            "response": f"Error processing query: {exc}",
-            "tool_used": "error",
-            "conversation_id": conversation_id,
-            "trace": [],
-            "usage": {},
-        }
+        raise AgentExecutionError(detail=f"Agent failed: {exc}")
     finally:
         _current_usage.reset(token)
 

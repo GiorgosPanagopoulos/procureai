@@ -6,7 +6,8 @@ from agent.executor import run_agent
 from agent.tools import document_qa
 from auth.dependencies import get_current_user
 from db import db
-from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
+from exceptions import AgentExecutionError, DocumentIngestionError, NotFoundError, ValidationError
+from fastapi import APIRouter, Depends, File, Request, UploadFile
 from middleware.rate_limit import limiter
 from rag.ingest import ingest_pdf
 from schemas.chat import ChatRequest
@@ -24,11 +25,14 @@ async def chat(
     current_user: dict = Depends(get_current_user),
 ):
     if not payload.message.strip():
-        raise HTTPException(status_code=400, detail="Message cannot be empty")
+        raise ValidationError("Message cannot be empty")
     cid = payload.conversation_id or str(uuid.uuid4())
-    result = await run_agent(payload.message, cid)
+    try:
+        result = await run_agent(payload.message, cid)
+    except AgentExecutionError:
+        raise
     if not result.get("response"):
-        raise HTTPException(status_code=500, detail="Agent returned empty response")
+        raise AgentExecutionError("Agent returned empty response")
     return {
         "response": result["response"],
         "tool_used": result.get("tool_used"),
@@ -46,10 +50,12 @@ async def upload_file(
     current_user: dict = Depends(get_current_user),
 ):
     if file.content_type != "application/pdf":
-        raise HTTPException(status_code=400, detail="Only PDF uploads are supported")
+        raise ValidationError("Only PDF uploads are supported")
     content = await file.read()
     try:
         chunks = ingest_pdf(file.filename or "uploaded.pdf", content)
+    except DocumentIngestionError:
+        raise
     except Exception as e:
         sentry_sdk.set_context(
             "document",
@@ -60,9 +66,9 @@ async def upload_file(
             },
         )
         sentry_sdk.capture_exception(e)
-        raise
+        raise DocumentIngestionError(detail=f"Unexpected error: {e}")
     if chunks == 0:
-        raise HTTPException(status_code=400, detail="PDF had no extractable text")
+        raise DocumentIngestionError("PDF had no extractable text")
     log.info("pdf_uploaded", file=file.filename, chunks=chunks)
     return {
         "message": "PDF ingested successfully",
@@ -81,5 +87,5 @@ async def qna(request: Request, question: str, current_user: dict = Depends(get_
 async def get_trace(conversation_id: str, current_user: dict = Depends(get_current_user)):
     doc = await db.conversations.find_one({"conversation_id": conversation_id})
     if not doc:
-        raise HTTPException(status_code=404, detail="Conversation not found")
+        raise NotFoundError("Conversation not found")
     return {"conversation_id": conversation_id, "trace": doc.get("trace", [])}

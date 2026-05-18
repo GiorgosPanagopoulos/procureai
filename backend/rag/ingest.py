@@ -5,6 +5,7 @@ from typing import Any, Dict, List
 import numpy as np
 import structlog
 from chromadb.api.types import Metadata as ChromaMetadata
+from exceptions import DocumentIngestionError
 from pypdf import PdfReader
 
 from rag.chunking import split_text_chunks
@@ -20,7 +21,7 @@ def extract_text_from_pdf(pdf_bytes: bytes) -> str:
         return "\n".join(page.extract_text() or "" for page in reader.pages).strip()
     except Exception as exc:
         log.error("pdf_extract_failed", error=str(exc))
-        return ""
+        raise DocumentIngestionError(detail=f"Failed to extract text: {exc}")
 
 
 def ingest_text(source: str, text: str) -> int:
@@ -46,6 +47,7 @@ def ingest_text(source: str, text: str) -> int:
         )  # type: ignore[arg-type]
     except Exception as exc:
         log.error("chroma_add_failed", error=str(exc))
+        raise DocumentIngestionError(detail=f"Failed to store chunks: {exc}")
     return len(chunks)
 
 
@@ -56,9 +58,11 @@ def ingest_pdf(source: str, pdf_bytes: bytes) -> int:
 def ingest_pdf_file(path: Path) -> Dict[str, Any]:
     try:
         return {"file": path.name, "chunks": ingest_pdf(path.name, path.read_bytes())}
+    except DocumentIngestionError:
+        raise
     except Exception as exc:
         log.error("pdf_file_ingest_failed", file=path.name, error=str(exc))
-        return {"file": path.name, "chunks": 0}
+        raise DocumentIngestionError(detail=f"Failed to ingest file {path.name}: {exc}")
 
 
 def is_vectorstore_empty() -> bool:
