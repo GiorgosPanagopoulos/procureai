@@ -14,6 +14,9 @@ services:
       CHROMA_PATH: /app/chroma_db
       ALLOWED_ORIGINS: http://localhost:3000,http://frontend
       USE_RERANKER: ${USE_RERANKER:-false}
+      LANGCHAIN_TRACING_V2: ${LANGCHAIN_TRACING_V2:-false}
+      LANGCHAIN_API_KEY: ${LANGCHAIN_API_KEY:-}
+      LANGCHAIN_PROJECT: ${LANGCHAIN_PROJECT:-procureai}
     volumes:
       - chroma_data:/app/chroma_db
     depends_on:

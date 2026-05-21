@@ -64,7 +64,16 @@ async def run_agent(user_input: str, conversation_id: str) -> Dict:
         with sentry_sdk.start_span(op="llm.invoke", description="Claude API call") as _span:
             _span.set_data("model", MODEL_NAME)
             _span.set_data("tool", "agent_executor")
-            result = await agent_executor.ainvoke({"input": clean_input})
+            result = await agent_executor.ainvoke(
+                {"input": clean_input},
+                config={
+                    "metadata": {
+                        "conversation_id": conversation_id,
+                        "user_input_length": len(clean_input),
+                    },
+                    "run_name": "procureai_agent",
+                },
+            )
             _span.set_data("tool_calls", len(result.get("intermediate_steps", [])))
     except Exception as exc:
         sentry_sdk.set_context(

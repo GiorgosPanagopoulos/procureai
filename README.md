@@ -214,6 +214,14 @@ Copy `backend/.env.example` to `backend/.env` and fill in the values below:
 | `CHROMA_PATH` | Path to ChromaDB persistence directory | ➖ | `./chroma_db` |
 | `USE_RERANKER` | Enable CrossEncoder reranker for RAG | ➖ | `false` |
 
+### LangSmith
+
+| Variable | Description | Required | Default |
+|----------|-------------|----------|---------|
+| `LANGCHAIN_TRACING_V2` | Enable LangSmith tracing | ➖ | `false` |
+| `LANGCHAIN_API_KEY` | LangSmith API key | ➖ | — |
+| `LANGCHAIN_PROJECT` | LangSmith project name | ➖ | `procureai` |
+
 ---
 
 ## 📡 API Endpoints

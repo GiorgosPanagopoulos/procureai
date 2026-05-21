@@ -30,6 +30,10 @@ class Settings(BaseSettings):
     SENTRY_ENVIRONMENT: str = "development"
     APP_VERSION: str = "procureai@dev"
 
+    LANGCHAIN_TRACING_V2: str = "false"
+    LANGCHAIN_API_KEY: str = ""
+    LANGCHAIN_PROJECT: str = "procureai"
+
     @field_validator("SECRET_KEY")
     @classmethod
     def warn_if_default_secret(cls, v: str) -> str:

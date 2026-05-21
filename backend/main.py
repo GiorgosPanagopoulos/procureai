@@ -1,3 +1,4 @@
+import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -39,6 +40,14 @@ log = structlog.get_logger()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    if settings.LANGCHAIN_API_KEY:
+        os.environ["LANGCHAIN_TRACING_V2"] = settings.LANGCHAIN_TRACING_V2
+        os.environ["LANGCHAIN_API_KEY"] = settings.LANGCHAIN_API_KEY
+        os.environ["LANGCHAIN_PROJECT"] = settings.LANGCHAIN_PROJECT
+        log.info("langsmith_enabled", project=settings.LANGCHAIN_PROJECT)
+    else:
+        log.info("langsmith_disabled")
+
     if is_vectorstore_empty():
         pdf_dir = Path(settings.CHROMA_PATH).parent / "data" / "pdfs"
         if pdf_dir.exists():
