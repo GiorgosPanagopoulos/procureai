@@ -196,6 +196,7 @@ typings/
 .DS_Store
 backend/chroma_db/
 backend/chroma_db_test/
+backend/chroma_test/
 
 # Claude Code
 .claude/
