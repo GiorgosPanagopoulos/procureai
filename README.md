@@ -1,7 +1,7 @@
 <div align="center">
 <h1>🤖 ProcureAI</h1>
 <p><strong>AI-Native Procurement Assistant powered by LangChain ReAct Agent & RAG</strong></p>
-<p><em>Turn procurement workflows into natural language actions</em></p>
+<p><em>AI-powered procurement assistant for Greek public sector organizations</em></p>
 </div>
 
 ---
@@ -24,6 +24,10 @@
 
 ---
 
+ProcureAI είναι ένας AI-powered βοηθός προμηθειών σχεδιασμένος για φορείς του ελληνικού δημοσίου. Απαντά σε ερωτήματα φυσικής γλώσσας για δημόσιες συμβάσεις, επεξεργάζεται έγγραφα που δημοσιεύονται στο **ΚΗΜΔΗΣ** και **ΕΣΗΔΗΣ**, και εφαρμόζει τον **Ν.4412/2016** (Δημόσιες Συμβάσεις Έργων, Προμηθειών και Υπηρεσιών) ως κύρια νομική βάση για κάθε απάντηση.
+
+---
+
 ## 🎬 Demo
 
 <div align="center">
@@ -42,8 +46,17 @@
 | 📊 **Bid Comparison** | Ranked bid analysis with pricing, delivery terms, and compliance scoring |
 | 📄 **Document Q&A** | RAG-powered Q&A over uploaded procurement contracts and PDFs |
 | 📋 **Report Generation** | Automated procurement summary reports |
+| ⚖️ **Greek Procurement Law** | N.4412/2016 knowledge base via RAG — article-level citations in every answer |
 | 🌐 **Bilingual UI** | Greek/English toggle with automatic locale switching |
 | 🌗 **Dark/Light Mode** | Full theme support via Tailwind CSS v4 |
+
+---
+
+## 💬 Example
+
+> **Ερώτηση:** Ποια είναι τα όρια απευθείας ανάθεσης;
+
+> **ProcureAI:** Σύμφωνα με το **Άρθρο 118 του Ν.4412/2016**, η απευθείας ανάθεση επιτρέπεται για προμήθειες και υπηρεσίες εκτιμώμενης αξίας **έως 30.000 € (χωρίς ΦΠΑ)**. Για έργα, το αντίστοιχο όριο ορίζεται στις **20.000 €**. Σε κάθε περίπτωση, η ανάθεση πρέπει να τεκμηριώνεται και να καταχωρείται στο ΚΗΜΔΗΣ εντός των προβλεπόμενων προθεσμιών.
 
 ---
 
@@ -257,7 +270,7 @@ procureai/
 │   ├── crud/                   # DB operations
 │   ├── api/routes/             # Auth router
 │   ├── data/
-│   │   ├── pdfs/               # Sample procurement contracts
+│   │   ├── pdfs/               # Sample procurement contracts & N.4412/2016 excerpts
 │   │   └── seed.py             # MongoDB seed script
 │   ├── requirements.txt
 │   └── .env.example
@@ -276,7 +289,7 @@ procureai/
 
 ## 💡 Why ProcureAI?
 
-ProcureAI was built as the final project for the **AUEB "AI for Developers" programme** (KEDIVIM / OPA, 2026). The goal was to apply production-grade AI engineering patterns to a real-world domain — institutional procurement.
+ProcureAI was built as the final project for the **AUEB "AI for Developers" programme** (KEDIVIM / OPA, 2026). The goal was to apply production-grade AI engineering patterns to a real-world domain — Greek public sector procurement under **Ν.4412/2016**.
 
 Key technical decisions:
 
@@ -285,7 +298,8 @@ Key technical decisions:
 | **ReAct agent over fixed chains** | Dynamic tool selection lets the agent handle diverse, multi-step queries without hardcoded routing logic |
 | **Hybrid data layer** | MongoDB for structured supplier/bid records (fast filtering, aggregation); ChromaDB for document embeddings (semantic similarity) |
 | **Decoupled embedding & LLM providers** | OpenAI embeddings + Anthropic Claude — avoids vendor lock-in, allows independent cost optimisation of each layer |
-| **Bilingual design (Greek/English)** | Built for real-world institutional deployment in Greek public-sector or academic procurement contexts |
+| **N.4412/2016 RAG knowledge base** | Ingested full law text enables article-level citations for ΚΗΜΔΗΣ/ΕΣΗΔΗΣ queries and direct-award threshold questions |
+| **Bilingual design (Greek/English)** | Built for real-world institutional deployment in Greek public-sector procurement contexts |
 
 ---
 
