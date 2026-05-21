@@ -215,12 +215,12 @@ const SUGGESTIONS = {
     { label: 'Find high-rated suppliers',         icon: 'suppliers' },
   ],
   gr: [
-    { label: 'Σύγκριση προσφορών εξοπλισμού',    icon: 'chart' },
-    { label: 'Εύρεση προμηθευτών IT',             icon: 'search' },
-    { label: 'Δημιουργία αναφοράς προμηθειών',   icon: 'bids' },
-    { label: 'Όροι πληρωμής στα συμβόλαια',      icon: 'check' },
-    { label: 'Προσφορές ιατρικού εξοπλισμού',    icon: 'sparkle' },
-    { label: 'Εύρεση κορυφαίων προμηθευτών',     icon: 'suppliers' },
+    { label: 'Όρια απευθείας ανάθεσης',  icon: 'chart' },
+    { label: 'Συνοπτικός διαγωνισμός',   icon: 'search' },
+    { label: 'Εγγύηση καλής εκτέλεσης', icon: 'bids' },
+    { label: 'Σύγκριση προσφορών',       icon: 'check' },
+    { label: 'Εύρεση προμηθευτών IT',    icon: 'sparkle' },
+    { label: 'Δημιουργία αναφοράς',      icon: 'suppliers' },
   ],
 };
 
@@ -228,7 +228,7 @@ const TRANSLATIONS = {
   en: {
     connected: 'Connected', disconnected: 'Disconnected',
     welcome: 'Welcome to ProcureAI',
-    welcomeDesc: 'Ask me anything about procurement, bids, suppliers, or contracts. I have access to your full database.',
+    welcomeDesc: 'Ask me anything about public procurement, bids, suppliers, or contracts. I have access to your full database.',
     placeholder: 'Ask about procurement, bids, suppliers…',
     dataInspector: 'Data Inspector', results: 'Results',
     agentResponses: 'Agent Responses',
@@ -236,11 +236,21 @@ const TRANSLATIONS = {
     noResultsDesc: 'Start a conversation to see AI responses here',
     viewReasoning: 'View reasoning',
     hideReasoning: 'Hide reasoning',
+    suppliers: 'Suppliers',
+    bids: 'Bids',
+    loadMore: 'Show more',
+    showLess: 'Show less',
+    clickToLoad: 'Click to load',
+    recordsLoaded: 'records loaded',
+    clearBtn: 'Clear',
+    dataSynced: 'Data loaded · Last sync: just now',
+    databaseRecords: 'Database Records',
+    quickStats: 'Quick Stats',
   },
   gr: {
     connected: 'Συνδεδεμένο', disconnected: 'Αποσυνδεδεμένο',
     welcome: 'Καλώς ήρθατε στο ProcureAI',
-    welcomeDesc: 'Ρωτήστε με οτιδήποτε για προμήθειες, προσφορές, προμηθευτές ή συμβάσεις.',
+    welcomeDesc: 'Ρωτήστε για δημόσιες προμήθειες, προσφορές και συμβάσεις βάσει Ν.4412/2016. Έχω πρόσβαση σε ολόκληρη τη βάση δεδομένων σας.',
     placeholder: 'Ρωτήστε για προμήθειες, προσφορές, προμηθευτές…',
     dataInspector: 'Επισκόπηση', results: 'Αποτελέσματα',
     agentResponses: 'Απαντήσεις',
@@ -248,6 +258,16 @@ const TRANSLATIONS = {
     noResultsDesc: 'Ξεκινήστε μια συζήτηση για να δείτε απαντήσεις εδώ',
     viewReasoning: 'Εμφάνιση λογικής',
     hideReasoning: 'Απόκρυψη λογικής',
+    suppliers: 'Προμηθευτές',
+    bids: 'Προσφορές',
+    loadMore: 'Εμφάνιση περισσότερων',
+    showLess: 'Λιγότερα',
+    clickToLoad: 'Κλικ για φόρτωση',
+    recordsLoaded: 'εγγραφές φορτώθηκαν',
+    clearBtn: 'Εκκαθάριση',
+    dataSynced: 'Δεδομένα συγχρονίστηκα',
+    databaseRecords: 'Εγγραφές Βάσης Δεδομένων',
+    quickStats: 'Γρήγορες Στατιστικές',
   },
 };
 
@@ -664,13 +684,13 @@ function AppContent() {
           <div className="tab-content">
             {rightTab === 'data' ? (
               <>
-                <p className="section-label">Database Records</p>
+                <p className="section-label">{t.databaseRecords}</p>
 
                 {/* Count cards */}
                 <div className="data-cards-grid">
                   {([
-                    { type: 'suppliers' as const, icon: 'suppliers', label: 'Suppliers', count: suppliers.length, color: '#22d3ee', rgb: '34,211,238', load: handleLoadSuppliers },
-                    { type: 'bids'      as const, icon: 'bids',      label: 'Bids',      count: bids.length,      color: '#a78bfa', rgb: '167,139,250', load: handleLoadBids },
+                    { type: 'suppliers' as const, icon: 'suppliers', label: t.suppliers, count: suppliers.length, color: '#22d3ee', rgb: '34,211,238', load: handleLoadSuppliers },
+                    { type: 'bids'      as const, icon: 'bids',      label: t.bids,      count: bids.length,      color: '#a78bfa', rgb: '167,139,250', load: handleLoadBids },
                   ]).map(({ type, icon, label, count, color, rgb, load }) => (
                     <button
                       key={type}
@@ -691,7 +711,7 @@ function AppContent() {
                         <span className="count-card-label" style={{ color: count > 0 ? color : 'var(--text2)' }}>{label}</span>
                       </div>
                       <div className="count-card-value" style={{ color: count > 0 ? 'var(--text)' : 'var(--text3)' }}>{count}</div>
-                      <div className="count-card-sub">{count === 0 ? 'Click to load' : 'records loaded'}</div>
+                      <div className="count-card-sub">{count === 0 ? t.clickToLoad : t.recordsLoaded}</div>
                     </button>
                   ))}
                 </div>
@@ -699,14 +719,14 @@ function AppContent() {
                 {(suppliers.length > 0 || bids.length > 0) && (
                   <div className="data-loaded-badge">
                     <Icon name="check" size={12} color="var(--success)" />
-                    Data loaded · Last sync: just now
+                    {t.dataSynced}
                   </div>
                 )}
 
                 {/* Quick stats */}
                 {bids.length > 0 && (
                   <div className="quick-stats">
-                    <p className="section-label">Quick Stats</p>
+                    <p className="section-label">{t.quickStats}</p>
                     {[
                       { label: 'Avg bid value',  value: avgBidValue,          trend: '+8%', pos: true },
                       { label: 'Active bids',    value: String(activeBids),   trend: `+${activeBids}`, pos: true },
@@ -728,7 +748,7 @@ function AppContent() {
                 {/* Supplier list */}
                 {suppliers.length > 0 && (
                   <div className="data-section">
-                    <p className="section-label">Suppliers ({suppliers.length})</p>
+                    <p className="section-label">{t.suppliers} ({suppliers.length})</p>
                     <div className="data-list">
                       {visibleSuppliers.map((s, i) => (
                         <div key={i} className="data-item">
@@ -745,7 +765,7 @@ function AppContent() {
                     </div>
                     {suppliers.length > 5 && (
                       <button className="show-more-btn" onClick={() => setShowMoreSuppliers(p => !p)}>
-                        {showMoreSuppliers ? 'Show less' : `Show ${suppliers.length - 5} more`}
+                        {showMoreSuppliers ? t.showLess : `${t.loadMore} (${suppliers.length - 5})`}
                       </button>
                     )}
                   </div>
@@ -754,7 +774,7 @@ function AppContent() {
                 {/* Bid list */}
                 {bids.length > 0 && (
                   <div className="data-section">
-                    <p className="section-label">Bids ({bids.length})</p>
+                    <p className="section-label">{t.bids} ({bids.length})</p>
                     <div className="data-list">
                       {visibleBids.map((b, i) => (
                         <div key={i} className="data-item">
@@ -775,7 +795,7 @@ function AppContent() {
                     </div>
                     {bids.length > 5 && (
                       <button className="show-more-btn" onClick={() => setShowMoreBids(p => !p)}>
-                        {showMoreBids ? 'Show less' : `Show ${bids.length - 5} more`}
+                        {showMoreBids ? t.showLess : `${t.loadMore} (${bids.length - 5})`}
                       </button>
                     )}
                   </div>
@@ -824,7 +844,7 @@ function AppContent() {
               <span className="footer-dot">●</span> {suppliers.length} suppliers · {bids.length} bids
             </div>
             <button className="footer-clear-btn" onClick={() => setMessages([])}>
-              <Icon name="refresh" size={11} color="currentColor" /> Clear
+              <Icon name="refresh" size={11} color="currentColor" /> {t.clearBtn}
             </button>
           </div>
         </div>
