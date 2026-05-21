@@ -452,7 +452,7 @@ function AppContent() {
 
   const avgBidValue = bids.length > 0
     ? (bids.reduce((s, b) => s + b.total_price, 0) / bids.length)
-        .toLocaleString('en-US', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })
+        .toLocaleString('el-GR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })
     : '—';
   const activeBids = bids.filter(b => b.status.toLowerCase() === 'pending').length;
 
@@ -786,7 +786,7 @@ function AppContent() {
                           </div>
                           <div className="data-item-row">
                             <span className="data-item-price">
-                              {b.total_price.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
+                              {b.total_price.toLocaleString('el-GR', { style: 'currency', currency: 'EUR' })}
                             </span>
                             <span className="data-item-sub">{b.delivery_days}d delivery</span>
                           </div>
