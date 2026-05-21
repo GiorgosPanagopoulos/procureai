@@ -24,7 +24,7 @@
 
 ---
 
-ProcureAI είναι ένας AI-powered βοηθός προμηθειών σχεδιασμένος για φορείς του ελληνικού δημοσίου. Απαντά σε ερωτήματα φυσικής γλώσσας για δημόσιες συμβάσεις, επεξεργάζεται έγγραφα που δημοσιεύονται στο **ΚΗΜΔΗΣ** και **ΕΣΗΔΗΣ**, και εφαρμόζει τον **Ν.4412/2016** (Δημόσιες Συμβάσεις Έργων, Προμηθειών και Υπηρεσιών) ως κύρια νομική βάση για κάθε απάντηση.
+ProcureAI is an AI-powered procurement assistant built for Greek public sector organizations. It answers natural language queries about public contracts, processes documents published on **ΚΗΜΔΗΣ** and **ΕΣΗΔΗΣ**, and applies **N.4412/2016** (Public Contracts for Works, Supplies and Services) as the authoritative legal basis for every response.
 
 ---
 
