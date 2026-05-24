@@ -4,12 +4,14 @@ import sentry_sdk
 import structlog
 from agent.executor import run_agent
 from agent.tools import document_qa
+from core.chroma_tenant import _current_user_id
 from core.rbac import require_procurement_officer, require_viewer
 from db import db
 from exceptions import AgentExecutionError, DocumentIngestionError, NotFoundError, ValidationError
 from fastapi import APIRouter, Depends, File, Request, UploadFile
 from middleware.rate_limit import limiter
 from rag.ingest import ingest_pdf
+from rag.vectorstore import chroma_collection
 from schemas.chat import ChatRequest
 
 log = structlog.get_logger()
@@ -27,10 +29,14 @@ async def chat(
     if not payload.message.strip():
         raise ValidationError("Message cannot be empty")
     cid = payload.conversation_id or str(uuid.uuid4())
+    user_id = str(current_user["_id"])
+    token = _current_user_id.set(user_id)
     try:
         result = await run_agent(payload.message, cid)
     except AgentExecutionError:
         raise
+    finally:
+        _current_user_id.reset(token)
     if not result.get("response"):
         raise AgentExecutionError("Agent returned empty response")
     return {
@@ -52,8 +58,9 @@ async def upload_file(
     if file.content_type != "application/pdf":
         raise ValidationError("Only PDF uploads are supported")
     content = await file.read()
+    user_id = str(current_user["_id"])
     try:
-        chunks = ingest_pdf(file.filename or "uploaded.pdf", content)
+        chunks = ingest_pdf(file.filename or "uploaded.pdf", content, user_id)
     except DocumentIngestionError:
         raise
     except Exception as e:
@@ -82,7 +89,32 @@ async def upload_file(
 async def qna(
     request: Request, question: str, current_user: dict = Depends(require_procurement_officer)
 ):
-    return {"answer": document_qa.invoke(question), "question": question}
+    user_id = str(current_user["_id"])
+    token = _current_user_id.set(user_id)
+    try:
+        answer = document_qa.invoke(question)
+    finally:
+        _current_user_id.reset(token)
+    return {"answer": answer, "question": question}
+
+
+@router.delete("/documents")
+@limiter.limit("30/minute")
+async def delete_documents(
+    request: Request,
+    source: str,
+    current_user: dict = Depends(require_procurement_officer),
+):
+    user_id = str(current_user["_id"])
+    try:
+        chroma_collection.delete(
+            where={"$and": [{"user_id": {"$eq": user_id}}, {"source": {"$eq": source}}]}
+        )
+    except Exception as e:
+        log.error("chroma_delete_failed", error=str(e), user_id=user_id, source=source)
+        raise DocumentIngestionError(detail=f"Failed to delete documents: {e}")
+    log.info("documents_deleted", user_id=user_id, source=source)
+    return {"message": "Documents deleted", "source": source}
 
 
 @router.get("/conversations/{conversation_id}/trace")

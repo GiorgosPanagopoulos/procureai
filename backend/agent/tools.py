@@ -5,6 +5,7 @@ import sentry_sdk
 import structlog
 from anthropic.types import TextBlock
 from config import settings
+from core.chroma_tenant import get_active_user_id, get_user_filter
 from db import db
 from langchain_core.tools import tool
 from llm.clients import _raw_anthropic
@@ -26,6 +27,10 @@ def document_qa(question: str) -> str:
     if not question.strip():
         return "Please provide a question."
 
+    user_id = get_active_user_id()
+    if not user_id:
+        return "Authentication required to query documents."
+
     query_embedding = embed_text(question)
     n_retrieve = 20 if settings.USE_RERANKER else 4
 
@@ -38,8 +43,12 @@ def document_qa(question: str) -> str:
                 query_embeddings=np.array([query_embedding]),
                 n_results=n_retrieve,
                 include=["documents", "metadatas"],
+                where=get_user_filter(user_id),
             )
     except Exception as exc:
+        exc_str = str(exc)
+        if "Number of requested results" in exc_str or "greater than number of elements" in exc_str:
+            return "No relevant documents found."
         return f"Error searching documents: {exc}"
 
     all_docs: List[str] = []

@@ -5,6 +5,7 @@ from typing import Any, Dict, List
 import numpy as np
 import structlog
 from chromadb.api.types import Metadata as ChromaMetadata
+from core.chroma_tenant import build_metadata
 from exceptions import DocumentIngestionError
 from pypdf import PdfReader
 
@@ -24,16 +25,16 @@ def extract_text_from_pdf(pdf_bytes: bytes) -> str:
         raise DocumentIngestionError(detail=f"Failed to extract text: {exc}")
 
 
-def ingest_text(source: str, text: str) -> int:
+def ingest_text(source: str, text: str, user_id: str) -> int:
     if not text.strip():
         return 0
     chunks = split_text_chunks(text)
     if not chunks:
         return 0
-    ids = [f"{source}_chunk_{i}" for i in range(len(chunks))]
+    ids = [f"{user_id}_{source}_chunk_{i}" for i in range(len(chunks))]
     embeddings = [embed_text(c) for c in chunks]
     raw_metadatas: List[Dict[str, str]] = [
-        {"source": source, "chunk": str(i)} for i in range(len(chunks))
+        build_metadata(user_id=user_id, source=source, chunk=str(i)) for i in range(len(chunks))
     ]
     safe_metadatas: List[ChromaMetadata] = [
         {str(k): str(v) for k, v in m.items()} for m in raw_metadatas
@@ -51,13 +52,13 @@ def ingest_text(source: str, text: str) -> int:
     return len(chunks)
 
 
-def ingest_pdf(source: str, pdf_bytes: bytes) -> int:
-    return ingest_text(source, extract_text_from_pdf(pdf_bytes))
+def ingest_pdf(source: str, pdf_bytes: bytes, user_id: str) -> int:
+    return ingest_text(source, extract_text_from_pdf(pdf_bytes), user_id)
 
 
-def ingest_pdf_file(path: Path) -> Dict[str, Any]:
+def ingest_pdf_file(path: Path, user_id: str = "system") -> Dict[str, Any]:
     try:
-        return {"file": path.name, "chunks": ingest_pdf(path.name, path.read_bytes())}
+        return {"file": path.name, "chunks": ingest_pdf(path.name, path.read_bytes(), user_id)}
     except DocumentIngestionError:
         raise
     except Exception as exc:
