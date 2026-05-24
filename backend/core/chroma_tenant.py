@@ -1,13 +1,11 @@
 from contextvars import ContextVar
-from typing import Optional
-
-from chromadb.types import Where
+from typing import Any, Optional
 
 _current_user_id: ContextVar[Optional[str]] = ContextVar("current_user_id", default=None)
 
 
-def get_user_filter(user_id: str) -> Where:
-    return {"user_id": user_id}  # type: ignore[return-value]
+def get_user_filter(user_id: str) -> Any:
+    return {"user_id": user_id}
 
 
 def build_metadata(user_id: str, source: str, **kwargs) -> dict:

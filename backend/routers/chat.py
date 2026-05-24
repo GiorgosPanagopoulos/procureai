@@ -1,5 +1,5 @@
 import uuid
-from typing import Optional
+from typing import Any, Optional
 
 import sentry_sdk
 import structlog
@@ -166,9 +166,8 @@ async def delete_documents(
 ):
     user_id = str(current_user["_id"])
     try:
-        chroma_collection.delete(
-            where={"$and": [{"user_id": {"$eq": user_id}}, {"source": {"$eq": source}}]}  # type: ignore[arg-type]
-        )
+        where_filter: Any = {"$and": [{"user_id": {"$eq": user_id}}, {"source": {"$eq": source}}]}
+        chroma_collection.delete(where=where_filter)
     except Exception as e:
         log.error("chroma_delete_failed", error=str(e), user_id=user_id, source=source)
         raise DocumentIngestionError(detail=f"Failed to delete documents: {e}")
