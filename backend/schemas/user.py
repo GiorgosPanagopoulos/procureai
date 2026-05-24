@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -8,6 +8,9 @@ class UserCreate(BaseModel):
     email: str
     password: str
     full_name: str = ""
+    # NOTE: assigning role="admin" via public registration is not enforced server-side here;
+    # admin-role assignment should go through a separate admin-only endpoint.
+    role: Literal["admin", "procurement_officer", "viewer"] = "viewer"
 
 
 class UserRead(BaseModel):
@@ -16,6 +19,7 @@ class UserRead(BaseModel):
     full_name: str
     is_active: bool
     is_superuser: bool
+    role: str = "viewer"
     created_at: datetime
 
     model_config = {"populate_by_name": True}

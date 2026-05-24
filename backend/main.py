@@ -72,7 +72,7 @@ async def lifespan(app: FastAPI):
         if user_doc:
             await db.users.update_one(
                 {"email": settings.FIRST_SUPERUSER_EMAIL},
-                {"$set": {"is_superuser": True}},
+                {"$set": {"is_superuser": True, "role": "admin"}},
             )
             log.info("superuser_created", email=settings.FIRST_SUPERUSER_EMAIL)
     else:

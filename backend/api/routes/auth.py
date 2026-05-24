@@ -33,7 +33,7 @@ async def login(body: LoginRequest) -> JSONResponse:
         raise HTTPException(status_code=401, detail="Incorrect email or password")
     if not user["is_active"]:
         raise HTTPException(status_code=403, detail="Inactive account")
-    token = create_access_token(subject=user["email"])
+    token = create_access_token(subject=user["email"], role=user.get("role", "viewer"))
     response = JSONResponse(
         content={
             "message": "Login successful",
@@ -50,7 +50,7 @@ async def register(user_in: UserCreate) -> JSONResponse:
     user = await create_user(db, user_in)
     if user is None:
         raise HTTPException(status_code=400, detail="Email already registered")
-    token = create_access_token(subject=user["email"])
+    token = create_access_token(subject=user["email"], role=user.get("role", "viewer"))
     response = JSONResponse(content=UserRead(**user).model_dump(mode="json", by_alias=True))
     set_auth_cookie(response, token)
     return response

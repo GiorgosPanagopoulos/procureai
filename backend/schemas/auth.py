@@ -11,3 +11,4 @@ class Token(BaseModel):
 class TokenPayload(BaseModel):
     sub: str
     exp: Optional[int] = None
+    role: str = "viewer"

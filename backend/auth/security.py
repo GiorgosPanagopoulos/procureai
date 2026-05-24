@@ -20,16 +20,16 @@ def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
 
 
-def create_access_token(subject: str) -> str:
+def create_access_token(subject: str, role: str = "viewer") -> str:
     expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    payload = {"sub": subject, "exp": expire}
+    payload = {"sub": subject, "exp": expire, "role": role}
     return jwt.encode(payload, settings.SECRET_KEY, algorithm=ALGORITHM)
 
 
 def decode_access_token(token: str) -> Optional[TokenPayload]:
     try:
         data = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
-        return TokenPayload(sub=data["sub"], exp=data.get("exp"))
+        return TokenPayload(sub=data["sub"], exp=data.get("exp"), role=data.get("role", "viewer"))
     except (JWTError, KeyError):
         return None
 

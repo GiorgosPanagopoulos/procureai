@@ -4,7 +4,7 @@ import sentry_sdk
 import structlog
 from agent.executor import run_agent
 from agent.tools import document_qa
-from auth.dependencies import get_current_user
+from core.rbac import require_procurement_officer, require_viewer
 from db import db
 from exceptions import AgentExecutionError, DocumentIngestionError, NotFoundError, ValidationError
 from fastapi import APIRouter, Depends, File, Request, UploadFile
@@ -22,7 +22,7 @@ router = APIRouter()
 async def chat(
     request: Request,
     payload: ChatRequest,
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_procurement_officer),
 ):
     if not payload.message.strip():
         raise ValidationError("Message cannot be empty")
@@ -47,7 +47,7 @@ async def chat(
 async def upload_file(
     request: Request,
     file: UploadFile = File(...),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_procurement_officer),
 ):
     if file.content_type != "application/pdf":
         raise ValidationError("Only PDF uploads are supported")
@@ -79,12 +79,14 @@ async def upload_file(
 
 @router.post("/doc_qa")
 @limiter.limit("30/minute")
-async def qna(request: Request, question: str, current_user: dict = Depends(get_current_user)):
+async def qna(
+    request: Request, question: str, current_user: dict = Depends(require_procurement_officer)
+):
     return {"answer": document_qa.invoke(question), "question": question}
 
 
 @router.get("/conversations/{conversation_id}/trace")
-async def get_trace(conversation_id: str, current_user: dict = Depends(get_current_user)):
+async def get_trace(conversation_id: str, current_user: dict = Depends(require_viewer)):
     doc = await db.conversations.find_one({"conversation_id": conversation_id})
     if not doc:
         raise NotFoundError("Conversation not found")
