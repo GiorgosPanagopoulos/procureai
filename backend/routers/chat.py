@@ -167,7 +167,7 @@ async def delete_documents(
     user_id = str(current_user["_id"])
     try:
         chroma_collection.delete(
-            where={"$and": [{"user_id": {"$eq": user_id}}, {"source": {"$eq": source}}]}
+            where={"$and": [{"user_id": {"$eq": user_id}}, {"source": {"$eq": source}}]}  # type: ignore[arg-type]
         )
     except Exception as e:
         log.error("chroma_delete_failed", error=str(e), user_id=user_id, source=source)
