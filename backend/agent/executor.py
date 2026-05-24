@@ -10,21 +10,26 @@ from llm.clients import claude_llm
 from llm.pricing import MODEL_NAME, _current_usage, _UsageAccum
 from security.pii import redact_pii
 
-from agent.prompt import react_prompt
 from agent.tools import bid_comparison, document_qa, report_generation, supplier_lookup
 
 log = structlog.get_logger()
 
 lc_tools = [document_qa, bid_comparison, supplier_lookup, report_generation]
-agent = create_react_agent(llm=claude_llm, tools=lc_tools, prompt=react_prompt)
-agent_executor = AgentExecutor(
-    agent=agent,
-    tools=lc_tools,
-    return_intermediate_steps=True,
-    handle_parsing_errors=True,
-    max_iterations=5,
-    verbose=True,
-)
+
+
+def _build_agent_executor() -> AgentExecutor:
+    from agent.prompt import get_react_prompt
+
+    prompt = get_react_prompt()
+    agent = create_react_agent(llm=claude_llm, tools=lc_tools, prompt=prompt)
+    return AgentExecutor(
+        agent=agent,
+        tools=lc_tools,
+        return_intermediate_steps=True,
+        handle_parsing_errors=True,
+        max_iterations=5,
+        verbose=True,
+    )
 
 
 def _build_trace(steps: List) -> List[Dict]:
@@ -64,6 +69,7 @@ async def run_agent(user_input: str, conversation_id: str) -> Dict:
         with sentry_sdk.start_span(op="llm.invoke", description="Claude API call") as _span:
             _span.set_data("model", MODEL_NAME)
             _span.set_data("tool", "agent_executor")
+            agent_executor = _build_agent_executor()
             result = await agent_executor.ainvoke(
                 {"input": clean_input},
                 config={

@@ -1,8 +1,12 @@
 from core.prompt_loader import prompt_loader
 from langchain_core.prompts import PromptTemplate
 
-_SYSTEM_PROMPT = prompt_loader.get("doc_qa")
 
-REACT_PROMPT_TEMPLATE = prompt_loader.get("chat")
+def get_react_prompt() -> PromptTemplate:
+    prompt_loader.reload()
+    return PromptTemplate.from_template(prompt_loader.get("chat"))
 
-react_prompt = PromptTemplate.from_template(REACT_PROMPT_TEMPLATE)
+
+def get_doc_qa_system_prompt() -> str:
+    prompt_loader.reload()
+    return prompt_loader.get("doc_qa")

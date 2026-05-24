@@ -14,16 +14,17 @@ from rag.embeddings import embed_text
 from rag.reranker import _get_reranker
 from rag.vectorstore import chroma_collection
 
-from agent.prompt import _SYSTEM_PROMPT
+from agent.prompt import get_doc_qa_system_prompt
 
 log = structlog.get_logger()
 
 
 @tool
 def document_qa(question: str) -> str:
-    """Answer questions about procurement documents, contracts, price lists, and terms
-    stored in the vector database. Use this for any question about document contents.
-    Input: the question to answer."""
+    """ALWAYS use this tool first for any question involving: prices, cost, price lists,
+    budget, contracts, contract terms, document contents, or comparisons between suppliers
+    based on price. This tool searches the vector database of uploaded PDFs including
+    price lists and contracts. Input: the question to answer."""
     if not question.strip():
         return "Please provide a question."
 
@@ -82,7 +83,7 @@ def document_qa(question: str) -> str:
                 system=[
                     {
                         "type": "text",
-                        "text": _SYSTEM_PROMPT,
+                        "text": get_doc_qa_system_prompt(),
                         "cache_control": {"type": "ephemeral"},
                     }
                 ],
