@@ -44,7 +44,7 @@ def document_qa(question: str) -> str:
                 query_embeddings=np.array([query_embedding]),
                 n_results=n_retrieve,
                 include=["documents", "metadatas"],
-                where=get_user_filter(user_id),
+                where={"$or": [get_user_filter(user_id), {"user_id": "system"}]},
             )
     except Exception as exc:
         exc_str = str(exc)

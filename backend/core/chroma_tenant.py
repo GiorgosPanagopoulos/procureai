@@ -5,7 +5,7 @@ _current_user_id: ContextVar[Optional[str]] = ContextVar("current_user_id", defa
 
 
 def get_user_filter(user_id: str) -> Any:
-    return {"$or": [{"user_id": user_id}, {"user_id": "system"}]}
+    return {"user_id": user_id}
 
 
 def build_metadata(user_id: str, source: str, **kwargs) -> dict:
