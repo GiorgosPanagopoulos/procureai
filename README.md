@@ -24,7 +24,7 @@
 
 ---
 
-ProcureAI is an AI-powered procurement assistant built for Greek public sector organizations. It answers natural language queries about public contracts, processes documents published on **ΚΗΜΔΗΣ** and **ΕΣΗΔΗΣ**, and applies **N.4412/2016** (Public Contracts for Works, Supplies and Services) as the authoritative legal basis for every response.
+ProcureAI is an AI-powered procurement assistant built for Greek public sector organizations. It answers natural language queries about public contracts, processes documents published on **ΚΗΜΔΗΣ** and **ΕΣΗΔΗΣ**, and applies **N.4412/2016** (Public Contracts for Works, Supplies and Services) as the authoritative legal basis for every response. The system includes production-grade RBAC (3 roles), audit logging, prompt versioning, and a procurement ontology — backed by 150 tests across all modules.
 
 ---
 
@@ -49,6 +49,11 @@ ProcureAI is an AI-powered procurement assistant built for Greek public sector o
 | ⚖️ **Greek Procurement Law** | N.4412/2016 knowledge base via RAG — article-level citations in every answer |
 | 🌐 **Bilingual UI** | Greek/English toggle with automatic locale switching |
 | 🌗 **Dark/Light Mode** | Full theme support via Tailwind CSS v4 |
+| 🔐 **RBAC** | Role-based access control: Admin / Procurement Officer / Viewer, JWT-embedded, enforced via FastAPI Depends() |
+| 🏢 **Multi-tenancy** | ChromaDB per-user document isolation via where={user_id} metadata filter + ContextVar threading |
+| 🗒️ **Audit Log** | Every query logged to MongoDB (user, query, AI response summary, sources, timestamp) — exposed at /admin/audit-logs |
+| 📝 **Prompt Versioning** | File-based versioned prompts per use case under /prompts/use_case/v1.txt, loaded via PromptLoader singleton |
+| 🧩 **Procurement Ontology** | 10 Pydantic v2 domain models: Tender, Supplier, Contract, ProcurementRequest, EvaluationCriteria, BudgetAllocation, ApprovalStage, ComplianceCheck, RiskAssessment |
 
 ---
 
@@ -235,6 +240,9 @@ Copy `backend/.env.example` to `backend/.env` and fill in the values below:
 | `POST` | `/upload` | 30/min | Upload a PDF document (multipart form) |
 | `GET` | `/conversations/{id}/trace` | — | Get ReAct reasoning trace for a conversation |
 | `POST` | `/doc_qa` | 30/min | Ask a question directly (`?question=…`) |
+| `POST` | `/auth/register` | 10/min | Register user with role assignment |
+| `POST` | `/auth/login` | 10/min | Returns JWT token with embedded role |
+| `GET` | `/admin/audit-logs` | 10/min | Paginated audit log (Admin only) |
 
 ---
 
@@ -271,8 +279,10 @@ procureai/
 │   │   ├── suppliers.py        # /suppliers, /bids
 │   │   └── reports.py          # /reports
 │   ├── schemas/                # Pydantic request/response models
-│   ├── models/                 # Pydantic domain models (Supplier, Bid)
-│   ├── auth/                   # JWT dependencies
+│   ├── models/                 # 10 procurement domain entities (Pydantic v2 ontology)
+│   ├── auth/                   # JWT auth, role enforcement, RBAC Depends() decorators
+│   ├── audit/                  # Fire-and-forget audit log writer + MongoDB collection
+│   ├── prompts/                # Versioned prompt files — /use_case/v1.txt, PromptLoader singleton
 │   ├── security/               # PII redaction
 │   ├── core/                   # Sentry init
 │   ├── crud/                   # DB operations
@@ -308,6 +318,30 @@ Key technical decisions:
 | **Decoupled embedding & LLM providers** | OpenAI embeddings + Anthropic Claude — avoids vendor lock-in, allows independent cost optimisation of each layer |
 | **N.4412/2016 RAG knowledge base** | Ingested full law text enables article-level citations for ΚΗΜΔΗΣ/ΕΣΗΔΗΣ queries and direct-award threshold questions |
 | **Bilingual design (Greek/English)** | Built for real-world institutional deployment in Greek public-sector procurement contexts |
+| **RBAC via JWT claims** | Role embedded at token issue time — no extra DB lookup per request, enforced declaratively via Depends() |
+| **ChromaDB multi-tenancy** | ContextVar-based user isolation ensures zero cross-user data leakage without a separate collection per user |
+| **Fire-and-forget audit log** | asyncio.create_task() writes to MongoDB without blocking the request path — zero latency cost |
+| **File-based prompt versioning** | Prompts are code artifacts, not DB rows — version-controlled, diff-able, rollback via git |
+
+---
+
+## 🔭 Roadmap
+
+### ✅ Phase 2 — Domain Intelligence (Complete · 150 tests)
+- Procurement ontology — 10 Pydantic v2 models covering the full procurement lifecycle
+- RBAC — Admin / Procurement Officer / Viewer roles, JWT-embedded, enforced via FastAPI Depends()
+- ChromaDB multi-tenancy — per-user document isolation via where={user_id} + ContextVar threading
+- Audit log — MongoDB collection, fire-and-forget async writes, /admin/audit-logs endpoint
+- Prompt versioning — file-based /prompts/use_case/v1.txt system, PromptLoader singleton
+
+### 🔜 Phase 3 — Enterprise Workflows
+- Tool-calling agent: AgentExecutor with dedicated tools for CPV code lookup, legal validation (Ν.4412/2016), supplier lookup, risk scoring, contract summarization, tender generation
+- Approval chain engine with state machine: ProcurementRequest → Manager → Legal → Finance → Final Approval
+- Security: fix admin self-assignment gap on /register endpoint
+
+### 🔜 Phase 4 — Governance & Observability
+- LLM evaluation framework with golden test set based on Ν.4412/2016 (groundedness, hallucination rate, compliance accuracy)
+- Async processing pipeline: Redis queues + OCR for PDF ingestion, embeddings generation, and vendor scoring
 
 ---
 
