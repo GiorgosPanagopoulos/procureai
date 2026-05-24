@@ -14,6 +14,7 @@ from middleware.correlation import CorrelationIDMiddleware
 from middleware.cors import setup_cors
 from middleware.rate_limit import setup_rate_limit
 from rag.ingest import ingest_pdf_file, is_vectorstore_empty
+from routers.admin import router as admin_router
 from routers.chat import router as chat_router
 from routers.health import router as health_router
 from routers.reports import router as reports_router
@@ -47,6 +48,11 @@ async def lifespan(app: FastAPI):
         log.info("langsmith_enabled", project=settings.LANGCHAIN_PROJECT)
     else:
         log.info("langsmith_disabled")
+
+    # Audit log indexes: compound (user_id, timestamp) for fast user queries.
+    # TTL index (90-day expiry) can be enabled by uncommenting the second line:
+    await db.audit_logs.create_index([("user_id", 1), ("timestamp", -1)])
+    # await db.audit_logs.create_index("timestamp", expireAfterSeconds=90*24*60*60)
 
     if is_vectorstore_empty():
         pdf_dir = Path(settings.CHROMA_PATH).parent / "data" / "pdfs"
@@ -108,6 +114,7 @@ app.include_router(health_router)
 app.include_router(chat_router)
 app.include_router(suppliers_router)
 app.include_router(reports_router)
+app.include_router(admin_router)
 
 if __name__ == "__main__":
     import uvicorn
