@@ -58,7 +58,7 @@ async def _register(client: AsyncClient, role: str = "viewer") -> str:
         return _extract_token(res)
     # Registration endpoint forces viewer; seed elevated-role users directly via crud.
     db = AsyncIOMotorClient(settings.MONGODB_URI).procureai
-    user_in = UserCreate(
+    user_in = UserCreate.model_construct(
         email=email,
         password="TestPass123!",  # pragma: allowlist secret
         full_name="RBAC Test",
@@ -112,6 +112,17 @@ async def test_invalid_role_rejected_at_registration(rbac_client: AsyncClient):
             "password": "TestPass123!",  # pragma: allowlist secret
             "full_name": "Bad Role",
             "role": "superuser",
+        },
+    )
+    assert res.status_code == 422
+
+    res = await rbac_client.post(
+        "/auth/register",
+        json={
+            "email": "admin_role@procureai.test",
+            "password": "TestPass123!",  # pragma: allowlist secret
+            "full_name": "Admin Role",
+            "role": "admin",
         },
     )
     assert res.status_code == 422

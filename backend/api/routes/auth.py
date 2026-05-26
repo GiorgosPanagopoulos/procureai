@@ -46,7 +46,6 @@ async def login(body: LoginRequest) -> JSONResponse:
 
 @router.post("/register")
 async def register(user_in: UserCreate) -> JSONResponse:
-    user_in.role = "viewer"
     db = _get_db()
     user = await create_user(db, user_in)
     if user is None:

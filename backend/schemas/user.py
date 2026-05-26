@@ -8,9 +8,7 @@ class UserCreate(BaseModel):
     email: str
     password: str
     full_name: str = ""
-    # NOTE: assigning role="admin" via public registration is not enforced server-side here;
-    # admin-role assignment should go through a separate admin-only endpoint.
-    role: Literal["admin", "procurement_officer", "viewer"] = "viewer"
+    role: Literal["viewer"] = "viewer"
 
 
 class UserRead(BaseModel):
