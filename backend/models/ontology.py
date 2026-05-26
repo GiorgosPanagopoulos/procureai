@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Literal, Optional
 from uuid import uuid4
@@ -126,5 +126,5 @@ class ProcurementRequest(BaseModel):
     justification: str
     risk_assessment: Optional[RiskAssessment] = None
     approval_stages: list[ApprovalStage]
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     status: Literal["draft", "in_review", "approved", "rejected"]

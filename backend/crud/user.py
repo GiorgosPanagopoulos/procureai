@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from auth.security import get_password_hash, verify_password
@@ -23,7 +23,7 @@ async def create_user(db: AsyncIOMotorDatabase, user_in: UserCreate) -> Optional
         "is_active": True,
         "is_superuser": False,
         "role": getattr(user_in, "role", "viewer"),
-        "created_at": datetime.utcnow(),
+        "created_at": datetime.now(timezone.utc),
     }
     await db.users.insert_one(user_doc)
     return user_doc

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 
 import structlog
@@ -16,7 +16,7 @@ class AuditEntry(BaseModel):
     sources_used: List[str] = []
     endpoint: str  # "/chat", "/doc_qa", etc.
     ip_address: Optional[str] = None
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 async def log_audit(db, entry: AuditEntry) -> None:
