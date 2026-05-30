@@ -19,12 +19,13 @@
 ![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248?style=for-the-badge&logo=mongodb&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white&style=for-the-badge)](https://pre-commit.com)
+[![Documentation](https://img.shields.io/badge/Documentation-PDF-4f46e5?style=for-the-badge&logo=googledocs&logoColor=white)](docs/ProcureAI_Documentation.pdf)
 
 </div>
 
 ---
 
-ProcureAI is an AI-powered procurement assistant built for Greek public sector organizations. It answers natural language queries about public contracts, processes documents published on **ΚΗΜΔΗΣ** and **ΕΣΗΔΗΣ**, and applies **N.4412/2016** (Public Contracts for Works, Supplies and Services) as the authoritative legal basis for every response. The system includes production-grade RBAC (3 roles), audit logging, prompt versioning, and a procurement ontology — backed by 150 tests across all modules.
+ProcureAI is an AI-powered procurement assistant built for Greek public sector organizations. It answers natural language queries about public contracts, processes documents published on **ΚΗΜΔΗΣ** and **ΕΣΗΔΗΣ**, and applies **N.4412/2016** (Public Contracts for Works, Supplies and Services) as the authoritative legal basis for every response. The system includes production-grade RBAC (3 roles), audit logging, prompt versioning, and a procurement ontology — backed by 149 tests across all modules.
 
 ---
 
@@ -35,6 +36,14 @@ ProcureAI is an AI-powered procurement assistant built for Greek public sector o
 ![ProcureAI Demo](docs/screenshots/demo.gif)
 
 </div>
+
+---
+
+## 📄 Documentation
+
+Full technical documentation (architecture, sequence, deployment, RAG & auth flow diagrams, API reference, bibliography) is available as a PDF:
+
+**[📘 ProcureAI_Documentation.pdf](docs/ProcureAI_Documentation.pdf)**
 
 ---
 
@@ -77,7 +86,9 @@ ProcureAI is an AI-powered procurement assistant built for Greek public sector o
 
 | Agent Response |
 |:---:|
-![Agent Response](docs/screenshots/agent_response.png) |---
+| ![Agent Response](docs/screenshots/agent_response.png) |
+
+---
 
 ## 🏗️ Architecture
 
@@ -327,7 +338,7 @@ Key technical decisions:
 
 ## 🔭 Roadmap
 
-### ✅ Phase 2 — Domain Intelligence (Complete · 150 tests)
+### ✅ Phase 2 — Domain Intelligence (Complete · 149 tests)
 - Procurement ontology — 10 Pydantic v2 models covering the full procurement lifecycle
 - RBAC — Admin / Procurement Officer / Viewer roles, JWT-embedded, enforced via FastAPI Depends()
 - ChromaDB multi-tenancy — per-user document isolation via where={user_id} + ContextVar threading
