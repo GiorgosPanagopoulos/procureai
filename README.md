@@ -25,7 +25,7 @@
 
 ---
 
-ProcureAI is an AI-powered procurement assistant built for Greek public sector organizations. It answers natural language queries about public contracts, processes documents published on **ΚΗΜΔΗΣ** and **ΕΣΗΔΗΣ**, and applies **N.4412/2016** (Public Contracts for Works, Supplies and Services) as the authoritative legal basis for every response. The system includes production-grade RBAC (3 roles), audit logging, prompt versioning, and a procurement ontology — backed by 149 tests across all modules.
+ProcureAI is an AI-powered procurement assistant built for Greek public sector organizations. It answers natural language queries about public contracts, processes documents published on **ΚΗΜΔΗΣ** and **ΕΣΗΔΗΣ**, and applies **N.4412/2016** (Public Contracts for Works, Supplies and Services) as the authoritative legal basis for every response. The system includes production-grade RBAC (3 roles), audit logging, prompt versioning, and a procurement ontology — backed by 152 tests across all modules.
 
 ---
 
@@ -338,17 +338,17 @@ Key technical decisions:
 
 ## 🔭 Roadmap
 
-### ✅ Phase 2 — Domain Intelligence (Complete · 149 tests)
+### ✅ Phase 2 — Domain Intelligence (Complete · 152 tests)
 - Procurement ontology — 10 Pydantic v2 models covering the full procurement lifecycle
 - RBAC — Admin / Procurement Officer / Viewer roles, JWT-embedded, enforced via FastAPI Depends()
 - ChromaDB multi-tenancy — per-user document isolation via where={user_id} + ContextVar threading
 - Audit log — MongoDB collection, fire-and-forget async writes, /admin/audit-logs endpoint
 - Prompt versioning — file-based /prompts/use_case/v1.txt system, PromptLoader singleton
+- Security: admin self-assignment gap closed on /register — UserCreate schema enforces Literal["viewer"], HTTP 422 on violation, admin seeding via lifespan only
 
 ### 🔜 Phase 3 — Enterprise Workflows
 - Tool-calling agent: AgentExecutor with dedicated tools for CPV code lookup, legal validation (Ν.4412/2016), supplier lookup, risk scoring, contract summarization, tender generation
 - Approval chain engine with state machine: ProcurementRequest → Manager → Legal → Finance → Final Approval
-- Security: fix admin self-assignment gap on /register endpoint
 
 ### 🔜 Phase 4 — Governance & Observability
 - LLM evaluation framework with golden test set based on Ν.4412/2016 (groundedness, hallucination rate, compliance accuracy)
