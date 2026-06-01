@@ -354,6 +354,14 @@ Key technical decisions:
 - LLM evaluation framework with golden test set based on Ν.4412/2016 (groundedness, hallucination rate, compliance accuracy)
 - Async processing pipeline: Redis queues + OCR for PDF ingestion, embeddings generation, and vendor scoring
 
+### 🔜 Phase 5 — Pre-Award Legal Audit Module 🛡️
+- Deterministic legal-validation endpoint (`POST /api/tenders/audit`) που δέχεται προσχέδιο διακήρυξης και επιστρέφει structured risk report
+- Ξεχωριστό ChromaDB collection: Ν.4412/2016 (άρθρα) + νομολογία ΕΑΔΗΣΥ (Ενιαία Αρχή Δημόσιων Συμβάσεων)
+- Gap analysis: νομικοί κίνδυνοι, ελλείπουσες υποχρεωτικές ρήτρες, τεχνικά κενά (ISO/EN), αναιτιολόγητοι αποκλεισμοί
+- Structured output με υποχρεωτικά citations ανά risk (`article_ref` + source decision)
+- Business value: μείωση lead time ανάθεσης, αποτροπή προδικαστικών προσφυγών (ΕΑΔΗΣΥ) και δικαστικών εξόδων (ΣτΕ)
+- Decision-support only — mandatory human-in-the-loop
+
 ---
 
 ## 📄 License
