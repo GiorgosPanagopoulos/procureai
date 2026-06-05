@@ -1,6 +1,6 @@
 <div align="center">
-<h1>🤖 ProcureAI</h1>
-<p><strong>AI-Native Procurement Assistant powered by LangChain ReAct Agent & RAG</strong></p>
+<img src="docs/logo_horizontal_navy.svg" alt="ProcureAI Logo" width="720"/>
+<br/>
 <p><em>AI-powered procurement assistant for Greek public sector organizations</em></p>
 </div>
 
@@ -91,6 +91,10 @@ Full technical documentation (architecture, sequence, deployment, RAG & auth flo
 ---
 
 ## 🏗️ Architecture
+
+<div align="center">
+<img src="docs/graphical_abstract.svg" alt="ProcureAI System Architecture" width="100%"/>
+</div>
 
 ```mermaid
 graph TD
