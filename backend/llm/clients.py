@@ -42,6 +42,10 @@ def _create_raw_anthropic():
     return anthropic_sdk.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
 
 
+def _create_raw_anthropic_async():
+    return anthropic_sdk.AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
+
+
 def _create_claude_llm():
     from langchain_anthropic import ChatAnthropic
 
@@ -56,4 +60,5 @@ def _create_claude_llm():
 
 openai_client = _lazy_proxy(_create_openai_client)
 _raw_anthropic = _lazy_proxy(_create_raw_anthropic)
+_raw_anthropic_async = _lazy_proxy(_create_raw_anthropic_async)
 claude_llm = _lazy_proxy(_create_claude_llm)

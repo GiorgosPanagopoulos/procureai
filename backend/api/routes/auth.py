@@ -4,20 +4,14 @@ from auth.security import (
     decode_access_token,
     set_auth_cookie,
 )
-from config import settings
 from crud.user import authenticate_user, create_user, get_user_by_email
+from db import db
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
-from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel
 from schemas.user import UserCreate, UserRead
 
 router = APIRouter(prefix="/auth", tags=["auth"])
-
-
-def _get_db():
-    client = AsyncIOMotorClient(settings.MONGODB_URI)
-    return client.procureai
 
 
 class LoginRequest(BaseModel):
@@ -27,7 +21,6 @@ class LoginRequest(BaseModel):
 
 @router.post("/login")
 async def login(body: LoginRequest) -> JSONResponse:
-    db = _get_db()
     user = await authenticate_user(db, body.email, body.password)
     if user is None:
         raise HTTPException(status_code=401, detail="Incorrect email or password")
@@ -46,7 +39,6 @@ async def login(body: LoginRequest) -> JSONResponse:
 
 @router.post("/register")
 async def register(user_in: UserCreate) -> JSONResponse:
-    db = _get_db()
     user = await create_user(db, user_in)
     if user is None:
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -71,7 +63,6 @@ async def me(request: Request) -> JSONResponse:
     payload = decode_access_token(token)
     if payload is None:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
-    db = _get_db()
     user = await get_user_by_email(db, payload.sub)
     if user is None:
         raise HTTPException(status_code=401, detail="User not found")

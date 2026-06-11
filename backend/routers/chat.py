@@ -137,7 +137,7 @@ async def qna(
     user_id = str(current_user["_id"])
     token = _current_user_id.set(user_id)
     try:
-        answer = document_qa.invoke(question)
+        answer = await document_qa.ainvoke(question)
     finally:
         _current_user_id.reset(token)
 

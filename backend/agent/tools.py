@@ -1,3 +1,4 @@
+import asyncio
 from typing import Dict, List
 
 import numpy as np
@@ -8,7 +9,7 @@ from config import settings
 from core.chroma_tenant import get_active_user_id, get_user_filter
 from db import db
 from langchain_core.tools import tool
-from llm.clients import _raw_anthropic
+from llm.clients import _raw_anthropic_async
 from llm.pricing import MODEL_NAME, _current_usage
 from rag.embeddings import embed_text
 from rag.reranker import _get_reranker
@@ -20,7 +21,7 @@ log = structlog.get_logger()
 
 
 @tool
-def document_qa(question: str) -> str:
+async def document_qa(question: str) -> str:
     """ALWAYS use this tool first for any question involving: prices, cost, price lists,
     budget, contracts, contract terms, document contents, or comparisons between suppliers
     based on price. This tool searches the vector database of uploaded PDFs including
@@ -32,7 +33,7 @@ def document_qa(question: str) -> str:
     if not user_id:
         return "Authentication required to query documents."
 
-    query_embedding = embed_text(question)
+    query_embedding = await asyncio.to_thread(embed_text, question)
     n_retrieve = 20 if settings.USE_RERANKER else 4
 
     sentry_sdk.add_breadcrumb(category="rag", message="RAG retrieval start", level="info")
@@ -40,7 +41,8 @@ def document_qa(question: str) -> str:
         with sentry_sdk.start_span(op="db.chromadb", description="RAG vector search") as _span:
             _span.set_data("collection", "procureai_documents")
             _span.set_data("n_results", n_retrieve)
-            results = chroma_collection.query(
+            results = await asyncio.to_thread(
+                chroma_collection.query,
                 query_embeddings=np.array([query_embedding]),
                 n_results=n_retrieve,
                 include=["documents", "metadatas"],
@@ -64,7 +66,7 @@ def document_qa(question: str) -> str:
     if settings.USE_RERANKER and all_docs:
         reranker = _get_reranker()
         if reranker is not None:
-            scores = reranker.predict([(question, d) for d in all_docs])
+            scores = await asyncio.to_thread(reranker.predict, [(question, d) for d in all_docs])
             top_idx = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[:5]
             all_docs = [all_docs[i] for i in top_idx]
             all_metas = [all_metas[i] for i in top_idx]
@@ -77,7 +79,7 @@ def document_qa(question: str) -> str:
         with sentry_sdk.start_span(op="llm.invoke", description="Claude API call") as _span:
             _span.set_data("model", MODEL_NAME)
             _span.set_data("tool", "document_qa")
-            response = _raw_anthropic.messages.create(
+            response = await _raw_anthropic_async.messages.create(
                 model=MODEL_NAME,
                 max_tokens=1024,
                 system=[
