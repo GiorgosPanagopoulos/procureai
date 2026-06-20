@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import pytest
 from httpx import AsyncClient
 
@@ -86,3 +88,20 @@ async def test_logout(client: AsyncClient, test_user: dict):
     cookie_header = logout_res.headers.get("set-cookie", "")
     assert "access_token" in cookie_header
     assert "max-age=0" in cookie_header.lower()
+
+
+@pytest.mark.asyncio
+async def test_login_does_not_create_new_mongo_client(client: AsyncClient, test_user: dict):
+    """Regression: auth handlers must reuse the db.py singleton, not open a fresh client."""
+    await client.post("/auth/register", json=test_user)
+
+    with patch("motor.motor_asyncio.AsyncIOMotorClient") as mock_client:
+        res = await client.post(
+            "/auth/login",
+            json={"email": test_user["email"], "password": test_user["password"]},
+        )
+
+    assert res.status_code == 200
+    assert (
+        mock_client.call_count == 0
+    ), "AsyncIOMotorClient was instantiated during /auth/login — singleton not being reused"
