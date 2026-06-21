@@ -25,7 +25,7 @@
 
 ---
 
-ProcureAI is an AI-powered procurement assistant built for Greek public sector organizations. It answers natural language queries about public contracts, processes documents published on **ΚΗΜΔΗΣ** and **ΕΣΗΔΗΣ**, and applies **N.4412/2016** (Public Contracts for Works, Supplies and Services) as the authoritative legal basis for every response. The system includes production-grade RBAC (3 roles), audit logging, prompt versioning, and a procurement ontology — backed by 152 tests across all modules.
+ProcureAI is an AI-powered procurement assistant built for Greek public sector organizations. It answers natural language queries about public contracts, processes documents published on **ΚΗΜΔΗΣ** and **ΕΣΗΔΗΣ**, and applies **N.4412/2016** (Public Contracts for Works, Supplies and Services) as the authoritative legal basis for every response. The system includes production-grade RBAC (3 roles), audit logging, prompt versioning, and a procurement ontology — backed by 153 tests across all modules.
 
 ---
 
@@ -162,7 +162,7 @@ docker compose up --build
 | ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white) | Type-safe frontend development |
 | ![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white) | UI styling, dark/light mode, responsive layout |
 | ![LangChain](https://img.shields.io/badge/LangChain-1C3C3C?style=for-the-badge&logo=chainlink&logoColor=white) | `AgentExecutor` + `create_react_agent` + `@tool` decorator |
-| ![Anthropic](https://img.shields.io/badge/Anthropic-CC785C?style=for-the-badge&logo=anthropic&logoColor=white) | `ChatAnthropic` (`claude-sonnet-4-20250514`) for LLM reasoning |
+| ![Anthropic](https://img.shields.io/badge/Anthropic-CC785C?style=for-the-badge&logo=anthropic&logoColor=white) | `ChatAnthropic` (`claude-sonnet-4-6`) for LLM reasoning |
 | ![OpenAI](https://img.shields.io/badge/OpenAI-412991?style=for-the-badge&logo=openai&logoColor=white) | `text-embedding-3-small` for ChromaDB vector search |
 | ![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=for-the-badge&logo=mongodb&logoColor=white) | Atlas cloud store for supplier and bid records |
 | ![ChromaDB](https://img.shields.io/badge/ChromaDB-FF6B35?style=for-the-badge&logo=databricks&logoColor=white) | Local vector store for RAG document retrieval |
@@ -209,7 +209,7 @@ npm install
 npm run dev
 ```
 
-Frontend available at `http://localhost:5173` (Vite default).
+Frontend available at `http://localhost:3000` (pinned via `strictPort` in vite.config.ts).
 
 ### 4. One-shot start
 
@@ -342,7 +342,7 @@ Key technical decisions:
 
 ## 🔭 Roadmap
 
-### ✅ Phase 2 — Domain Intelligence (Complete · 152 tests)
+### ✅ Phase 2 — Domain Intelligence (Complete · 153 tests)
 - Procurement ontology — 10 Pydantic v2 models covering the full procurement lifecycle
 - RBAC — Admin / Procurement Officer / Viewer roles, JWT-embedded, enforced via FastAPI Depends()
 - ChromaDB multi-tenancy — per-user document isolation via where={user_id} + ContextVar threading
