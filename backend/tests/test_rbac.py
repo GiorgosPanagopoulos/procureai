@@ -8,7 +8,7 @@ from core.rbac import require_procurement_officer, require_viewer
 from crud.user import create_user
 from fastapi import Depends, FastAPI
 from httpx import ASGITransport, AsyncClient
-from motor.motor_asyncio import AsyncIOMotorClient
+from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from schemas.user import UserCreate
 
 
@@ -57,7 +57,7 @@ async def _register(client: AsyncClient, role: str = "viewer") -> str:
         assert res.status_code == 200, res.text
         return _extract_token(res)
     # Registration endpoint forces viewer; seed elevated-role users directly via crud.
-    db = AsyncIOMotorClient(settings.MONGODB_URI).procureai
+    db: AsyncIOMotorDatabase = AsyncIOMotorClient(settings.MONGODB_URI).procureai
     user_in = UserCreate.model_construct(
         email=email,
         password="TestPass123!",  # pragma: allowlist secret
