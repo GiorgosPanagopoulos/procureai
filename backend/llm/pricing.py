@@ -1,7 +1,7 @@
 from contextvars import ContextVar
 from typing import Any, Dict, Optional
 
-MODEL_NAME = "claude-sonnet-4-20250514"
+MODEL_NAME = "claude-sonnet-4-6"
 COST_PER_INPUT_TOKEN = 3.00 / 1_000_000
 COST_PER_OUTPUT_TOKEN = 15.00 / 1_000_000
 COST_PER_CACHE_WRITE = 3.75 / 1_000_000
