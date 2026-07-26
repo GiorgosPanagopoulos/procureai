@@ -295,6 +295,7 @@ function AppContent() {
   );
   const [isDragging, setIsDragging]     = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [conversationId, setConversationId] = useState<string | null>(null);
 
   const agentMessages = messages.filter(m => m.sender === 'agent');
   const t = TRANSLATIONS[language];
@@ -341,7 +342,7 @@ function AppContent() {
       const res = await fetchWithTimeout('http://localhost:8000/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: txt }),
+        body: JSON.stringify({ message: txt, conversation_id: conversationId }),
       }, 60000);
 
       if (!res.ok) {
@@ -350,6 +351,7 @@ function AppContent() {
       }
 
       const data: AgentResponse = await res.json();
+      if (data.conversation_id) setConversationId(data.conversation_id);
       setMessages(prev => [...prev, {
         id: (Date.now() + 1).toString(),
         text: data.response?.trim() || 'No answer returned.',
@@ -843,7 +845,7 @@ function AppContent() {
             <div className="footer-stats">
               <span className="footer-dot">●</span> {suppliers.length} suppliers · {bids.length} bids
             </div>
-            <button className="footer-clear-btn" onClick={() => setMessages([])}>
+            <button className="footer-clear-btn" onClick={() => { setMessages([]); setConversationId(null); }}>
               <Icon name="refresh" size={11} color="currentColor" /> {t.clearBtn}
             </button>
           </div>
