@@ -8,6 +8,7 @@ Strategy:
   patched middleware.audit_middleware.log_audit to capture what would be inserted.
 """
 
+import asyncio
 import uuid
 from datetime import datetime
 from typing import Optional
@@ -368,3 +369,42 @@ def test_extract_sources_empty_when_no_marker():
     from routers.chat import _extract_sources
 
     assert _extract_sources("Just an answer with no sources.") == []
+
+
+# ── audit_interaction task lifecycle ──
+
+
+@pytest.mark.asyncio
+async def test_audit_task_is_strongly_referenced_until_done():
+    from middleware.audit_middleware import _background_tasks, audit_interaction
+
+    async def slow_log_audit(db, entry):
+        await asyncio.sleep(0.05)
+
+    entry = AuditEntry(user_id="u1", user_role="viewer", action="chat", endpoint="/chat")
+    with patch("middleware.audit_middleware.log_audit", new=slow_log_audit):
+        audit_interaction(MagicMock(), entry)
+        assert len(_background_tasks) > 0
+        await asyncio.sleep(0.1)
+        assert len(_background_tasks) == 0
+
+
+@pytest.mark.asyncio
+async def test_audit_task_completes_and_writes():
+    from middleware.audit_middleware import audit_interaction
+
+    rows: list = []
+    db = _mock_db(rows)
+    entry = AuditEntry(user_id="u1", user_role="viewer", action="chat", endpoint="/chat")
+    audit_interaction(db, entry)
+    await asyncio.sleep(0)
+    await asyncio.sleep(0)
+    assert len(rows) == 1
+    assert rows[0]["user_id"] == "u1"
+
+
+def test_audit_interaction_does_not_raise_without_event_loop():
+    from middleware.audit_middleware import audit_interaction
+
+    entry = AuditEntry(user_id="u1", user_role="viewer", action="chat", endpoint="/chat")
+    audit_interaction(MagicMock(), entry)  # must not raise
