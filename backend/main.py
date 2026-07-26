@@ -6,7 +6,7 @@ import structlog
 from api.routes.auth import router as auth_router
 from config import settings
 from core.sentry import init_sentry
-from db import db
+from db import db, mongo_client
 from exceptions import ProcureAIException
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
@@ -19,6 +19,7 @@ from routers.chat import router as chat_router
 from routers.health import router as health_router
 from routers.reports import router as reports_router
 from routers.suppliers import router as suppliers_router
+from utils.lazy import _is_initialized
 
 init_sentry(settings.SENTRY_DSN, settings.SENTRY_ENVIRONMENT, settings.APP_VERSION)
 
@@ -84,6 +85,8 @@ async def lifespan(app: FastAPI):
     else:
         log.info("superuser_exists", email=settings.FIRST_SUPERUSER_EMAIL)
     yield
+    if _is_initialized(mongo_client):
+        mongo_client.close()
 
 
 # ── FastAPI app ───────────────────────────────────────────────────────────────
