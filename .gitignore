@@ -203,3 +203,7 @@ backend/chroma_test/
 
 # detect-secrets
 .secrets.baseline
+
+# Env backups
+.env.*
+!.env.example
