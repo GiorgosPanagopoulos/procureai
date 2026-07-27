@@ -1,15 +1,21 @@
 import uuid
 
+import db as db_module
 import pytest
 from api.routes.auth import router as auth_router
 from auth.security import create_access_token
-from config import settings
 from core.rbac import require_procurement_officer, require_viewer
 from crud.user import create_user
 from fastapi import Depends, FastAPI
 from httpx import ASGITransport, AsyncClient
-from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from schemas.user import UserCreate
+
+# NB: don't `from db import db` here - db.db is a LazyProxy that defines
+# __call__, so pytest's collector (and the anyio plugin's istestfunction
+# check) probes it for a __test__ attribute while collecting this module,
+# which eagerly triggers real Mongo client construction *during
+# collection*, before any fixture gets a chance to patch it in. Importing
+# the module and doing the attribute lookup at call time avoids that.
 
 
 def _make_rbac_app() -> FastAPI:
@@ -57,14 +63,13 @@ async def _register(client: AsyncClient, role: str = "viewer") -> str:
         assert res.status_code == 200, res.text
         return _extract_token(res)
     # Registration endpoint forces viewer; seed elevated-role users directly via crud.
-    db: AsyncIOMotorDatabase = AsyncIOMotorClient(settings.MONGODB_URI).procureai
     user_in = UserCreate.model_construct(
         email=email,
         password="TestPass123!",  # pragma: allowlist secret
         full_name="RBAC Test",
         role=role,
     )
-    user = await create_user(db, user_in)
+    user = await create_user(db_module.db, user_in)
     assert user is not None
     return create_access_token(subject=user["email"], role=user["role"])
 
