@@ -5,6 +5,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.backend
+      args:
+        INSTALL_RERANK: ${INSTALL_RERANK:-false}
     ports:
       - "8000:8000"
     environment:

@@ -242,6 +242,34 @@ Copy `backend/.env.example` to `backend/.env` and fill in the values below:
 | `LANGCHAIN_API_KEY` | LangSmith API key | ➖ | — |
 | `LANGCHAIN_PROJECT` | LangSmith project name | ➖ | `procureai` |
 
+### Optional reranker
+
+`sentence-transformers` (and its `torch`/`transformers` dependencies) are not part of the
+default install — they're only needed if you enable the CrossEncoder reranker:
+
+```bash
+pip install -r backend/requirements-rerank.txt
+```
+
+Set `USE_RERANKER=true` after installing. If it's enabled without the package installed,
+`/chat` and `/doc_qa` raise a `RuntimeError` telling you to run the command above, instead
+of silently skipping reranking.
+
+**Docker:** the backend image is built without `sentence-transformers` by default. To bake
+it into the image, pass the `INSTALL_RERANK` build arg:
+
+```bash
+INSTALL_RERANK=true docker compose build backend
+```
+
+This pulls in `torch`/`transformers` transitively — expect roughly **+2.5GB** on the image.
+`INSTALL_RERANK` is build-time and `USE_RERANKER` is runtime; they're independent settings.
+Setting `USE_RERANKER=true` without `INSTALL_RERANK=true` at build time produces the same
+`RuntimeError` from `rag/reranker.py` described above, since the package won't be in the image.
+
+Performance note: the ReAct agent (`langchain_classic.agents`) is imported lazily on first
+use, so the first chat request after startup takes ~6s longer than subsequent ones.
+
 ---
 
 ## 📡 API Endpoints
