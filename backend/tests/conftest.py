@@ -1,3 +1,7 @@
+import os
+
+os.environ["ANONYMIZED_TELEMETRY"] = "False"
+
 import uuid
 
 import pytest
