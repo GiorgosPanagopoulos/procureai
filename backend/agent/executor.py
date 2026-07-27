@@ -1,23 +1,30 @@
 from datetime import datetime, timezone
-from typing import Dict, List
+from typing import TYPE_CHECKING, Dict, List
 
 import sentry_sdk
 import structlog
 from db import db
 from exceptions import AgentExecutionError
-from langchain_classic.agents import AgentExecutor, create_react_agent
 from llm.clients import claude_llm
 from llm.pricing import MODEL_NAME, _current_usage, _UsageAccum
 from security.pii import redact_pii
 
 from agent.tools import bid_comparison, document_qa, report_generation, supplier_lookup
 
+if TYPE_CHECKING:
+    from langchain_classic.agents import AgentExecutor
+
 log = structlog.get_logger()
 
 lc_tools = [document_qa, bid_comparison, supplier_lookup, report_generation]
 
 
-def _build_agent_executor() -> AgentExecutor:
+def _build_agent_executor() -> "AgentExecutor":
+    # Lazy import: langchain_classic.agents eagerly loads every legacy agent
+    # implementation (~5.5s), so this is deferred to the first chat request
+    # instead of paying the cost at process startup.
+    from langchain_classic.agents import AgentExecutor, create_react_agent
+
     from agent.prompt import get_react_prompt
 
     prompt = get_react_prompt()

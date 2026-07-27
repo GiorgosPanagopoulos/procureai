@@ -1,8 +1,12 @@
 FROM python:3.12-slim AS builder
+ARG INSTALL_RERANK=false
 WORKDIR /build
-COPY backend/requirements.txt .
+COPY backend/requirements.txt backend/requirements-rerank.txt ./
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt --target /build/packages
+    pip install --no-cache-dir -r requirements.txt --target /build/packages && \
+    if [ "$INSTALL_RERANK" = "true" ]; then \
+      pip install --no-cache-dir -r requirements-rerank.txt --target /build/packages; \
+    fi
 
 FROM python:3.12-slim
 WORKDIR /app
