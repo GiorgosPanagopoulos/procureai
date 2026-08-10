@@ -25,7 +25,7 @@
 
 ---
 
-ProcureAI is an AI-powered procurement assistant built for Greek public sector organizations. It answers natural language queries about public contracts, processes documents published on **ΚΗΜΔΗΣ** and **ΕΣΗΔΗΣ**, and applies **N.4412/2016** (Public Contracts for Works, Supplies and Services) as the authoritative legal basis for every response. The system includes production-grade RBAC (3 roles), audit logging, prompt versioning, and a procurement ontology — backed by 153 tests across all modules.
+ProcureAI is an AI-powered procurement assistant built for Greek public sector organizations. It answers natural language queries about public contracts, processes documents published on **ΚΗΜΔΗΣ** and **ΕΣΗΔΗΣ**, and applies **N.4412/2016** (Public Contracts for Works, Supplies and Services) as the authoritative legal basis for every response. The system includes production-grade RBAC (3 roles), audit logging, prompt versioning, and a procurement ontology — backed by 160 tests across all modules.
 
 ---
 
@@ -141,14 +141,66 @@ graph TD
     API -->|persist trace + usage| MONGO
 ```
 
-### One-command Docker start
+---
 
-```bash
-cp backend/.env.example backend/.env   # add your API keys
-docker compose up --build
-# frontend → http://localhost:3000
-# backend  → http://localhost:8000
-```
+## 🧠 GenAI Logic
+
+### ReAct agent loop
+
+`POST /chat` runs through a LangChain `AgentExecutor` built on `create_react_agent` with
+`return_intermediate_steps=True` and `max_iterations=5`. On each turn the agent (`ChatAnthropic`,
+Claude Sonnet) reasons in a Thought → Action → Observation loop: it decides whether to call a
+tool, inspects the tool's output, and either calls another tool or produces a final answer. The
+full loop — not just the final answer — is captured: `_build_trace()` in
+[`agent/executor.py`](backend/agent/executor.py) walks `intermediate_steps` and extracts each
+`Thought`, `tool_call` (tool name + input), and `observation` into a structured trace, persisted
+per-conversation in MongoDB and exposed via `GET /conversations/{id}/trace`. The frontend's
+trace panel renders this so a reviewer can see *why* the agent picked a given tool, not just what
+it said.
+
+### The four tools
+
+The agent chooses among four `@tool`-decorated functions in
+[`agent/tools.py`](backend/agent/tools.py) based on their docstrings (which double as the
+tool-selection prompt):
+
+| Tool | Selected when | Backing store |
+|------|----------------|---------------|
+| `document_qa` | The query concerns prices, budgets, contract terms, or content inside an uploaded PDF — the tool's docstring tells the agent to prefer it first for anything price- or document-related | ChromaDB (RAG) + Claude |
+| `bid_comparison` | The user wants bids ranked by price and delivery time | MongoDB (`bids`) |
+| `supplier_lookup` | The user wants suppliers filtered by category or minimum rating | MongoDB (`suppliers`) |
+| `report_generation` | The user wants a summary report (supplier/bid aggregates) | MongoDB (`suppliers`, `bids`) |
+
+### RAG pipeline
+
+`document_qa` runs: **chunk** (`rag/chunking.py` splits ingested PDF text into ~500-char,
+paragraph-aware chunks) → **embed** (OpenAI `text-embedding-3-small`, `rag/embeddings.py`) →
+**store/query** (ChromaDB, per-user isolated via a `user_id` metadata filter) → **optional
+rerank** (`rag/reranker.py`, a lazy-loaded CrossEncoder `ms-marco-MiniLM-L-6-v2`) → **top-5 into
+context**. Retrieval count depends on whether the reranker is on: with `USE_RERANKER=true`,
+ChromaDB retrieves the top 20 chunks and the CrossEncoder reranks them down to the top 5; with
+reranking off, ChromaDB retrieves only the top 4 directly, since there's no second-stage ranking
+to narrow a wider candidate set. The resulting chunks are joined into a context block and passed
+to Claude alongside the question.
+
+### Prompt caching
+
+The `document_qa` call to Claude marks both the system prompt and the retrieved context block
+with `cache_control: {"type": "ephemeral"}` (Anthropic prompt caching). Since the system prompt
+and, often, the context are stable across repeated queries in a session, this cuts redundant
+input-token cost and latency on cache hits — tracked per-request via the usage accumulator in
+`llm/pricing.py`.
+
+### File-based prompt versioning
+
+Prompts live as plain text files under `backend/prompts/<use_case>/<version>.txt` (e.g.
+`prompts/chat/v1.txt`, `prompts/doc_qa/v1.txt`), each with a small metadata header (`# created:`,
+`# description:`) parsed by `PromptLoader` (`core/prompt_loader.py`). The loader caches all
+prompts in memory at startup and exposes `get(use_case, version)`; prompts are version-controlled
+and diff-able like code, with no DB round-trip to fetch them. `GET /admin/prompts` (Admin-only)
+lists all loaded versions and their metadata for inspection, and
+`GET /admin/prompts/{use_case}/{version}` (Admin-only) fetches a single version's full text and
+metadata.
 
 ---
 
@@ -179,37 +231,35 @@ git clone https://github.com/GiorgosPanagopoulos/procureai.git
 cd procureai
 ```
 
-### 2. Backend setup
+### 2. Configure environment
 
 ```bash
 cp backend/.env.example backend/.env   # then fill in your API keys
 ```
 
-Sample data (suppliers, bids) is seeded automatically into MongoDB on first startup.
-To re-seed manually:
+### 3. Run it
+
+**Option A — Docker (fastest path):**
 
 ```bash
-cd backend && PYTHONPATH=. python data/seed.py
+docker compose up --build
+# frontend → http://localhost:3000
+# backend  → http://localhost:8000
 ```
 
-Start the backend server:
+**Option B — manual (venv + npm):**
 
 ```bash
-# Create and activate virtual environment (from project root)
+# Backend — create and activate virtual environment (from project root)
 python3.12 -m venv .venv
 source .venv/bin/activate
-
-# Install dependencies
 pip install -r backend/requirements.txt
-
-# Start the backend
 cd backend
 PYTHONPATH=./ uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-### 3. Frontend setup
-
 ```bash
+# Frontend — in a separate terminal
 cd frontend
 npm install
 npm run dev
@@ -217,12 +267,33 @@ npm run dev
 
 Frontend available at `http://localhost:3000` (pinned via `strictPort` in vite.config.ts).
 
-### 4. One-shot start
-
-From the repo root, run both services with:
+Or, from the repo root, start both services at once:
 
 ```bash
 ./start.sh
+```
+
+### 4. Log in
+
+Sample data (suppliers, bids) and an admin account are seeded automatically into MongoDB
+on first startup. The app is behind JWT auth, so the first thing you'll see is a login
+screen. Sign in with the seeded admin credentials from `backend/.env`:
+
+| Variable | Default |
+|----------|---------|
+| `FIRST_SUPERUSER_EMAIL` | `admin@procureai.local` |
+| `FIRST_SUPERUSER_PASSWORD` | `changethis` |
+
+These are demo defaults, not production credentials — `SECRET_KEY` ships with the same
+`changethis` default and the backend logs a startup warning until it's changed. Set real values
+for `SECRET_KEY` and `FIRST_SUPERUSER_PASSWORD` before any real deployment.
+
+### 5. Re-seed manually (optional)
+
+Only needed if you want to reset sample data after first startup:
+
+```bash
+cd backend && PYTHONPATH=. python data/seed.py
 ```
 
 ---
@@ -236,9 +307,15 @@ Copy `backend/.env.example` to `backend/.env` and fill in the values below:
 | `ANTHROPIC_API_KEY` | Claude API key for LLM reasoning | ✅ | — |
 | `OPENAI_API_KEY` | OpenAI API key for document embeddings | ✅ | — |
 | `MONGODB_URI` | MongoDB Atlas connection string | ✅ | `mongodb://localhost:27017` |
+| `SECRET_KEY` | Signing key for JWT access tokens | ✅ | `changethis` |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | JWT access token lifetime, in minutes | ➖ | `30` |
+| `FIRST_SUPERUSER_EMAIL` | Email for the admin account seeded on first startup | ➖ | `admin@procureai.local` |
+| `FIRST_SUPERUSER_PASSWORD` | Password for the seeded admin account | ➖ | `changethis` |
 | `ALLOWED_ORIGINS` | Comma-separated CORS origins | ➖ | `http://localhost:3000,http://localhost:5173` |
 | `CHROMA_PATH` | Path to ChromaDB persistence directory | ➖ | `./chroma_db` |
 | `USE_RERANKER` | Enable CrossEncoder reranker for RAG | ➖ | `false` |
+| `INSTALL_RERANK` | Docker build arg — bakes `sentence-transformers` into the backend image | ➖ | `false` |
+| `SENTRY_DSN` | Sentry DSN for error tracking (unset disables Sentry) | ➖ | — |
 
 ### LangSmith
 
@@ -280,18 +357,21 @@ use, so the first chat request after startup takes ~6s longer than subsequent on
 
 ## 📡 API Endpoints
 
-| Method | Endpoint | Rate limit | Description |
-| ------ | -------- | ---------- | ----------- |
-| `GET` | `/` | — | Health check |
-| `GET` | `/suppliers` | 30/min | Return all supplier records |
-| `GET` | `/bids` | 30/min | Return all bid records |
-| `POST` | `/chat` | 10/min | Send `{"message":"…"}` to ReAct agent; returns `response`, `trace`, `usage`, `conversation_id` |
-| `POST` | `/upload` | 30/min | Upload a PDF document (multipart form) |
-| `GET` | `/conversations/{id}/trace` | — | Get ReAct reasoning trace for a conversation |
-| `POST` | `/doc_qa` | 30/min | Ask a question directly (`?question=…`) |
-| `POST` | `/auth/register` | 10/min | Register user with role assignment |
-| `POST` | `/auth/login` | 10/min | Returns JWT token with embedded role |
-| `GET` | `/admin/audit-logs` | 10/min | Paginated audit log (Admin only) |
+| Method | Endpoint | Auth | Rate limit | Description |
+| ------ | -------- | ---- | ---------- | ----------- |
+| `GET` | `/` | Public | — | Health check |
+| `GET` | `/suppliers` | Viewer+ | 30/min | Return all supplier records |
+| `GET` | `/bids` | Viewer+ | 30/min | Return all bid records |
+| `GET` | `/reports` | Viewer+ | 30/min | Generate a structured procurement summary report |
+| `POST` | `/chat` | Procurement Officer+ | 10/min | Send `{"message":"…"}` to ReAct agent; returns `response`, `trace`, `usage`, `conversation_id` |
+| `POST` | `/upload` | Procurement Officer+ | 30/min | Upload a PDF document (multipart form) |
+| `GET` | `/conversations/{id}/trace` | Viewer+ | — | Get ReAct reasoning trace for a conversation |
+| `POST` | `/doc_qa` | Procurement Officer+ | 30/min | Ask a question directly (`?question=…`) |
+| `POST` | `/auth/register` | Public | 10/min | Register user with role assignment |
+| `POST` | `/auth/login` | Public | 10/min | Returns JWT token with embedded role |
+| `GET` | `/admin/audit-logs` | Admin | 10/min | Paginated audit log |
+| `GET` | `/admin/prompts` | Admin | — | List all loaded prompt versions and their metadata |
+| `GET` | `/admin/prompts/{use_case}/{version}` | Admin | — | Get a single prompt version's full text and metadata |
 
 ---
 
@@ -300,7 +380,7 @@ use, so the first chat request after startup takes ~6s longer than subsequent on
 ```text
 procureai/
 ├── backend/
-│   ├── main.py                 # App factory — lifespan, middleware, router wiring (89 LOC)
+│   ├── main.py                 # App factory — lifespan, middleware, router wiring (135 LOC)
 │   ├── db.py                   # MongoDB Atlas client + database instance
 │   ├── config.py               # Pydantic Settings (.env)
 │   ├── exceptions.py           # Custom HTTP exceptions
@@ -331,23 +411,52 @@ procureai/
 │   ├── models/                 # 10 procurement domain entities (Pydantic v2 ontology)
 │   ├── auth/                   # JWT auth, role enforcement, RBAC Depends() decorators
 │   ├── audit/                  # Fire-and-forget audit log writer + MongoDB collection
-│   ├── prompts/                # Versioned prompt files — /use_case/v1.txt, PromptLoader singleton
+│   ├── prompts/                # Versioned prompt files, one subdir per use case
+│   │   ├── chat/                    # v1.txt — ReAct agent system prompt
+│   │   ├── doc_qa/                  # v1.txt — document Q&A system prompt
+│   │   ├── legal_validation/        # v1.txt
+│   │   ├── risk_assessment/         # v1.txt
+│   │   └── tender_generation/       # v1.txt
 │   ├── security/               # PII redaction
-│   ├── core/                   # Sentry init
+│   ├── core/                   # RBAC, audit, prompt loader, Sentry init
 │   ├── crud/                   # DB operations
 │   ├── api/routes/             # Auth router
+│   ├── utils/                  # Lazy-loading helpers
+│   ├── tests/                  # 160 pytest tests across all modules
 │   ├── data/
 │   │   ├── pdfs/               # Sample procurement contracts & N.4412/2016 excerpts
 │   │   └── seed.py             # MongoDB seed script
 │   ├── requirements.txt
+│   ├── requirements-rerank.txt # sentence-transformers/torch, only needed for the reranker
 │   └── .env.example
 ├── frontend/
 │   ├── src/
+│   │   ├── api/                # auth.ts, chat.ts — backend fetch wrappers
+│   │   ├── components/
+│   │   │   ├── chat/                # ChatPanel, MessageList, MessageBubble, TracePanel, UploadZone, UsageBadge, SuggestionChips
+│   │   │   ├── common/              # ErrorFallback, Icon
+│   │   │   ├── inspector/           # DataInspector, DataInspectorTabs, SupplierCard, BidCard
+│   │   │   └── layout/              # Header, ThemeToggle, LanguageToggle
+│   │   ├── contexts/            # AuthContext
+│   │   ├── hooks/                # useChat, useTheme, useI18n, useCatalogData, useInspectorData
+│   │   ├── i18n/                 # translations.ts
+│   │   ├── pages/                # LoginPage
+│   │   ├── types/                # index.ts
 │   │   ├── App.tsx
 │   │   └── main.tsx
 │   ├── package.json
 │   └── vite.config.ts
 ├── docs/screenshots/
+├── evals/                      # Golden test set + eval runner (make eval)
+├── scripts/                    # Dev/setup scripts (hooks, chunk inspection)
+├── Dockerfile.backend
+├── Dockerfile.frontend
+├── docker-compose.yml
+├── .dockerignore
+├── Makefile
+├── nginx.conf
+├── pyproject.toml
+├── SECURITY.md
 ├── start.sh
 └── README.md
 ```
@@ -376,7 +485,7 @@ Key technical decisions:
 
 ## 🔭 Roadmap
 
-### ✅ Phase 2 — Domain Intelligence (Complete · 153 tests)
+### ✅ Phase 2 — Domain Intelligence (Complete · 160 tests)
 - Procurement ontology — 10 Pydantic v2 models covering the full procurement lifecycle
 - RBAC — Admin / Procurement Officer / Viewer roles, JWT-embedded, enforced via FastAPI Depends()
 - ChromaDB multi-tenancy — per-user document isolation via where={user_id} + ContextVar threading
@@ -393,11 +502,11 @@ Key technical decisions:
 - Async processing pipeline: Redis queues + OCR for PDF ingestion, embeddings generation, and vendor scoring
 
 ### 🔜 Phase 5 — Pre-Award Legal Audit Module 🛡️
-- Deterministic legal-validation endpoint (`POST /api/tenders/audit`) που δέχεται προσχέδιο διακήρυξης και επιστρέφει structured risk report
-- Ξεχωριστό ChromaDB collection: Ν.4412/2016 (άρθρα) + νομολογία ΕΑΔΗΣΥ (Ενιαία Αρχή Δημόσιων Συμβάσεων)
-- Gap analysis: νομικοί κίνδυνοι, ελλείπουσες υποχρεωτικές ρήτρες, τεχνικά κενά (ISO/EN), αναιτιολόγητοι αποκλεισμοί
-- Structured output με υποχρεωτικά citations ανά risk (`article_ref` + source decision)
-- Business value: μείωση lead time ανάθεσης, αποτροπή προδικαστικών προσφυγών (ΕΑΔΗΣΥ) και δικαστικών εξόδων (ΣτΕ)
+- Deterministic legal-validation endpoint (`POST /api/tenders/audit`) that accepts a draft tender notice and returns a structured risk report
+- Separate ChromaDB collection: Ν.4412/2016 (articles) + ΕΑΔΗΣΥ case law (Hellenic Single Public Procurement Authority)
+- Gap analysis: legal risks, missing mandatory clauses, technical gaps (ISO/EN), unjustified exclusions
+- Structured output with mandatory citations per risk (`article_ref` + source decision)
+- Business value: reduced award lead time, avoidance of pre-contractual appeals (ΕΑΔΗΣΥ) and litigation costs (Council of State)
 - Decision-support only — mandatory human-in-the-loop
 
 ---
