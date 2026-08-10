@@ -177,9 +177,11 @@ tool-selection prompt):
 paragraph-aware chunks) → **embed** (OpenAI `text-embedding-3-small`, `rag/embeddings.py`) →
 **store/query** (ChromaDB, per-user isolated via a `user_id` metadata filter) → **optional
 rerank** (`rag/reranker.py`, a lazy-loaded CrossEncoder `ms-marco-MiniLM-L-6-v2`) → **top-5 into
-context**. With `USE_RERANKER=true`, retrieval widens to the top 20 chunks and the CrossEncoder
-reranks down to the top 5; with reranking off, ChromaDB returns the top 4 directly. The resulting
-chunks are joined into a context block and passed to Claude alongside the question.
+context**. Retrieval count depends on whether the reranker is on: with `USE_RERANKER=true`,
+ChromaDB retrieves the top 20 chunks and the CrossEncoder reranks them down to the top 5; with
+reranking off, ChromaDB retrieves only the top 4 directly, since there's no second-stage ranking
+to narrow a wider candidate set. The resulting chunks are joined into a context block and passed
+to Claude alongside the question.
 
 ### Prompt caching
 
@@ -196,7 +198,9 @@ Prompts live as plain text files under `backend/prompts/<use_case>/<version>.txt
 `# description:`) parsed by `PromptLoader` (`core/prompt_loader.py`). The loader caches all
 prompts in memory at startup and exposes `get(use_case, version)`; prompts are version-controlled
 and diff-able like code, with no DB round-trip to fetch them. `GET /admin/prompts` (Admin-only)
-lists all loaded versions and their metadata for inspection.
+lists all loaded versions and their metadata for inspection, and
+`GET /admin/prompts/{use_case}/{version}` (Admin-only) fetches a single version's full text and
+metadata.
 
 ---
 
@@ -280,6 +284,10 @@ screen. Sign in with the seeded admin credentials from `backend/.env`:
 | `FIRST_SUPERUSER_EMAIL` | `admin@procureai.local` |
 | `FIRST_SUPERUSER_PASSWORD` | `changethis` |
 
+These are demo defaults, not production credentials — `SECRET_KEY` ships with the same
+`changethis` default and the backend logs a startup warning until it's changed. Set real values
+for `SECRET_KEY` and `FIRST_SUPERUSER_PASSWORD` before any real deployment.
+
 ### 5. Re-seed manually (optional)
 
 Only needed if you want to reset sample data after first startup:
@@ -362,6 +370,8 @@ use, so the first chat request after startup takes ~6s longer than subsequent on
 | `POST` | `/auth/register` | Public | 10/min | Register user with role assignment |
 | `POST` | `/auth/login` | Public | 10/min | Returns JWT token with embedded role |
 | `GET` | `/admin/audit-logs` | Admin | 10/min | Paginated audit log |
+| `GET` | `/admin/prompts` | Admin | — | List all loaded prompt versions and their metadata |
+| `GET` | `/admin/prompts/{use_case}/{version}` | Admin | — | Get a single prompt version's full text and metadata |
 
 ---
 
