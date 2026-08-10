@@ -223,24 +223,32 @@ mock_bids = [
 ]
 
 
+async def seed_if_empty(db) -> bool:
+    if await db.suppliers.count_documents({}, limit=1):
+        return False
+
+    supplier_ids = {}
+    for i, supplier in enumerate(mock_suppliers):
+        result = await db.suppliers.insert_one(supplier.model_dump(by_alias=True))
+        supplier_ids[str(i + 1)] = str(result.inserted_id)
+
+    for bid in mock_bids:
+        bid.supplier_id = supplier_ids[bid.supplier_id]
+        await db.bids.insert_one(bid.model_dump(by_alias=True))
+
+    return True
+
+
 async def seed_database():
     load_dotenv()
     mongodb_url = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
     client = AsyncIOMotorClient(mongodb_url)
     db = client.procureai
 
-    # Insert suppliers
-    supplier_ids = {}
-    for i, supplier in enumerate(mock_suppliers):
-        result = await db.suppliers.insert_one(supplier.dict(by_alias=True))
-        supplier_ids[str(i + 1)] = str(result.inserted_id)
-
-    # Update bids with actual supplier_ids
-    for bid in mock_bids:
-        bid.supplier_id = supplier_ids[bid.supplier_id]
-        await db.bids.insert_one(bid.dict(by_alias=True))
-
-    print("Seed data inserted successfully!")
+    if await seed_if_empty(db):
+        print("Seed data inserted successfully!")
+    else:
+        print("Suppliers collection is not empty, skipping seed.")
 
 
 if __name__ == "__main__":

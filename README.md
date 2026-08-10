@@ -183,7 +183,13 @@ cd procureai
 
 ```bash
 cp backend/.env.example backend/.env   # then fill in your API keys
-python backend/data/seed.py            # seed MongoDB with sample data
+```
+
+Sample data (suppliers, bids) is seeded automatically into MongoDB on first startup.
+To re-seed manually:
+
+```bash
+cd backend && PYTHONPATH=. python data/seed.py
 ```
 
 Start the backend server:
