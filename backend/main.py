@@ -55,6 +55,10 @@ async def lifespan(app: FastAPI):
     await db.audit_logs.create_index([("user_id", 1), ("timestamp", -1)])
     # await db.audit_logs.create_index("timestamp", expireAfterSeconds=90*24*60*60)
 
+    from data.seed import seed_if_empty
+
+    await seed_if_empty(db)
+
     if is_vectorstore_empty():
         pdf_dir = Path(settings.CHROMA_PATH).parent / "data" / "pdfs"
         if pdf_dir.exists():
@@ -65,23 +69,29 @@ async def lifespan(app: FastAPI):
                 except Exception as exc:
                     log.error("pdf_ingest_failed", file=pdf_path.name, error=str(exc))
     # --- Superuser seed ---
-    from crud.user import create_user, get_user_by_email
-    from schemas.user import UserCreate
+    from datetime import datetime, timezone
 
-    existing = await get_user_by_email(db, settings.FIRST_SUPERUSER_EMAIL)
-    if not existing:
-        superuser_in = UserCreate(
-            email=settings.FIRST_SUPERUSER_EMAIL,
-            password=settings.FIRST_SUPERUSER_PASSWORD,
-            full_name="Admin",
-        )
-        user_doc = await create_user(db, superuser_in)
-        if user_doc:
-            await db.users.update_one(
-                {"email": settings.FIRST_SUPERUSER_EMAIL},
-                {"$set": {"is_superuser": True, "role": "admin"}},
-            )
-            log.info("superuser_created", email=settings.FIRST_SUPERUSER_EMAIL)
+    from auth.security import get_password_hash
+    from bson import ObjectId
+
+    upsert_result = await db.users.update_one(
+        {"email": settings.FIRST_SUPERUSER_EMAIL},
+        {
+            "$setOnInsert": {
+                "_id": str(ObjectId()),
+                "email": settings.FIRST_SUPERUSER_EMAIL,
+                "hashed_password": get_password_hash(settings.FIRST_SUPERUSER_PASSWORD),
+                "full_name": "Admin",
+                "is_active": True,
+                "is_superuser": True,
+                "role": "admin",
+                "created_at": datetime.now(timezone.utc),
+            }
+        },
+        upsert=True,
+    )
+    if upsert_result.upserted_id:
+        log.info("superuser_created", email=settings.FIRST_SUPERUSER_EMAIL)
     else:
         log.info("superuser_exists", email=settings.FIRST_SUPERUSER_EMAIL)
     yield
