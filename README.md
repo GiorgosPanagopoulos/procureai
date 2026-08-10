@@ -247,6 +247,14 @@ docker compose up --build
 # backend  → http://localhost:8000
 ```
 
+> **Editing backend code or prompts?** There's no source bind-mount for the
+> `backend` service, so `docker compose restart backend` reuses the old image
+> and silently no-ops your change. Rebuild instead:
+>
+> ```bash
+> docker compose build backend && docker compose up -d backend
+> ```
+
 **Option B — manual (venv + npm):**
 
 ```bash
