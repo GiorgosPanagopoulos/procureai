@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="UTF-8">
+<title>ProcureAI · Documentation v4</title>
+<style>
+/* ============ GP Navy/Gold Design System ============ */
+:root {
+  --navy-950:#0a0e1a; --navy-900:#0f1117; --navy-800:#161b2c; --navy-700:#1f2740;
+  --ink:#1c2333; --ink-soft:#3a4258; --muted:#6b7280;
+  --gold:#c9a84c; --gold-deep:#b08a3e; --blue-soft:#8ea8d8;
+  --paper:#ffffff; --paper-tint:#f6f7f9; --violet:#6a5acd;
+  --line:#e5e7eb;
+}
+@page {
+  size: A4; margin: 22mm 18mm 20mm 18mm;
+  @bottom-left  { content: "ProcureAI · Documentation"; font: 8.5pt Inter, sans-serif; color:#6b7280; }
+  @bottom-right { content: counter(page) " / " counter(pages); font: 8.5pt Inter, sans-serif; color:#6b7280; }
+}
+@page cover { margin: 0; @bottom-left { content: none } @bottom-right { content: none } }
+
+* { box-sizing: border-box; }
+body { font-family: Inter, "Segoe UI", sans-serif; color: var(--ink);
+       font-size: 10.5pt; line-height: 1.55; margin: 0; }
+p { text-align: justify; margin: 0 0 8pt; }
+
+/* ---------- Cover ---------- */
+.cover {
+  page: cover; page-break-after: always;
+  width: 210mm; height: 296mm; padding: 22mm 20mm;
+  background:
+    radial-gradient(circle at 78% 30%, rgba(106,90,205,.22), transparent 42%),
+    linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px),
+    var(--navy-950);
+  background-size: auto, 28px 28px, 28px 28px, auto;
+  color: #fff; display: flex; flex-direction: column;
+}
+.brand { display:flex; align-items:center; gap:10px; }
+.brand .badge {
+  width:34px; height:34px; border-radius:8px; background:var(--gold);
+  display:flex; align-items:center; justify-content:center;
+  color:var(--navy-950); font-weight:800; font-size:16pt;
+}
+.brand .name { font-weight:800; font-size:13pt; letter-spacing:.3px; }
+.brand .pill {
+  background:var(--gold); color:var(--navy-950); font-size:7pt; font-weight:800;
+  letter-spacing:1.5px; padding:2px 8px; border-radius:10px; margin-left:4px;
+}
+.cover .hero { margin-top:auto; margin-bottom:auto; }
+.cover h1 { font-size:48pt; font-weight:800; margin:0 0 6pt; letter-spacing:-1px; }
+.cover .subtitle { color:var(--blue-soft); font-size:16pt; font-weight:700; margin:0 0 14pt; }
+.cover .rule { width:120px; height:4px; border-radius:2px;
+  background: linear-gradient(90deg, var(--violet), var(--gold)); margin-bottom:20pt; }
+.cover .meta { color:var(--blue-soft); font-size:10.5pt; line-height:1.7; }
+.cover .meta .course { color:var(--gold); }
+.cover .author { margin-top:auto; }
+.cover .author .who { font-weight:800; font-size:12pt; margin-bottom:4pt; }
+.cover .author .contact { color:var(--blue-soft); font-size:9.5pt; line-height:1.7; }
+
+/* ---------- TOC ---------- */
+.toc-page { page-break-after: always; }
+.toc-kicker { color:var(--gold-deep); font-size:10pt; font-weight:800;
+  letter-spacing:3px; text-transform:uppercase; margin:0 0 4pt; }
+.toc h1 { margin-bottom:18pt; }
+.toc ol { list-style:none; counter-reset:toc; padding:0; margin:0; }
+.toc li { counter-increment:toc; padding:9px 0 9px 34px; position:relative;
+  border-bottom:1px solid var(--line); }
+.toc li::before { content:counter(toc); position:absolute; left:0; top:9px;
+  width:22px; height:22px; border-radius:5px; background:var(--paper-tint);
+  border-bottom:2px solid var(--gold); color:var(--ink); font-weight:800;
+  font-size:9pt; display:flex; align-items:center; justify-content:center; }
+.toc .t { font-weight:700; font-size:11pt; }
+.toc .s { color:var(--muted); font-size:9pt; }
+
+/* ---------- Chapters & headings ---------- */
+.chapter { page-break-before: always; }
+.kicker { color:var(--gold-deep); font-size:10pt; font-weight:800;
+          letter-spacing:3px; text-transform:uppercase; margin:0 0 4pt;
+          padding-left:10px; border-left:3px solid var(--gold); }
+h1 { font-size:24pt; font-weight:800; color:var(--ink); margin:6pt 0 4pt; }
+h1 + .rule-sm { width:70px; height:3px; border-radius:2px; margin:0 0 16pt;
+  background: linear-gradient(90deg, var(--violet), var(--gold)); }
+h2 { font-size:15pt; font-weight:700; color:var(--ink); margin:18pt 0 8pt; }
+h3 { font-size:12pt; font-weight:600; color:var(--ink-soft); margin:14pt 0 6pt; }
+
+/* ---------- Tables ---------- */
+table { width:100%; border-collapse:collapse; margin:10pt 0 14pt; font-size:9.5pt; }
+th { text-align:left; font-weight:700; color:var(--ink);
+     background:var(--paper-tint); padding:7px 10px;
+     border-bottom:2px solid var(--gold); }
+td { padding:7px 10px; border-bottom:1px solid var(--line); vertical-align:top; }
+tr:nth-child(even) td { background:var(--paper-tint); }
+table.dark th { background:var(--navy-900); color:#fff; border-bottom-color:var(--gold); }
+table.tight { font-size:9pt; }
+table.tight td, table.tight th { padding:5px 8px; }
+
+/* ---------- Code & callouts ---------- */
+code { font-family:"JetBrains Mono", monospace; font-size:90%;
+       background:var(--paper-tint); border:1px solid var(--line);
+       border-radius:4px; padding:1px 5px; }
+pre { background:var(--navy-900); color:#e8eaf2; border-radius:8px;
+      padding:12px 14px; font:9pt "JetBrains Mono", monospace;
+      line-height:1.5; overflow-x:auto; }
+pre code { background:none; border:none; color:inherit; padding:0; font-size:inherit; }
+.query { background:var(--navy-900); color:#fff; border-radius:8px;
+         padding:9px 16px; font-family:"JetBrains Mono", monospace;
+         font-size:9.5pt; margin:10pt 0; }
+.query::before { content:"« "; color:var(--blue-soft); }
+.query::after  { content:" »"; color:var(--blue-soft); }
+.note { border-left:3px solid var(--gold); background:#fdf8ec;
+        padding:8px 14px; border-radius:0 6px 6px 0; margin:10pt 0; font-size:9.5pt; }
+.note p:last-child { margin-bottom:0; }
+
+/* ---------- Figures ---------- */
+figure { margin:12pt 0; text-align:center; page-break-inside:avoid; }
+figure img { max-width:100%; border-radius:8px; box-shadow:0 4px 18px rgba(15,17,23,.18); }
+figcaption { font-style:italic; font-size:9pt; color:var(--muted); margin-top:6pt; }
+.diagram { margin:14pt 0; page-break-inside:avoid; }
+.diagram svg { width:100%; height:auto; }
+.ph { border:2px dashed var(--line); border-radius:8px; background:var(--paper-tint);
+      padding:40px 20px; color:var(--muted); font-size:9.5pt; }
+ul { margin:0 0 8pt; padding-left:18px; }
+li { margin-bottom:3pt; }
+.avoid { page-break-inside:avoid; }
+</style>
+</head>
+<body>
+
+<!-- ============================ COVER ============================ -->
+<div class="cover">
+  <div class="brand">
+    <div class="badge">P</div>
+    <div class="name">ProcureAI</div>
+    <div class="pill">BETA</div>
+  </div>
+  <div class="hero">
+    <h1>ProcureAI</h1>
+    <div class="subtitle">AI-Native Procurement Assistant</div>
+    <div class="rule"></div>
+    <div class="meta">
+      Τεκμηρίωση τελικής εργασίας, ΚΕΔΙΒΙΜ / Οικονομικό Πανεπιστήμιο Αθηνών<br>
+      <span class="course">AI for Developers: Design, Build, Deploy LLM-powered Applications</span>
+    </div>
+  </div>
+  <div class="author">
+    <div class="who">Γεώργιος Παναγόπουλος</div>
+    <div class="contact">gpana.ai@gmail.com &nbsp;·&nbsp; Σεπτέμβριος 2026<br>
+    github.com/GiorgosPanagopoulos/procureai</div>
+  </div>
+</div>
+
+<!-- ============================ TOC ============================ -->
+<div class="toc-page toc">
+  <div class="toc-kicker">Documentation</div>
+  <h1>Περιεχόμενα</h1>
+  <div class="rule-sm" style="width:70px;height:3px;border-radius:2px;margin:0 0 16pt;background:linear-gradient(90deg,var(--violet),var(--gold));"></div>
+  <ol>
+    <li><div class="t">Εισαγωγή</div><div class="s">Τι είναι το ProcureAI · σκοπός · πλαίσιο ανάπτυξης</div></li>
+    <li><div class="t">Σενάρια χρήσης &amp; λειτουργίες</div><div class="s">Ρόλοι · τέσσερα σενάρια · πίνακας λειτουργιών</div></li>
+    <li><div class="t">Τεχνολογίες &amp; γιατί επιλέχθηκαν</div><div class="s">Backend · frontend · DevOps</div></li>
+    <li><div class="t">Αρχιτεκτονική &amp; ροή δεδομένων</div><div class="s">Δομή κώδικα · αρχιτεκτονικό διάγραμμα · ReAct · RAG · RBAC/audit · sequence &amp; auth flow</div></li>
+    <li><div class="t">API Reference (FastAPI endpoints)</div><div class="s">Authentication · chat · δεδομένα · admin · health</div></li>
+    <li><div class="t">Το περιβάλλον χρήστη</div><div class="s">Δομή frontend · δύο γλώσσες · θέματα · responsive</div></li>
+    <li><div class="t">Τεχνικές Generative AI</div><div class="s">ReAct · RAG · prompt versioning · structured outputs · επιδόσεις &amp; κόστος</div></li>
+    <li><div class="t">Εγκατάσταση &amp; εκτέλεση</div><div class="s">Setup · credentials · tests · deployment (Docker)</div></li>
+    <li><div class="t">Παραδείγματα χρήσης (screenshots)</div><div class="s">Τέσσερα σενάρια σε dark και light mode</div></li>
+    <li><div class="t">Όρια &amp; επόμενα βήματα</div><div class="s">Τι δεν κάνει ακόμη · roadmap Phase 3-5</div></li>
+    <li><div class="t">Αναφορές &amp; βιβλιογραφία</div><div class="s">Επιστημονικές εργασίες · τεχνική τεκμηρίωση</div></li>
+  </ol>
+</div>
+
+<!-- ============================ CH 1 ============================ -->
+<div class="chapter">
+  <div class="kicker">Κεφάλαιο 1</div>
+  <h1>1. Εισαγωγή</h1>
+  <div class="rule-sm"></div>
+
+  <h2>1.1 Τι είναι το ProcureAI</h2>
+  <p>Το ProcureAI είναι ένας βοηθός για δημόσιες προμήθειες που λειτουργεί με ερωτήματα σε φυσική γλώσσα. Στον πυρήνα του λειτουργεί ένας ReAct agent (LangChain) με την Claude της Anthropic ως μοντέλο, και επιπλέον ένα RAG layer ώστε οι απαντήσεις να θεμελιώνονται σε πραγματικά έγγραφα (συμβάσεις, τιμοκαταλόγους, νομικά κείμενα) αντί να βασίζονται στη μνήμη του μοντέλου.</p>
+  <p>Η εφαρμογή σχεδιάστηκε με γνώμονα τον ελληνικό δημόσιο τομέα. Ο Ν.4412/2016 (Δημόσιες Συμβάσεις Έργων, Προμηθειών και Υπηρεσιών) λειτουργεί ως το νομικό υπόβαθρο που η εφαρμογή επικαλείται όταν χρειάζεται, και ολόκληρο το περιβάλλον λειτουργεί σε δύο γλώσσες, Ελληνικά και Αγγλικά.</p>
+
+  <h2>1.2 Σκοπός</h2>
+  <p>Ο στόχος είναι απλός: ο χρήστης διατυπώνει το ερώτημά του με δικά του λόγια, και ο agent αποφασίζει μόνος του ποιο εργαλείο ταιριάζει. Δεν υπάρχει μενού με κουμπιά «τρέξε αυτή τη λειτουργία», η δρομολόγηση γίνεται από το μοντέλο. Τα τέσσερα εργαλεία είναι:</p>
+  <ul>
+    <li><code>document_qa</code>, ερωτήσεις επί μεταφορτωμένων PDF, με vector search στο ChromaDB και απαντήσεις που φέρουν τις πηγές τους.</li>
+    <li><code>bid_comparison</code>, κατάταξη προσφορών με κριτήρια τιμής, χρόνου παράδοσης και όρων πληρωμής· τα δεδομένα έρχονται από τη MongoDB.</li>
+    <li><code>supplier_lookup</code>, εύρεση και αξιολόγηση προμηθευτών, με φιλτράρισμα ανά κατηγορία ή βαθμολογία.</li>
+    <li><code>report_generation</code>, συγκεντρωτική εικόνα των προμηθειών: προμηθευτές, προσφορές, αξία, κατάσταση.</li>
+  </ul>
+  <p>Γύρω από αυτά υπάρχει ένα στρώμα ασφάλειας που δεν είναι διακοσμητικό: έλεγχος πρόσβασης με τρεις ρόλους και JWT, καταγραφή κάθε ενέργειας, απόκρυψη προσωπικών δεδομένων πριν το κείμενο σταλεί προς το μοντέλο, όρια ρυθμού ανά endpoint και παρακολούθηση σφαλμάτων με Sentry.</p>
+
+  <h2>1.3 Πλαίσιο ανάπτυξης</h2>
+  <p>Η εφαρμογή γράφτηκε ως τελική εργασία του προγράμματος ΚΕΔΙΒΙΜ/ΟΠΑ «AI for Developers» (6 ECTS) και καλύπτει σχεδόν όλη την ύλη του: Python και FastAPI από την πρώτη ενότητα, prompt engineering από τη δεύτερη, αρχιτεκτονική AI συστημάτων από την τρίτη, RAG από την τέταρτη και agents με το ReAct pattern από την πέμπτη, με μερικά στοιχεία open-source μοντέλων από την έκτη. Η αναλυτική αντιστοίχιση ενοτήτων και τεχνικών βρίσκεται στον πίνακα του §7.10.</p>
+  <p>Η ανάπτυξη έγινε σε φάσεις. Η Phase 1 έθεσε τον πυρήνα (agent, RAG, βασικό UI). Η Phase 2, που ολοκληρώθηκε τον Αύγουστο του 2026, πρόσθεσε το στρώμα διακυβέρνησης: ontology με δέκα Pydantic μοντέλα, RBAC με JWT, multi-tenancy στο ChromaDB, audit log και versioning των prompts, μαζί με εκτενές refactoring σε backend και frontend.</p>
+</div>
+
+<!-- ============================ CH 2 ============================ -->
+<div class="chapter">
+  <div class="kicker">Κεφάλαιο 2</div>
+  <h1>2. Σενάρια χρήσης &amp; λειτουργίες</h1>
+  <div class="rule-sm"></div>
+
+  <h2>2.1 Ρόλοι χρηστών</h2>
+  <p>Τρεις ρόλοι, με τον έλεγχο να γίνεται server-side μέσω <code>Depends()</code> στο FastAPI:</p>
+  <table>
+    <tr><th style="width:22%">Ρόλος</th><th style="width:23%">Ποιος είναι</th><th>Τι μπορεί να κάνει</th></tr>
+    <tr><td><code>admin</code></td><td>Διαχειριστής</td><td>Τα πάντα: χρήστες, audit logs, prompts, chat, upload, δεδομένα</td></tr>
+    <tr><td><code>procurement_officer</code></td><td>Υπεύθυνος προμηθειών</td><td>Chat με τον agent, ανέβασμα PDF, document Q&amp;A, προβολή προμηθευτών και προσφορών</td></tr>
+    <tr><td><code>viewer</code></td><td>Αναγνώστης</td><td>Μόνο ανάγνωση: προμηθευτές, προσφορές, αναφορές, συνομιλίες</td></tr>
+  </table>
+
+  <h2>2.2 Τέσσερα σενάρια</h2>
+  <p><strong>Document Q&amp;A.</strong> Ένας procurement officer μεταφορτώνει το PDF του Ν.4412/2016 και θέτει το ερώτημα «ποια είναι τα βασικά άρθρα για τις δημόσιες συμβάσεις;». Ο agent επιλέγει μόνος του το <code>document_qa</code>, εκτελεί vector search στο ChromaDB και επιστρέφει απάντηση με τις πηγές. Όλο το σκεπτικό του (Thought, Action, Observation) φαίνεται στο UI αν ο χρήστης το ζητήσει.</p>
+  <p><strong>Σύγκριση προσφορών.</strong> Στο «σύγκρινε τις διαθέσιμες προσφορές» ο agent περνά στο <code>bid_comparison</code>, ανακτά τις προσφορές από τη MongoDB και τις ταξινομεί κατά τιμή και χρόνο παράδοσης.</p>
+  <p><strong>Αναζήτηση προμηθευτών.</strong> Στο «βρες προμηθευτές IT» καλείται το <code>supplier_lookup</code>, που φιλτράρει με regex στην κατηγορία και επιστρέφει αποτελέσματα ταξινομημένα κατά βαθμολογία.</p>
+  <p><strong>Αναφορά.</strong> Στο «φτιάξε μου αναφορά προμηθειών» το <code>report_generation</code> συγκεντρώνει προμηθευτές και προσφορές και παράγει μια δομημένη σύνοψη.</p>
+
+  <h2>2.3 Λειτουργίες της εφαρμογής</h2>
+  <p>Τι κάνει η εφαρμογή και πόσο κρίσιμο είναι το καθένα:</p>
+  <table class="tight">
+    <tr><th style="width:22%">Λειτουργία</th><th>Τι κάνει</th><th style="width:12%">Προτεραιότητα</th></tr>
+    <tr><td>Ανέβασμα εγγράφων</td><td>Ο χρήστης μεταφορτώνει ένα PDF με μεταφορά (drag-and-drop)· το κείμενο εξάγεται με pypdf, διασπάται σε chunks των 500 χαρακτήρων με 50 overlap ώστε να μη χάνεται το νόημα στα όρια, και κάθε chunk λαμβάνει embedding και αποθηκεύεται στο ChromaDB ως vector.</td><td>Υψηλή</td></tr>
+    <tr><td>Δρομολόγηση μέσω agent</td><td>Δεν υπάρχει σταθερό μενού με κουμπιά. Ο ReAct agent διαβάζει το ερώτημα και αποφασίζει μόνος του ποιο από τα τέσσερα tools ταιριάζει, μέσα σε βρόχο Thought → Action → Observation και μέχρι πέντε επαναλήψεις. Όλο το σκεπτικό παραμένει ορατό.</td><td>Υψηλή</td></tr>
+    <tr><td>Document Q&amp;A (RAG)</td><td>Το ερώτημα γίνεται vector, το ChromaDB ανακτά τα πιο σχετικά chunks, κι αυτά προωθούνται στην Claude μαζί με την ερώτηση. Η απάντηση επιστρέφεται πάντα με τις πηγές της (ποιο έγγραφο και ποιο σημείο) ώστε να ελέγχεται.</td><td>Υψηλή</td></tr>
+    <tr><td>Σύγκριση προσφορών</td><td>Τραβάει τις προσφορές από τη MongoDB και τις βάζει σε σειρά κατά τιμή και χρόνο παράδοσης. Δίπλα σε κάθε μία φαίνονται οι όροι πληρωμής, η κατάσταση και η τιμή σε USD και EUR.</td><td>Υψηλή</td></tr>
+    <tr><td>Αναζήτηση προμηθευτών</td><td>Φιλτράρει με regex στην κατηγορία (π.χ. «Εξοπλισμός IT») και επιστρέφει τους προμηθευτές ταξινομημένους κατά βαθμολογία, με κατηγορία, rating και στοιχεία επικοινωνίας, και προτείνει επόμενα ερωτήματα.</td><td>Υψηλή</td></tr>
+    <tr><td>Έλεγχος πρόσβασης</td><td>Login με JWT αποθηκευμένο σε httpOnly cookie. Κάθε endpoint ξέρει ποιοι ρόλοι το αγγίζουν· ένας viewer που επιχειρεί chat ή upload λαμβάνει 403, και η εγγραφή δέχεται μόνο ρόλο viewer.</td><td>Υψηλή</td></tr>
+    <tr><td>Απομόνωση δεδομένων ανά χρήστη</td><td>Κάθε request μεταφέρει το user_id μέσω ContextVar. Το where filter στο ChromaDB επιτρέπει στον χρήστη να βλέπει μόνο τα δικά του έγγραφα συν τα system, τον Ν.4412/2016 που έχει ανέβει κεντρικά. Οι διαγραφές κλειδώνουν ανά χρήστη και ανά source.</td><td>Υψηλή</td></tr>
+    <tr><td>Καταγραφή ενεργειών</td><td>Κάθε κλήση γράφεται στη MongoDB: ποιος, τι ρώτησε, πότε, με ποιες πηγές, από ποια IP. Γίνεται σε fire-and-forget task που δεν περιμένει, οπότε δεν προσθέτει καθυστέρηση στην απόκριση.</td><td>Μεσαία</td></tr>
+    <tr><td>Απόκρυψη προσωπικών δεδομένων</td><td>Πριν σταλεί οτιδήποτε προς το μοντέλο, ΑΦΜ, ΑΜΚΑ, email και ελληνικά τηλέφωνα εντοπίζονται με regex και αντικαθίστανται με placeholders όπως <code>[AFM_REDACTED]</code>. Στα logs μένει μόνο το πλήθος, ποτέ το περιεχόμενο.</td><td>Μεσαία</td></tr>
+    <tr><td>Δίγλωσσο περιβάλλον</td><td>Όλο το UI αλλάζει ανάμεσα σε Ελληνικά και Αγγλικά με ένα toggle, υπάρχει dark και light θέμα, και έξι έτοιμα ερωτήματα ανά γλώσσα που με ένα κλικ τροφοδοτούν κατευθείαν τον agent.</td><td>Μεσαία</td></tr>
+    <tr><td>Όρια ρυθμού</td><td>Throttling ανά IP με SlowAPI: 10 αιτήματα το λεπτό στο chat που είναι το ακριβό σημείο, 30 στα υπόλοιπα. Έτσι μια κατάχρηση ή ένα ελαττωματικό loop δεν θέτει την υπηρεσία εκτός λειτουργίας ούτε αυξάνει υπέρμετρα το κόστος.</td><td>Μεσαία</td></tr>
+    <tr><td>Βιβλιοθήκη prompts</td><td>Πέντε use cases (chat, doc_qa, tender, risk, legal) ζουν σε versioned αρχεία με YAML header. Ξαναφορτώνονται εν θερμώ πριν από κάθε κλήση και είναι όλα κάτω από Git, οπότε κάθε αλλαγή φαίνεται στο ιστορικό.</td><td>Μεσαία</td></tr>
+  </table>
+</div>
+
+<!-- ============================ CH 3 ============================ -->
+<div class="chapter">
+  <div class="kicker">Κεφάλαιο 3</div>
+  <h1>3. Τεχνολογίες &amp; γιατί επιλέχθηκαν</h1>
+  <div class="rule-sm"></div>
+
+  <h2>3.1 Backend</h2>
+  <table>
+    <tr><th style="width:22%">Τεχνολογία</th><th style="width:20%">Ρόλος</th><th>Γιατί</th></tr>
+    <tr><td>Python 3.12</td><td>Runtime</td><td>Εδώ ζει όλο το AI/ML οικοσύστημα· native async και type hints</td></tr>
+    <tr><td>FastAPI</td><td>Web framework</td><td>Async από τη βάση του, validation με Pydantic, αυτόματο Swagger/OpenAPI</td></tr>
+    <tr><td>LangChain</td><td>Agent + RAG</td><td><code>create_react_agent</code>, AgentExecutor, PromptTemplate, text splitting</td></tr>
+    <tr><td>Anthropic Claude</td><td>LLM</td><td>claude-sonnet-4-6, reasoning, function calling, prompt caching</td></tr>
+    <tr><td>OpenAI Embeddings</td><td>Vectorization</td><td>text-embedding-3-small (1536 διαστάσεις)</td></tr>
+    <tr><td>ChromaDB</td><td>Vector store</td><td>Ελαφρύ, persistent, metadata filtering, multi-tenancy</td></tr>
+    <tr><td>MongoDB Atlas</td><td>Document DB</td><td>Προμηθευτές, προσφορές, χρήστες, audit logs, usage, συνομιλίες</td></tr>
+    <tr><td>Pydantic v2</td><td>Validation</td><td>Type-safe μοντέλα, settings, JSON schema, structured outputs</td></tr>
+    <tr><td>Motor</td><td>Async Mongo driver</td><td>Μη μπλοκάρων I/O προς τη MongoDB, singleton client με lazy init</td></tr>
+    <tr><td>Sentry</td><td>Monitoring</td><td>Error tracking, performance, breadcrumbs, PII scrubbing</td></tr>
+    <tr><td>structlog</td><td>Logging</td><td>Δομημένα JSON logs με correlation IDs</td></tr>
+    <tr><td>SlowAPI</td><td>Rate limiting</td><td>Throttling ανά endpoint (IP-based)</td></tr>
+    <tr><td>passlib / bcrypt</td><td>Κωδικοί</td><td>Ασφαλές hashing· JWT μέσω python-jose</td></tr>
+  </table>
+
+  <h2>3.2 Frontend</h2>
+  <table>
+    <tr><th style="width:22%">Τεχνολογία</th><th style="width:20%">Ρόλος</th><th>Γιατί</th></tr>
+    <tr><td>React 18</td><td>UI</td><td>Component-based, hooks, τεράστιο οικοσύστημα</td></tr>
+    <tr><td>TypeScript</td><td>Τύποι</td><td>Ασφάλεια στο compile, κώδικας που εξηγεί τον εαυτό του</td></tr>
+    <tr><td>Vite</td><td>Build</td><td>Γρήγορο HMR, ESM-native</td></tr>
+    <tr><td>Tailwind CSS v4</td><td>Styling</td><td>Utility-first μαζί με custom design tokens στο App.css</td></tr>
+    <tr><td>Context API</td><td>State</td><td><code>AuthContext</code> για την ταυτότητα· η υπόλοιπη κατάσταση ζει σε custom hooks</td></tr>
+    <tr><td>Sentry (React)</td><td>Error boundary</td><td>Browser tracking, ErrorBoundary component</td></tr>
+    <tr><td>react-markdown</td><td>Rendering</td><td>Markdown και GFM tables στις απαντήσεις του agent</td></tr>
+    <tr><td>sonner</td><td>Toasts</td><td>Ειδοποιήσεις για uploads και σφάλματα</td></tr>
+  </table>
+  <p>Η αρχιτεκτονική του frontend δεν είναι μονολιθική: το <code>App.tsx</code> κρατά μόνο 86 γραμμές σύνθεσης, ενώ η λογική είναι κατανεμημένη σε <code>components/</code>, <code>hooks/</code>, <code>api/</code>, <code>contexts/</code> και <code>types/</code>. Η πλήρης δομή παρουσιάζεται στο §6.1.</p>
+
+  <h2>3.3 DevOps &amp; ποιότητα κώδικα</h2>
+  <table>
+    <tr><th style="width:34%">Εργαλείο</th><th>Ρόλος</th></tr>
+    <tr><td>pytest + pytest-asyncio</td><td>159 αυτοματοποιημένα tests, unit και integration, async, με mocked MongoDB fixture</td></tr>
+    <tr><td>pre-commit</td><td>trailing-whitespace, ruff, mypy, detect-secrets</td></tr>
+    <tr><td>GitHub Actions CI</td><td>Lint, test, type-check σε κάθε push και PR</td></tr>
+    <tr><td>ruff</td><td>Linting και formatting (αντικαθιστά flake8/black)</td></tr>
+    <tr><td>mypy</td><td>Static type checking</td></tr>
+    <tr><td>detect-secrets</td><td>Σάρωση για secrets (.secrets.baseline)</td></tr>
+    <tr><td>Docker + docker compose</td><td>backend + frontend + MongoDB σε containers</td></tr>
+  </table>
+  <div class="note">
+    <p><strong>Χρόνος εκκίνησης.</strong> Οι lazy-loaded clients (Mongo, Chroma, LLM) και η μεταφορά των προαιρετικών εξαρτήσεων του reranker σε ξεχωριστό <code>requirements-rerank.txt</code> μείωσαν τον χρόνο import από 7.00s σε 1.59s, δηλαδή κατά 77%.</p>
+  </div>
+</div>
+
+<!-- ============================ CH 4 ============================ -->
+<div class="chapter">
+  <div class="kicker">Κεφάλαιο 4</div>
+  <h1>4. Αρχιτεκτονική &amp; ροή δεδομένων</h1>
+  <div class="rule-sm"></div>
+
+  <h2>4.1 Δομή κώδικα backend</h2>
+  <p>Μετά από ένα εκτενές refactoring τον Αύγουστο του 2026, το <code>main.py</code> κρατά 135 γραμμές (lifespan, middleware wiring, router registration, Sentry init) και όλα τα υπόλοιπα σπάνε σε πακέτα με σαφή ευθύνη το καθένα (layered architecture):</p>
+  <table class="tight">
+    <tr><th style="width:16%">Πακέτο</th><th style="width:40%">Modules</th><th>Τι κάνει</th></tr>
+    <tr><td><code>agent/</code></td><td>executor.py · prompt.py · tools.py</td><td>Ο ReAct agent: AgentExecutor, τα 4 tools, φόρτωση prompt</td></tr>
+    <tr><td><code>api/routes/</code></td><td>auth.py</td><td>Auth router (login, register, logout, me)</td></tr>
+    <tr><td><code>auth/</code></td><td>security.py · dependencies.py</td><td>JWT, password hashing, get_current_user</td></tr>
+    <tr><td><code>core/</code></td><td>audit · chroma_tenant · prompt_loader · rbac · sentry</td><td>Audit, multi-tenancy, PromptLoader singleton, RBAC, Sentry init</td></tr>
+    <tr><td><code>crud/</code></td><td>user.py</td><td>MongoDB CRUD: create, authenticate, update</td></tr>
+    <tr><td><code>data/</code></td><td>seed.py</td><td>Idempotent seeding: 12 προμηθευτές, 16 προσφορές, atomic superuser upsert</td></tr>
+    <tr><td><code>llm/</code></td><td>clients · pricing · callbacks</td><td>Lazy LLM clients, υπολογισμός κόστους, LangChain callback</td></tr>
+    <tr><td><code>middleware/</code></td><td>cors · correlation · rate_limit · audit_middleware</td><td>CORS, X-Correlation-ID, SlowAPI, fire-and-forget audit</td></tr>
+    <tr><td><code>models/</code></td><td>ontology · supplier · bid · user</td><td>10 ontology μοντέλα + Supplier, Bid, User</td></tr>
+    <tr><td><code>rag/</code></td><td>vectorstore · embeddings · chunking · ingest · reranker</td><td>ChromaDB, OpenAI embeddings, text splitting, ingestion PDF, CrossEncoder</td></tr>
+    <tr><td><code>routers/</code></td><td>chat · suppliers · reports · health · admin</td><td>REST endpoints, κλήση agent, file upload</td></tr>
+    <tr><td><code>schemas/</code></td><td>auth · chat · user</td><td>Pydantic request/response μοντέλα</td></tr>
+    <tr><td><code>security/</code></td><td>pii.py</td><td>Απόκρυψη ΑΦΜ, ΑΜΚΑ, email, τηλεφώνων</td></tr>
+    <tr><td><code>utils/</code></td><td>lazy.py</td><td>LazyProxy: αναβολή αρχικοποίησης Mongo/Chroma/LLM clients μέχρι την πρώτη χρήση</td></tr>
+    <tr><td><code>tests/</code></td><td>test_auth · test_rbac · test_agent · test_rag · test_env_isolation κ.ά.</td><td>159 tests, unit και integration, με in-memory fake MongoDB fixture</td></tr>
+    <tr><td><code>prompts/</code></td><td>chat/v1.txt · doc_qa/v1.txt + 3 ακόμη</td><td>5 versioned αρχεία prompt (YAML header + κείμενο)</td></tr>
+  </table>
+
+  <h2>4.2 Αρχιτεκτονικό διάγραμμα</h2>
+  <p>Το διάγραμμα αποτυπώνει τη διαδρομή ενός αιτήματος από πάνω προς τα κάτω: από το React UI, μέσα από τη σειρά ελέγχων του FastAPI, στον ReAct agent που επιλέγει εργαλείο, και από εκεί στα δύο data stores. Στο κάτω μέρος αποδίδονται το RAG pipeline και τα οριζόντια θέματα (logging, ασφάλεια, κόστος) που αφορούν κάθε request.</p>
+
+  <div class="diagram">
+  <svg viewBox="0 0 760 620" xmlns="http://www.w3.org/2000/svg" font-family="Inter, sans-serif">
+    <defs>
+      <marker id="ar" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+        <path d="M0,0 L6,3 L0,6 z" fill="#c9a84c"/>
+      </marker>
+    </defs>
+    <rect width="760" height="620" fill="#0f1117" rx="10"/>
+
+    <!-- PRESENTATION -->
+    <text x="24" y="30" fill="#c9a84c" font-size="9" font-weight="800" letter-spacing="2.5">PRESENTATION</text>
+    <rect x="24" y="40" width="712" height="56" rx="8" fill="#161b2c" stroke="#1f2740"/>
+    <text x="380" y="62" fill="#ffffff" font-size="12" font-weight="700" text-anchor="middle">React 18 · TypeScript · Vite · Tailwind v4</text>
+    <text x="380" y="80" fill="#8ea8d8" font-size="9" text-anchor="middle">Two-panel SPA · chat &amp; reasoning trace αριστερά, live data inspector δεξιά</text>
+
+    <line x1="380" y1="96" x2="380" y2="120" stroke="#c9a84c" stroke-width="1.5" marker-end="url(#ar)"/>
+    <text x="392" y="112" fill="#8ea8d8" font-size="8">HTTP / JSON</text>
+
+    <!-- GATEWAY -->
+    <text x="24" y="140" fill="#c9a84c" font-size="9" font-weight="800" letter-spacing="2.5">FASTAPI GATEWAY</text>
+    <rect x="24" y="150" width="712" height="62" rx="8" fill="#161b2c" stroke="#1f2740"/>
+    <g font-size="9" font-weight="600" fill="#ffffff" text-anchor="middle">
+      <rect x="42" y="164" width="120" height="22" rx="5" fill="#1f2740"/><text x="102" y="179">CORS</text>
+      <rect x="176" y="164" width="120" height="22" rx="5" fill="#1f2740"/><text x="236" y="179">Rate Limit</text>
+      <rect x="310" y="164" width="130" height="22" rx="5" fill="#1f2740"/><text x="375" y="179">Correlation ID</text>
+      <rect x="454" y="164" width="120" height="22" rx="5" fill="#1f2740"/><text x="514" y="179">JWT · RBAC</text>
+      <rect x="588" y="164" width="110" height="22" rx="5" fill="#1f2740"/><text x="643" y="179">Audit</text>
+    </g>
+    <text x="380" y="202" fill="#8ea8d8" font-size="8" text-anchor="middle">Κάθε request περνά τη σειρά ελέγχων· οι τρεις ρόλοι (admin · procurement_officer · viewer) επιβάλλονται με Depends()</text>
+
+    <line x1="380" y1="212" x2="380" y2="238" stroke="#c9a84c" stroke-width="1.5" marker-end="url(#ar)"/>
+
+    <!-- ORCHESTRATION -->
+    <text x="24" y="258" fill="#c9a84c" font-size="9" font-weight="800" letter-spacing="2.5">ORCHESTRATION</text>
+    <rect x="24" y="268" width="712" height="122" rx="8" fill="#161b2c" stroke="#1f2740"/>
+    <text x="380" y="290" fill="#ffffff" font-size="12" font-weight="700" text-anchor="middle">LangChain ReAct Agent</text>
+    <text x="380" y="306" fill="#c9a84c" font-size="9" font-weight="600" text-anchor="middle">Anthropic Claude · claude-sonnet-4-6</text>
+    <g font-size="8" fill="#8ea8d8" text-anchor="middle">
+      <rect x="238" y="314" width="62" height="17" rx="4" fill="#1f2740"/><text x="269" y="326">Thought</text>
+      <rect x="306" y="314" width="58" height="17" rx="4" fill="#1f2740"/><text x="335" y="326">Action</text>
+      <rect x="370" y="314" width="80" height="17" rx="4" fill="#1f2740"/><text x="410" y="326">Observation</text>
+      <rect x="456" y="314" width="66" height="17" rx="4" fill="#1f2740"/><text x="489" y="326">max 5 iter</text>
+    </g>
+    <g>
+      <rect x="40" y="340" width="164" height="40" rx="6" fill="#0f1117" stroke="#c9a84c" stroke-opacity=".45"/>
+      <text x="122" y="356" fill="#c9a84c" font-size="9" font-weight="700" text-anchor="middle">document_qa</text>
+      <text x="122" y="370" fill="#8ea8d8" font-size="7.5" text-anchor="middle">RAG Q&amp;A σε PDF με παραπομπές</text>
+
+      <rect x="214" y="340" width="164" height="40" rx="6" fill="#0f1117" stroke="#c9a84c" stroke-opacity=".45"/>
+      <text x="296" y="356" fill="#c9a84c" font-size="9" font-weight="700" text-anchor="middle">bid_comparison</text>
+      <text x="296" y="370" fill="#8ea8d8" font-size="7.5" text-anchor="middle">κατάταξη · τιμή, παράδοση</text>
+
+      <rect x="388" y="340" width="164" height="40" rx="6" fill="#0f1117" stroke="#c9a84c" stroke-opacity=".45"/>
+      <text x="470" y="356" fill="#c9a84c" font-size="9" font-weight="700" text-anchor="middle">supplier_lookup</text>
+      <text x="470" y="370" fill="#8ea8d8" font-size="7.5" text-anchor="middle">αναζήτηση · κατηγορία, rating</text>
+
+      <rect x="562" y="340" width="158" height="40" rx="6" fill="#0f1117" stroke="#c9a84c" stroke-opacity=".45"/>
+      <text x="641" y="356" fill="#c9a84c" font-size="9" font-weight="700" text-anchor="middle">report_generation</text>
+      <text x="641" y="370" fill="#8ea8d8" font-size="7.5" text-anchor="middle">συγκεντρωτική αναφορά</text>
+    </g>
+
+    <line x1="380" y1="390" x2="380" y2="414" stroke="#c9a84c" stroke-width="1.5" marker-end="url(#ar)"/>
+
+    <!-- DATA -->
+    <text x="24" y="434" fill="#c9a84c" font-size="9" font-weight="800" letter-spacing="2.5">DATA &amp; KNOWLEDGE</text>
+    <rect x="24" y="444" width="350" height="56" rx="8" fill="#161b2c" stroke="#1f2740"/>
+    <text x="199" y="466" fill="#ffffff" font-size="11" font-weight="700" text-anchor="middle">ChromaDB</text>
+    <text x="199" y="482" fill="#8ea8d8" font-size="8" text-anchor="middle">vectors · multi-tenant (where + ContextVar)</text>
+    <rect x="386" y="444" width="350" height="56" rx="8" fill="#161b2c" stroke="#1f2740"/>
+    <text x="561" y="464" fill="#ffffff" font-size="11" font-weight="700" text-anchor="middle">MongoDB Atlas</text>
+    <text x="561" y="478" fill="#8ea8d8" font-size="8" text-anchor="middle">suppliers · bids · users</text>
+    <text x="561" y="490" fill="#8ea8d8" font-size="8" text-anchor="middle">audit · conversations · usage</text>
+
+    <!-- RAG -->
+    <text x="24" y="522" fill="#c9a84c" font-size="9" font-weight="800" letter-spacing="2.5">RAG INGESTION &amp; RETRIEVAL</text>
+    <rect x="24" y="530" width="712" height="40" rx="8" fill="#161b2c" stroke="#1f2740"/>
+    <g font-size="8" text-anchor="middle">
+      <rect x="36" y="540" width="88" height="22" rx="5" fill="#1f2740"/><text x="80" y="554" fill="#ffffff">PDF · pypdf</text>
+      <rect x="134" y="540" width="88" height="22" rx="5" fill="#1f2740"/><text x="178" y="554" fill="#ffffff">Chunk 500/50</text>
+      <rect x="232" y="540" width="112" height="22" rx="5" fill="#1f2740"/><text x="288" y="554" fill="#ffffff">Embed · text-emb-3</text>
+      <rect x="354" y="540" width="88" height="22" rx="5" fill="#1f2740"/><text x="398" y="554" fill="#ffffff">Retrieve top-k</text>
+      <rect x="452" y="540" width="112" height="22" rx="5" fill="#1f2740"/><text x="508" y="554" fill="#ffffff">Rerank (optional)</text>
+      <rect x="574" y="540" width="150" height="22" rx="5" fill="#1f2740"/><text x="649" y="554" fill="#c9a84c">Claude → answer + sources</text>
+    </g>
+
+    <!-- CROSS-CUTTING -->
+    <text x="24" y="590" fill="#c9a84c" font-size="9" font-weight="800" letter-spacing="2.5">CROSS-CUTTING</text>
+    <g font-size="7.5" text-anchor="middle">
+      <rect x="24" y="596" width="136" height="18" rx="4" fill="#161b2c" stroke="#1f2740"/><text x="92" y="608" fill="#8ea8d8">Sentry · errors, PII scrub</text>
+      <rect x="168" y="596" width="120" height="18" rx="4" fill="#161b2c" stroke="#1f2740"/><text x="228" y="608" fill="#8ea8d8">structlog · JSON logs</text>
+      <rect x="296" y="596" width="152" height="18" rx="4" fill="#161b2c" stroke="#1f2740"/><text x="372" y="608" fill="#8ea8d8">Prompt versioning · hot-reload</text>
+      <rect x="456" y="596" width="140" height="18" rx="4" fill="#161b2c" stroke="#1f2740"/><text x="526" y="608" fill="#8ea8d8">PII redaction · ΑΦΜ, ΑΜΚΑ</text>
+      <rect x="604" y="596" width="132" height="18" rx="4" fill="#161b2c" stroke="#1f2740"/><text x="670" y="608" fill="#8ea8d8">Cost tracking · tokens, €/$</text>
+    </g>
+  </svg>
+  </div>
+
+  <h2>4.3 Ο ReAct agent</h2>
+  <p>Η δρομολόγηση όλου του συστήματος βασίζεται σε έναν LangChain ReAct agent (<code>create_react_agent</code> + AgentExecutor). Ο χρήστης στέλνει ελεύθερο κείμενο και ο agent εισέρχεται σε έναν βρόχο σκέψης (Thought, Action, Observation) επιλέγοντας μόνος του ποιο tool θα καλέσει, μέχρι πέντε επαναλήψεις. Τα ενδιάμεσα βήματα κρατιούνται και εμφανίζονται στο frontend.</p>
+  <p>Το system prompt (<code>prompts/chat/v1.txt</code>) δίνει στον agent τους κανόνες επιλογής εργαλείου, τη θωράκιση απέναντι σε prompt injection, και οδηγίες μετατροπής νομίσματος (USD προς EUR).</p>
+  <div class="note">
+    <p><strong>TOOL SELECTION RULES.</strong> Σε πρώιμη έκδοση ο agent απαντούσε σε νομικά ερωτήματα («ποια είναι τα όρια απευθείας ανάθεσης;») από τη δική του μνήμη, παρακάμπτοντας εντελώς το RAG. Το πρόβλημα δεν ήταν στα tools αλλά στο prompt: δεν υπήρχε ρητός κανόνας που να δεσμεύει τα νομικά ερωτήματα στο <code>document_qa</code>. Προστέθηκε ενότητα <em>TOOL SELECTION RULES</em> στο <code>prompts/chat/v1.txt</code> που ορίζει ότι κάθε ερώτημα σχετικό με άρθρα, κατώφλια, όρια ή διατάξεις του Ν.4412/2016 δρομολογείται υποχρεωτικά στο <code>document_qa</code> πριν συντεθεί οποιαδήποτε απάντηση. Το περιστατικό δείχνει πρακτικά γιατί τα prompts πρέπει να είναι versioned και κάτω από Git.</p>
+  </div>
+
+  <h2>4.4 Το RAG pipeline</h2>
+  <p>Στο ανέβασμα, το PDF περνά από εξαγωγή κειμένου με pypdf, διασπάται σε chunks των 500 χαρακτήρων με 50 overlap, κάθε chunk λαμβάνει embedding από το OpenAI και αποθηκεύεται στο ChromaDB μαζί με metadata (user_id, source, chunk).</p>
+  <p>Στην ανάκτηση, το ερώτημα γίνεται κι αυτό vector, το ChromaDB ανακτά τα πιο κοντινά chunks (top-4 κανονικά, top-20 αν είναι ενεργός ο reranker) και ένας CrossEncoder (ms-marco-MiniLM) διατηρεί τα 5 καλύτερα. Αυτά μαζί με την ερώτηση προωθούνται στην Claude μέσω του messages API, με prompt caching, και επιστρέφεται η απάντηση με τις πηγές της.</p>
+
+  <h2>4.5 RBAC &amp; audit</h2>
+  <p>Η διαδρομή κάθε request είναι σταθερή: HTTP → CORS → rate limit → correlation ID → έλεγχος JWT (<code>get_current_user</code>) → έλεγχος ρόλου (<code>require_admin</code> / <code>require_procurement_officer</code> / <code>require_viewer</code>) → handler → fire-and-forget <code>audit_interaction()</code> → απόκριση.</p>
+  <p>Κάθε εγγραφή audit καταγράφει user_id, ρόλο, ενέργεια, τους πρώτους 500 χαρακτήρες του ερωτήματος και της απάντησης, τις πηγές, το endpoint, την IP και τη χρονοσφραγίδα. Όλα αποθηκεύονται σε MongoDB collection με compound index στα (user_id, timestamp).</p>
+</div>
+
+<!-- ---------- 4.6 Sequence ---------- -->
+<div style="page-break-before:always">
+  <h2>4.6 Sequence diagram του chat endpoint</h2>
+  <p>Η πλήρης αλληλουχία ενός αιτήματος προς το <code>/chat</code>: από το React UI, μέσα από τους ελέγχους του FastAPI, στον agent που εκτελεί τον βρόχο ReAct και καλεί tools, και πίσω, με το audit να γράφεται ασύγχρονα εκτός της κρίσιμης διαδρομής.</p>
+
+  <div class="diagram">
+  <svg viewBox="0 0 760 470" xmlns="http://www.w3.org/2000/svg" font-family="Inter, sans-serif">
+    <defs>
+      <marker id="ar2" markerWidth="7" markerHeight="7" refX="6" refY="2.5" orient="auto">
+        <path d="M0,0 L6,2.5 L0,5 z" fill="#c9a84c"/>
+      </marker>
+      <marker id="ar3" markerWidth="7" markerHeight="7" refX="6" refY="2.5" orient="auto">
+        <path d="M0,0 L6,2.5 L0,5 z" fill="#8ea8d8"/>
+      </marker>
+    </defs>
+    <rect width="760" height="470" fill="#0f1117" rx="10"/>
+
+    <!-- lifelines -->
+    <g font-size="8.5" font-weight="700" fill="#ffffff" text-anchor="middle">
+      <rect x="16" y="16" width="104" height="26" rx="6" fill="#161b2c" stroke="#1f2740"/><text x="68" y="33">React UI</text>
+      <rect x="140" y="16" width="104" height="26" rx="6" fill="#161b2c" stroke="#1f2740"/><text x="192" y="33">FastAPI</text>
+      <rect x="264" y="16" width="150" height="26" rx="6" fill="#161b2c" stroke="#1f2740"/><text x="339" y="33">ReAct Agent · Claude</text>
+      <rect x="434" y="16" width="86" height="26" rx="6" fill="#161b2c" stroke="#1f2740"/><text x="477" y="33">Tools</text>
+      <rect x="540" y="16" width="96" height="26" rx="6" fill="#161b2c" stroke="#1f2740"/><text x="588" y="33">ChromaDB</text>
+      <rect x="652" y="16" width="94" height="26" rx="6" fill="#161b2c" stroke="#1f2740"/><text x="699" y="33">MongoDB</text>
+    </g>
+    <g stroke="#1f2740" stroke-width="1" stroke-dasharray="3 4">
+      <line x1="68" y1="46" x2="68" y2="452"/>
+      <line x1="192" y1="46" x2="192" y2="452"/>
+      <line x1="339" y1="46" x2="339" y2="452"/>
+      <line x1="477" y1="46" x2="477" y2="452"/>
+      <line x1="588" y1="46" x2="588" y2="452"/>
+      <line x1="699" y1="46" x2="699" y2="452"/>
+    </g>
+
+    <g font-size="8" fill="#e8eaf2">
+      <line x1="68" y1="72" x2="188" y2="72" stroke="#c9a84c" marker-end="url(#ar2)"/>
+      <text x="72" y="67">POST /chat (JWT cookie)</text>
+
+      <rect x="140" y="86" width="180" height="18" rx="4" fill="#1f2740"/>
+      <text x="150" y="99" fill="#8ea8d8">CORS · rate limit · JWT · RBAC</text>
+
+      <line x1="192" y1="122" x2="335" y2="122" stroke="#c9a84c" marker-end="url(#ar2)"/>
+      <text x="196" y="117">invoke(query) · PII redacted</text>
+
+      <path d="M339,140 h56 a6,6 0 0 1 6,6 v14 a6,6 0 0 1 -6,6 h-56" fill="none" stroke="#8ea8d8" marker-end="url(#ar3)"/>
+      <text x="408" y="155" fill="#8ea8d8">Thought · ReAct loop (≤5)</text>
+
+      <line x1="339" y1="192" x2="473" y2="192" stroke="#c9a84c" marker-end="url(#ar2)"/>
+      <text x="343" y="187">Action: επιλογή tool</text>
+
+      <line x1="477" y1="222" x2="584" y2="222" stroke="#c9a84c" marker-end="url(#ar2)"/>
+      <text x="400" y="217">document_qa: vector search (where filter)</text>
+
+      <line x1="588" y1="248" x2="481" y2="248" stroke="#8ea8d8" marker-end="url(#ar3)"/>
+      <text x="500" y="243" fill="#8ea8d8">top-k chunks</text>
+
+      <line x1="477" y1="278" x2="695" y2="278" stroke="#c9a84c" marker-end="url(#ar2)"/>
+      <text x="481" y="273">bid / supplier / report query</text>
+
+      <line x1="699" y1="304" x2="481" y2="304" stroke="#8ea8d8" marker-end="url(#ar3)"/>
+      <text x="620" y="299" fill="#8ea8d8">rows</text>
+
+      <line x1="477" y1="332" x2="343" y2="332" stroke="#8ea8d8" marker-end="url(#ar3)"/>
+      <text x="352" y="327" fill="#8ea8d8">Observation</text>
+
+      <path d="M339,348 h56 a6,6 0 0 1 6,6 v12 a6,6 0 0 1 -6,6 h-56" fill="none" stroke="#8ea8d8" marker-end="url(#ar3)"/>
+      <text x="408" y="362" fill="#8ea8d8">σύνθεση απάντησης</text>
+
+      <line x1="339" y1="398" x2="196" y2="398" stroke="#8ea8d8" marker-end="url(#ar3)"/>
+      <text x="205" y="393" fill="#8ea8d8">answer + trace + usage</text>
+
+      <line x1="192" y1="424" x2="695" y2="424" stroke="#c9a84c" stroke-dasharray="4 3" marker-end="url(#ar2)"/>
+      <text x="380" y="419" fill="#c9a84c">audit (async · fire-and-forget)</text>
+
+      <line x1="192" y1="448" x2="72" y2="448" stroke="#8ea8d8" marker-end="url(#ar3)"/>
+      <text x="84" y="443" fill="#8ea8d8">200 JSON</text>
+    </g>
+  </svg>
+  </div>
+
+  <h2>4.7 Auth flow (JWT &amp; RBAC)</h2>
+  <p>Πώς ταξιδεύει η ταυτότητα του χρήστη: από το login και την έκδοση JWT, στο httpOnly cookie, και στον έλεγχο ρόλου με <code>Depends()</code> πριν φτάσει το αίτημα στον handler.</p>
+
+  <div class="diagram">
+  <svg viewBox="0 0 760 380" xmlns="http://www.w3.org/2000/svg" font-family="Inter, sans-serif">
+    <defs>
+      <marker id="ar4" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+        <path d="M0,0 L6,3 L0,6 z" fill="#c9a84c"/>
+      </marker>
+    </defs>
+    <rect width="760" height="380" fill="#0f1117" rx="10"/>
+    <g text-anchor="middle">
+      <rect x="250" y="16" width="260" height="38" rx="7" fill="#161b2c" stroke="#1f2740"/>
+      <text x="380" y="33" fill="#ffffff" font-size="10" font-weight="700">Client · POST /auth/login</text>
+      <text x="380" y="47" fill="#8ea8d8" font-size="8">credentials</text>
+
+      <line x1="380" y1="54" x2="380" y2="72" stroke="#c9a84c" marker-end="url(#ar4)"/>
+
+      <rect x="250" y="76" width="260" height="38" rx="7" fill="#161b2c" stroke="#1f2740"/>
+      <text x="380" y="93" fill="#ffffff" font-size="10" font-weight="700">FastAPI · verify password</text>
+      <text x="380" y="107" fill="#8ea8d8" font-size="8">passlib · bcrypt</text>
+
+      <line x1="380" y1="114" x2="380" y2="132" stroke="#c9a84c" marker-end="url(#ar4)"/>
+
+      <rect x="250" y="136" width="260" height="38" rx="7" fill="#161b2c" stroke="#c9a84c" stroke-opacity=".5"/>
+      <text x="380" y="153" fill="#c9a84c" font-size="10" font-weight="700">Issue JWT</text>
+      <text x="380" y="167" fill="#8ea8d8" font-size="8">python-jose · exp claim · role</text>
+
+      <line x1="380" y1="174" x2="380" y2="192" stroke="#c9a84c" marker-end="url(#ar4)"/>
+
+      <rect x="250" y="196" width="260" height="38" rx="7" fill="#161b2c" stroke="#1f2740"/>
+      <text x="380" y="213" fill="#ffffff" font-size="10" font-weight="700">Set-Cookie: httpOnly · SameSite</text>
+      <text x="380" y="227" fill="#8ea8d8" font-size="8">το token δεν εκτίθεται στη JavaScript</text>
+
+      <line x1="380" y1="234" x2="380" y2="252" stroke="#c9a84c" marker-end="url(#ar4)"/>
+      <text x="530" y="248" fill="#8ea8d8" font-size="8">τα επόμενα requests φέρουν το cookie</text>
+
+      <rect x="250" y="256" width="260" height="38" rx="7" fill="#161b2c" stroke="#1f2740"/>
+      <text x="380" y="273" fill="#ffffff" font-size="10" font-weight="700">get_current_user · decode + validate</text>
+      <text x="380" y="287" fill="#8ea8d8" font-size="8">Depends()</text>
+
+      <line x1="380" y1="294" x2="380" y2="312" stroke="#c9a84c" marker-end="url(#ar4)"/>
+
+      <rect x="250" y="316" width="260" height="30" rx="7" fill="#161b2c" stroke="#1f2740"/>
+      <text x="380" y="335" fill="#ffffff" font-size="9.5" font-weight="700">RBAC: require_admin / officer / viewer</text>
+
+      <path d="M250,331 H150 v18" fill="none" stroke="#c9a84c" marker-end="url(#ar4)"/>
+      <path d="M510,331 H610 v18" fill="none" stroke="#c9a84c" marker-end="url(#ar4)"/>
+
+      <rect x="60" y="352" width="180" height="24" rx="6" fill="#161b2c" stroke="#c9a84c" stroke-opacity=".5"/>
+      <text x="150" y="368" fill="#c9a84c" font-size="9" font-weight="700">Handler → 200 OK</text>
+
+      <rect x="520" y="352" width="180" height="24" rx="6" fill="#161b2c" stroke="#1f2740"/>
+      <text x="610" y="368" fill="#8ea8d8" font-size="9" font-weight="700">403 Forbidden</text>
+    </g>
+  </svg>
+  </div>
+</div>
+
+<!-- ============================ CH 5 ============================ -->
+<div class="chapter">
+  <div class="kicker">Κεφάλαιο 5</div>
+  <h1>5. API Reference</h1>
+  <div class="rule-sm"></div>
+  <p>Όλα τα endpoints του FastAPI. Διαδραστικά docs υπάρχουν στο <code>/docs</code> (Swagger UI) και στο <code>/redoc</code>.</p>
+
+  <h2>5.1 Authentication</h2>
+  <table class="tight">
+    <tr><th style="width:11%">Method</th><th style="width:24%">Endpoint</th><th>Περιγραφή</th><th style="width:12%">Auth</th></tr>
+    <tr><td>POST</td><td><code>/auth/register</code></td><td>Εγγραφή, δέχεται μόνο ρόλο viewer, αλλιώς 422</td><td>Public</td></tr>
+    <tr><td>POST</td><td><code>/auth/login</code></td><td>Login → JWT σε httpOnly cookie</td><td>Public</td></tr>
+    <tr><td>POST</td><td><code>/auth/logout</code></td><td>Καθαρισμός cookie</td><td>Public</td></tr>
+    <tr><td>GET</td><td><code>/auth/me</code></td><td>Στοιχεία τρέχοντος χρήστη</td><td>JWT</td></tr>
+  </table>
+
+  <h2>5.2 Chat / Agent</h2>
+  <table class="tight">
+    <tr><th style="width:11%">Method</th><th style="width:28%">Endpoint</th><th>Περιγραφή</th><th style="width:16%">Auth / Rate</th></tr>
+    <tr><td>POST</td><td><code>/chat</code></td><td>Ερώτημα στον agent → απάντηση, tool, trace, usage</td><td>officer+ · 10/min</td></tr>
+    <tr><td>POST</td><td><code>/upload</code></td><td>PDF → chunking → ChromaDB</td><td>officer+ · 30/min</td></tr>
+    <tr><td>POST</td><td><code>/doc_qa</code></td><td>Απευθείας document_qa, παρακάμπτει τον agent</td><td>officer+ · 30/min</td></tr>
+    <tr><td>DELETE</td><td><code>/documents?source=X</code></td><td>Διαγραφή των chunks ενός εγγράφου του χρήστη</td><td>officer+ · 30/min</td></tr>
+    <tr><td>GET</td><td><code>/conversations/{id}/trace</code></td><td>Το reasoning trace μιας συνομιλίας</td><td>viewer+</td></tr>
+  </table>
+
+  <h2>5.3 Δεδομένα</h2>
+  <table class="tight">
+    <tr><th style="width:11%">Method</th><th style="width:24%">Endpoint</th><th>Περιγραφή</th><th style="width:16%">Auth / Rate</th></tr>
+    <tr><td>GET</td><td><code>/suppliers</code></td><td>Όλοι οι προμηθευτές (MongoDB)</td><td>viewer+ · 30/min</td></tr>
+    <tr><td>GET</td><td><code>/bids</code></td><td>Όλες οι προσφορές (MongoDB)</td><td>viewer+ · 30/min</td></tr>
+    <tr><td>GET</td><td><code>/reports</code></td><td>Αναφορές (placeholder)</td><td>viewer+ · 30/min</td></tr>
+  </table>
+
+  <h2>5.4 Admin</h2>
+  <table class="tight">
+    <tr><th style="width:11%">Method</th><th style="width:30%">Endpoint</th><th>Περιγραφή</th><th style="width:12%">Auth</th></tr>
+    <tr><td>GET</td><td><code>/admin/audit-logs</code></td><td>Audit trail με σελιδοποίηση (φίλτρα user_id, action)</td><td>admin</td></tr>
+    <tr><td>GET</td><td><code>/admin/prompts</code></td><td>Λίστα use cases, εκδόσεις και metadata</td><td>admin</td></tr>
+    <tr><td>GET</td><td><code>/admin/prompts/{uc}/{v}</code></td><td>Το κείμενο ενός συγκεκριμένου prompt</td><td>admin</td></tr>
+  </table>
+
+  <h2>5.5 Health</h2>
+  <table class="tight">
+    <tr><th style="width:11%">Method</th><th style="width:24%">Endpoint</th><th>Περιγραφή</th><th style="width:12%">Auth</th></tr>
+    <tr><td>GET</td><td><code>/</code></td><td>Health check → <code>{"message": "ProcureAI API ready", "version": "4.0.0"}</code></td><td>Public</td></tr>
+  </table>
+</div>
+
+<!-- ============================ CH 6 ============================ -->
+<div class="chapter">
+  <div class="kicker">Κεφάλαιο 6</div>
+  <h1>6. Το περιβάλλον χρήστη</h1>
+  <div class="rule-sm"></div>
+  <p>Το frontend είναι ένα SPA σε React 18 και TypeScript, με custom design tokens στο <code>App.css</code> και layout δύο πάνελ. Στο αριστερό πάνελ βρίσκεται η συνομιλία, στο δεξί ένας live data inspector.</p>
+
+  <h2>6.1 Δομή κώδικα frontend</h2>
+  <p>Στην πρώτη έκδοση όλη η εφαρμογή ζούσε σε ένα <code>App.tsx</code> 868 γραμμών. Αυτό είναι το κλασικό αντι-πρότυπο του React: κάθε αλλαγή αγγίζει το ίδιο αρχείο, τίποτα δεν ξαναχρησιμοποιείται, και το testing γίνεται πρακτικά αδύνατο. Το refactoring το έσπασε σε πέντε επίπεδα με σαφή ευθύνη, αφήνοντας το <code>App.tsx</code> στις 86 γραμμές, όσες χρειάζονται μόνο για τη σύνθεση:</p>
+  <table class="tight">
+    <tr><th style="width:18%">Φάκελος</th><th style="width:42%">Αρχεία</th><th>Ευθύνη</th></tr>
+    <tr><td><code>components/chat/</code></td><td>ChatPanel · MessageList · MessageBubble · SuggestionChips · TracePanel · UploadZone · UsageBadge</td><td>Ολόκληρη η συνομιλία: φυσαλίδες μηνυμάτων, chips, reasoning trace, drag-and-drop, badge κόστους</td></tr>
+    <tr><td><code>components/inspector/</code></td><td>DataInspector · DataInspectorTabs · SupplierCard · BidCard</td><td>Το δεξί πάνελ: tabs, κάρτες προμηθευτών και προσφορών</td></tr>
+    <tr><td><code>components/layout/</code></td><td>Header · LanguageToggle · ThemeToggle</td><td>Κεφαλίδα και οι δύο διακόπτες (γλώσσα, θέμα)</td></tr>
+    <tr><td><code>components/common/</code></td><td>Icon · ErrorFallback</td><td>Εικονίδια SVG και το UI του Sentry ErrorBoundary</td></tr>
+    <tr><td><code>hooks/</code></td><td>useChat · useCatalogData · useInspectorData · useI18n · useTheme</td><td>Όλη η κατάσταση και οι παρενέργειες. Τα components μένουν σχεδόν καθαρά presentational</td></tr>
+    <tr><td><code>api/</code></td><td>auth.ts · chat.ts</td><td>Typed HTTP client, ένα σημείο για base URL, credentials και χειρισμό σφαλμάτων</td></tr>
+    <tr><td><code>contexts/</code></td><td>AuthContext.tsx</td><td>Ταυτότητα χρήστη και ρόλος, διαθέσιμα σε όλο το δέντρο</td></tr>
+    <tr><td><code>types/</code></td><td>index.ts</td><td>Κοινά interfaces (Message, Supplier, Bid, TraceStep, Usage) μοιρασμένα σε components, hooks και api</td></tr>
+    <tr><td><code>i18n/</code></td><td>translations.ts</td><td>Το TRANSLATIONS object, GR και EN</td></tr>
+    <tr><td><code>pages/</code></td><td>LoginPage.tsx</td><td>Οθόνη login και εγγραφής</td></tr>
+    <tr><td><code>lib/</code></td><td>sentry.ts</td><td>Αρχικοποίηση Sentry για τον browser</td></tr>
+  </table>
+  <p>Το όφελος δεν είναι αισθητικό. Ένα νέο tool στον agent σημαίνει πλέον ένα νέο badge στο <code>MessageBubble</code> και τίποτε άλλο· μια αλλαγή στο endpoint του chat αγγίζει μόνο το <code>api/chat.ts</code>· και η λογική του <code>useChat</code> μπορεί να δοκιμαστεί χωρίς να στηθεί ολόκληρο το δέντρο των components.</p>
+
+  <h2>6.2 Το αριστερό πάνελ: συνομιλία</h2>
+  <p>Message bubbles με rendering Markdown/GFM, η κινούμενη ένδειξη πληκτρολόγησης, ένα badge που δείχνει ποιο tool χρησιμοποιήθηκε, ένα δεύτερο badge με tokens και κόστος, το αναδιπλούμενο panel με το reasoning trace, τα suggestion chips και η ζώνη όπου ο χρήστης μεταφέρει PDF για μεταφόρτωση.</p>
+
+  <h2>6.3 Το δεξί πάνελ: data inspector</h2>
+  <p>Δύο tabs. Στο πρώτο, κάρτες προμηθευτών και προσφορών που ανακτώνται live από τη MongoDB μέσω του <code>useInspectorData</code>. Στο δεύτερο, οι απαντήσεις του agent με το tool που κλήθηκε και το κόστος της κλήσης.</p>
+
+  <h2>6.4 Δύο γλώσσες</h2>
+  <p>Πλήρες i18n μέσω ενός TRANSLATIONS object και του hook <code>useI18n</code>, με toggle GR/EN και προεπιλογή τα Αγγλικά (αποθηκεύεται στο localStorage). Έξι suggestion chips ανά γλώσσα· τα ελληνικά είναι: όρια απευθείας ανάθεσης, συνοπτικός διαγωνισμός, εγγύηση καλής εκτέλεσης, σύγκριση προσφορών, εύρεση προμηθευτών IT, δημιουργία αναφοράς.</p>
+
+  <h2>6.5 Dark / light mode</h2>
+  <p>Με CSS custom properties (<code>--bg</code>, <code>--surface</code>, <code>--accent</code> κ.λπ.) και ένα <code>.light</code> override, ελεγχόμενα από το <code>useTheme</code>. Ο διακόπτης είναι στο header, η προτίμηση μένει στο localStorage, και το φόντο έχει διακριτικά ambient gradients.</p>
+
+  <h2>6.6 Πρόσβαση ανά ρόλο</h2>
+  <p>Ο έλεγχος γίνεται server-side με JWT και RBAC. Ένας viewer που επιχειρεί POST στο <code>/chat</code> ή στο <code>/upload</code> λαμβάνει 403. Το authentication περνά από httpOnly cookie, με σελίδα login/register (<code>pages/LoginPage.tsx</code>) και το <code>AuthContext</code> να κρατά την τρέχουσα ταυτότητα.</p>
+
+  <h2>6.7 Σε κινητό</h2>
+  <p>Ένα media query στα 768px αναδιατάσσει τα πάντα σε μία στήλη: το chat καταλαμβάνει όλο το πλάτος, το δεξί πάνελ μεταφέρεται από κάτω με max-height 280px, τα chips κυλούν οριζόντια και το header συμπτύσσεται κρύβοντας τις ετικέτες. Η λειτουργικότητα μένει η ίδια, αλλάζει μόνο η διάταξη.</p>
+</div>
+
+<!-- ============================ CH 7 ============================ -->
+<div class="chapter">
+  <div class="kicker">Κεφάλαιο 7</div>
+  <h1>7. Τεχνικές Generative AI</h1>
+  <div class="rule-sm"></div>
+  <p>Εδώ συγκεντρώνονται οι τεχνικές από τις ενότητες 2 έως 5 του προγράμματος: prompt engineering, αρχιτεκτονική, RAG και agents. Ο συγκεντρωτικός πίνακας αντιστοίχισης βρίσκεται στο §7.10.</p>
+
+  <h2>7.1 ReAct agent pattern</h2>
+  <p>Ο agent τρέχει με <code>create_react_agent</code> + AgentExecutor και <code>return_intermediate_steps=True</code>. Τα τέσσερα tools είναι decorated με <code>@tool</code>: το <code>document_qa</code> (sync, ChromaDB + Claude) και τα <code>bid_comparison</code>, <code>supplier_lookup</code>, <code>report_generation</code> (async, MongoDB). Όριο πέντε επαναλήψεων, με <code>handle_parsing_errors=True</code>.</p>
+  <p>Το trace (Thought → Action → Action Input → Observation) καταγράφεται, αποθηκεύεται στη MongoDB και εμφανίζεται στο frontend σε αναδιπλούμενο panel. Κάθε κλήση μετράει tokens και κόστος μέσω ενός custom <code>UsageCallback</code> και ενός <code>_UsageAccum</code> ContextVar.</p>
+
+  <h2>7.2 RAG pipeline</h2>
+  <p>Το splitting γίνεται με custom <code>split_text_chunks</code> που σέβεται τις παραγράφους, 500 χαρακτήρες, 50 overlap. Τα embeddings είναι OpenAI text-embedding-3-small (1536 διαστάσεις), με lazy-loaded client (LazyProxy). Το vector store είναι persistent ChromaDB, collection <code>procureai_documents</code>, με metadata user_id, source και chunk index.</p>
+  <p>Στην ανάκτηση: similarity search (top-4 κανονικά, top-20 με reranker) και where filter <code>{$or: [{user_id}, {user_id: 'system'}]}</code>. Ο προαιρετικός CrossEncoder (ms-marco-MiniLM-L-6-v2) ξανακατατάσσει στα top-5 αν το <code>USE_RERANKER</code> είναι true. Η generation γίνεται με το raw messages API της Anthropic και prompt caching (ephemeral) στο system prompt και το context.</p>
+
+  <div class="diagram">
+  <svg viewBox="0 0 760 120" xmlns="http://www.w3.org/2000/svg" font-family="Inter, sans-serif">
+    <defs>
+      <marker id="ar5" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+        <path d="M0,0 L6,3 L0,6 z" fill="#c9a84c"/>
+      </marker>
+    </defs>
+    <rect width="760" height="120" fill="#0f1117" rx="10"/>
+    <g text-anchor="middle">
+      <rect x="14" y="32" width="102" height="46" rx="7" fill="#161b2c" stroke="#1f2740"/>
+      <text x="65" y="52" fill="#ffffff" font-size="9.5" font-weight="700">Query</text>
+      <text x="65" y="66" fill="#8ea8d8" font-size="7.5">ερώτημα χρήστη</text>
+      <line x1="118" y1="55" x2="136" y2="55" stroke="#c9a84c" marker-end="url(#ar5)"/>
+
+      <rect x="140" y="32" width="112" height="46" rx="7" fill="#161b2c" stroke="#1f2740"/>
+      <text x="196" y="52" fill="#ffffff" font-size="9.5" font-weight="700">Embedding</text>
+      <text x="196" y="66" fill="#8ea8d8" font-size="7.5">text-embedding-3-small</text>
+      <line x1="254" y1="55" x2="272" y2="55" stroke="#c9a84c" marker-end="url(#ar5)"/>
+
+      <rect x="276" y="32" width="120" height="46" rx="7" fill="#161b2c" stroke="#1f2740"/>
+      <text x="336" y="49" fill="#ffffff" font-size="9.5" font-weight="700">ChromaDB</text>
+      <text x="336" y="61" fill="#8ea8d8" font-size="7.5">where filter · multi-tenant</text>
+      <text x="336" y="71" fill="#8ea8d8" font-size="7.5">top-k similarity</text>
+      <line x1="398" y1="55" x2="416" y2="55" stroke="#c9a84c" marker-end="url(#ar5)"/>
+
+      <rect x="420" y="32" width="112" height="46" rx="7" fill="#161b2c" stroke="#1f2740" stroke-dasharray="3 3"/>
+      <text x="476" y="49" fill="#ffffff" font-size="9.5" font-weight="700">Reranker</text>
+      <text x="476" y="61" fill="#8ea8d8" font-size="7.5">CrossEncoder ms-marco</text>
+      <text x="476" y="71" fill="#8ea8d8" font-size="7.5">top-5 (optional)</text>
+      <line x1="534" y1="55" x2="552" y2="55" stroke="#c9a84c" marker-end="url(#ar5)"/>
+
+      <rect x="556" y="32" width="88" height="46" rx="7" fill="#161b2c" stroke="#1f2740"/>
+      <text x="600" y="52" fill="#ffffff" font-size="9.5" font-weight="700">Claude</text>
+      <text x="600" y="66" fill="#8ea8d8" font-size="7.5">prompt caching</text>
+      <line x1="646" y1="55" x2="664" y2="55" stroke="#c9a84c" marker-end="url(#ar5)"/>
+
+      <rect x="668" y="32" width="80" height="46" rx="7" fill="#161b2c" stroke="#c9a84c" stroke-opacity=".5"/>
+      <text x="708" y="49" fill="#c9a84c" font-size="9" font-weight="700">Answer</text>
+      <text x="708" y="63" fill="#8ea8d8" font-size="7.5">+ sources</text>
+    </g>
+  </svg>
+  </div>
+
+  <h2>7.3 Prompt engineering &amp; versioning</h2>
+  <p>Ένα PromptLoader singleton φορτώνει τα prompts από τον δίσκο (<code>prompts/{use_case}/v1.txt</code>). Κάθε αρχείο έχει YAML header (use_case, version, created, description), έναν διαχωριστή <code>---</code> και μετά το κείμενο. Πέντε use cases: chat (το ReAct template), doc_qa, tender_generation, risk_assessment, legal_validation. Πριν από κάθε κλήση του agent τρέχει <code>prompt_loader.reload()</code> για hot-reload, και τα prompts είναι όλα κάτω από Git.</p>
+  <p>Το πρακτικό όφελος φάνηκε στη διόρθωση της δρομολόγησης των νομικών ερωτημάτων (§4.3): η αλλαγή ήταν ένα κείμενο, όχι κώδικας, εφαρμόστηκε χωρίς redeploy και το ιστορικό της είναι ορατό στο <code>git log</code>.</p>
+
+  <h2>7.4 Structured outputs (ontology)</h2>
+  <p>Δέκα Pydantic v2 μοντέλα στο <code>models/ontology.py</code>, με field validators. Το σχήμα δεν είναι μόνο τεκμηρίωση: εξάγεται σε JSON schema και χρησιμοποιείται ώστε οι απαντήσεις του μοντέλου να επιστρέφονται σε δομημένη μορφή που επικυρώνεται πριν αγγίξει τη βάση.</p>
+  <table class="tight">
+    <tr><th style="width:22%">Μοντέλο</th><th style="width:46%">Βασικά πεδία</th><th>Validators</th></tr>
+    <tr><td>CPVCode</td><td>code, description, category</td><td>code: ακριβώς 8 ψηφία</td></tr>
+    <tr><td>Supplier</td><td>id, name, tax_id, contact_email, certifications</td><td>tax_id: 9 ψηφία (ΑΦΜ)</td></tr>
+    <tr><td>EvaluationCriteria</td><td>criterion_name, weight, scoring_method</td><td>weight: 0.0-1.0</td></tr>
+    <tr><td>BudgetAllocation</td><td>total_amount (Decimal), currency, fiscal_year, kae</td><td>Decimal serializer</td></tr>
+    <tr><td>ComplianceCheck</td><td>check_type, passed, legal_reference, notes</td><td>(κανένα)</td></tr>
+    <tr><td>RiskAssessment</td><td>risk_level, risk_factors, mitigation, score</td><td>score: 0.0-10.0</td></tr>
+    <tr><td>ApprovalStage</td><td>stage_name, approver_role, status, decision_at</td><td>(κανένα)</td></tr>
+    <tr><td>Tender</td><td>id, title, cpv_codes, budget, deadline, criteria, status</td><td>(κανένα)</td></tr>
+    <tr><td>Contract</td><td>id, tender_id, supplier, signed_at, value, status</td><td>Decimal serializer</td></tr>
+    <tr><td>ProcurementRequest</td><td>id, title, requester_id, budget, approval_stages, status</td><td>(κανένα)</td></tr>
+  </table>
+
+  <h2>7.5 Multi-tenant ChromaDB</h2>
+  <p>Η απομόνωση γίνεται με ένα ContextVar στο <code>core/chroma_tenant.py</code>: κάθε request θέτει το <code>_current_user_id</code>. Το <code>document_qa</code> εφαρμόζει <code>where={$or: [get_user_filter(user_id), {user_id: 'system'}]}</code>, ώστε ο χρήστης να βλέπει και τα δικά του έγγραφα και τα system έγγραφα (τον Ν.4412/2016 που έχει ανέβει κεντρικά). Οι διαγραφές φιλτράρουν αυστηρά ανά χρήστη και ανά source.</p>
+
+  <h2>7.6 Audit logging</h2>
+  <p>Το pattern είναι fire-and-forget: το <code>audit_interaction()</code> εκκινεί ένα <code>asyncio.create_task(log_audit(...))</code> χωρίς να αναμένει. Μηδενικό κόστος στη διαδρομή της απόκρισης, και το <code>log_audit</code> καταπίνει τυχόν exceptions ώστε να μην προκαλεί ποτέ σφάλμα στον caller. Όλα αποθηκεύονται σε MongoDB collection με compound index [user_id, timestamp DESC].</p>
+
+  <h2>7.7 PII redaction</h2>
+  <p>Πριν από κάθε κλήση του agent, το input του χρήστη περνά από το <code>security/pii.py:redact_pii()</code>. Με regex εντοπίζονται ΑΦΜ (9 ψηφία), ΑΜΚΑ (11 ψηφία), email (RFC 5322) και ελληνικά τηλέφωνα, και αντικαθίστανται με <code>[AFM_REDACTED]</code>, <code>[AMKA_REDACTED]</code> κ.ο.κ. Καταγράφεται μόνο το πλήθος, ποτέ το περιεχόμενο.</p>
+
+  <h2>7.8 Prompt caching</h2>
+  <p>Το <code>document_qa</code> στέλνει το system prompt και τα context chunks με <code>cache_control: {type: 'ephemeral'}</code>. Σε επαναλαμβανόμενα ερωτήματα αυτό μειώνει αισθητά το κόστος, το cache read κοστίζει $0.30/MTok έναντι $3.75 για το write και $3.00 για κανονικό input. Το usage tracking μετράει χωριστά cache_creation και cache_read tokens μέσω του <code>_UsageAccum</code>.</p>
+
+  <h2>7.9 Επιδόσεις &amp; κόστος (ενδεικτικά)</h2>
+  <table>
+    <tr><th style="width:50%">Μετρική</th><th>Ενδεικτική τιμή</th></tr>
+    <tr><td>Latency (chat, end-to-end)</td><td>~2.5s (εξαρτάται από το tool)</td></tr>
+    <tr><td>Μέση χρήση tokens</td><td>~800 tokens / αίτημα</td></tr>
+    <tr><td>Επίδραση reranker</td><td>+15% precision (top-k)</td></tr>
+    <tr><td>Κόστος / αίτημα</td><td>~$0.04 (με prompt caching)</td></tr>
+    <tr><td>Χρόνος import backend</td><td>1.59s (από 7.00s πριν το lazy loading)</td></tr>
+  </table>
+  <p style="font-size:9pt;color:var(--muted)">Οι τιμές είναι ενδεικτικές, αντλημένες από το ενσωματωμένο cost-tracking και το eval set. Δεν αποτελούν αυστηρό benchmark και θα επικαιροποιηθούν με συστηματικές μετρήσεις στη φάση αξιολόγησης (Phase 4).</p>
+
+  <h2>7.10 Αντιστοίχιση τεχνικών με την ύλη του προγράμματος</h2>
+  <p>Πού ακριβώς υλοποιείται κάθε τεχνική που διδάχθηκε στο πρόγραμμα:</p>
+  <table class="tight">
+    <tr><th style="width:8%">Ενότητα</th><th style="width:26%">Τεχνική</th><th style="width:34%">Πού υλοποιείται</th><th>Παρατήρηση</th></tr>
+    <tr><td>1</td><td>Python &amp; FastAPI, async I/O</td><td><code>main.py</code>, <code>routers/</code>, Motor</td><td>Async από άκρη σε άκρη, μη μπλοκάροντα tools</td></tr>
+    <tr><td>2</td><td>Prompt engineering</td><td><code>prompts/chat/v1.txt</code> + 4 ακόμη</td><td>Role prompting, few-shot, TOOL SELECTION RULES</td></tr>
+    <tr><td>2</td><td>Prompt versioning</td><td><code>core/prompt_loader.py</code></td><td>File-based, YAML header, hot-reload, υπό Git</td></tr>
+    <tr><td>2</td><td>Prompt injection defence</td><td><code>prompts/chat/v1.txt</code></td><td>Ρητή οδηγία αγνόησης εντολών μέσα σε έγγραφα</td></tr>
+    <tr><td>3</td><td>Αρχιτεκτονική AI συστημάτων</td><td>Layered backend (§4.1), split frontend (§6.1)</td><td>Διαχωρισμός ευθυνών, lazy clients, singleton Mongo</td></tr>
+    <tr><td>3</td><td><strong>Structured outputs</strong></td><td><code>models/ontology.py</code>, <code>schemas/</code></td><td>10 Pydantic v2 μοντέλα με field validators, JSON schema</td></tr>
+    <tr><td>3</td><td>Observability &amp; cost tracking</td><td><code>llm/callbacks.py</code>, <code>llm/pricing.py</code>, structlog, Sentry</td><td>Tokens και κόστος ανά κλήση, correlation IDs</td></tr>
+    <tr><td>4</td><td>Chunking &amp; embeddings</td><td><code>rag/chunking.py</code>, <code>rag/embeddings.py</code></td><td>500/50 με σεβασμό παραγράφων, text-embedding-3-small</td></tr>
+    <tr><td>4</td><td>Vector search &amp; metadata filtering</td><td><code>rag/vectorstore.py</code>, <code>core/chroma_tenant.py</code></td><td>ChromaDB, where filter, multi-tenancy με ContextVar</td></tr>
+    <tr><td>4</td><td>Reranking</td><td><code>rag/reranker.py</code></td><td>CrossEncoder ms-marco, top-20 → top-5, προαιρετικό</td></tr>
+    <tr><td>4</td><td>Grounded generation με citations</td><td><code>agent/tools.py:document_qa</code></td><td>Κάθε απάντηση φέρει source και chunk index</td></tr>
+    <tr><td>5</td><td>ReAct agent</td><td><code>agent/executor.py</code>, <code>agent/tools.py</code></td><td>4 tools, max 5 iterations, ορατό trace</td></tr>
+    <tr><td>5</td><td>Tool calling</td><td><code>@tool</code> decorators</td><td>Sync και async tools στον ίδιο executor</td></tr>
+    <tr><td>6</td><td>Open-source μοντέλα</td><td><code>rag/reranker.py</code> (HuggingFace CrossEncoder)</td><td>Τοπική εκτέλεση, χωρίς κλήση σε εξωτερικό API</td></tr>
+    <tr><td>-</td><td>Prompt caching</td><td>Anthropic messages API, ephemeral</td><td>Μείωση κόστους σε επαναλαμβανόμενα ερωτήματα</td></tr>
+    <tr><td>-</td><td>PII redaction</td><td><code>security/pii.py</code></td><td>ΑΦΜ, ΑΜΚΑ, email, τηλέφωνα πριν το LLM</td></tr>
+  </table>
+</div>
+
+<!-- ============================ CH 8 ============================ -->
+<div class="chapter">
+  <div class="kicker">Κεφάλαιο 8</div>
+  <h1>8. Εγκατάσταση &amp; εκτέλεση</h1>
+  <div class="rule-sm"></div>
+
+  <h2>8.1 Προαπαιτούμενα</h2>
+  <table>
+    <tr><th style="width:30%">Εργαλείο</th><th style="width:24%">Έκδοση</th><th>Σκοπός</th></tr>
+    <tr><td>Python</td><td>3.12+</td><td>Backend runtime</td></tr>
+    <tr><td>Node.js</td><td>20+</td><td>Frontend build</td></tr>
+    <tr><td>MongoDB Atlas</td><td>Free tier+</td><td>Cloud database</td></tr>
+    <tr><td>Docker Desktop</td><td>Latest</td><td>Containerised deployment (προαιρετικό)</td></tr>
+    <tr><td>Git</td><td>Latest</td><td>Version control</td></tr>
+    <tr><td>Anthropic API Key</td><td>οποιαδήποτε</td><td>Claude LLM</td></tr>
+    <tr><td>OpenAI API Key</td><td>οποιαδήποτε</td><td>Embeddings</td></tr>
+  </table>
+
+  <h2>8.2 Setup</h2>
+<pre><code># clone
+git clone https://github.com/GiorgosPanagopoulos/procureai.git
+cd procureai
+
+# backend
+cp backend/.env.example backend/.env      # συμπληρώστε API keys και MONGODB_URI
+python3.12 -m venv .venv &amp;&amp; source .venv/bin/activate
+pip install -r backend/requirements.txt
+python backend/data/seed.py               # seed MongoDB (idempotent)
+cd backend
+PYTHONPATH=./ uvicorn main:app --reload --host 0.0.0.0 --port 8000
+
+# frontend
+cd frontend &amp;&amp; npm install &amp;&amp; npm run dev
+
+# ή και τα δύο μαζί
+./start.sh
+
+# ή με Docker
+cp backend/.env.example backend/.env
+docker compose up --build
+# frontend → http://localhost:3000 · backend → http://localhost:8000</code></pre>
+
+  <h3>Στοιχεία πρόσβασης</h3>
+  <p>Το <code>seed.py</code> και το lifespan του FastAPI δημιουργούν έναν λογαριασμό διαχειριστή με atomic upsert, ώστε η επανεκτέλεση να μη διπλασιάζει εγγραφές. Τα στοιχεία ορίζονται στο <code>backend/.env</code>:</p>
+  <table>
+    <tr><th style="width:34%">Μεταβλητή</th><th style="width:33%">Προεπιλογή</th><th>Ρόλος</th></tr>
+    <tr><td><code>FIRST_SUPERUSER_EMAIL</code></td><td>admin@procureai.local</td><td>admin</td></tr>
+    <tr><td><code>FIRST_SUPERUSER_PASSWORD</code></td><td>ορίζεται από τον χρήστη</td><td>-</td></tr>
+  </table>
+  <p>Οι υπόλοιποι ρόλοι δημιουργούνται από την οθόνη εγγραφής, η οποία δέχεται αποκλειστικά ρόλο <code>viewer</code>. Η προαγωγή σε <code>procurement_officer</code> γίνεται μόνο από διαχειριστή.</p>
+  <div class="note">
+    <p><strong>Ασφάλεια.</strong> Το <code>backend/.env</code> δεν βρίσκεται ποτέ στο repository, μόνο το <code>.env.example</code>. Τα credentials της MongoDB και τα κλειδιά API δεν εμφανίζονται σε κανένα αρχείο υπό έλεγχο εκδόσεων· το <code>detect-secrets</code> τρέχει σε κάθε commit ως pre-commit hook. Το <code>SECRET_KEY</code> για την υπογραφή των JWT πρέπει να αλλάξει από την προεπιλογή πριν από οποιαδήποτε χρήση εκτός τοπικού περιβάλλοντος.</p>
+  </div>
+
+  <h2>8.3 URLs</h2>
+  <table>
+    <tr><th style="width:34%">Υπηρεσία</th><th>URL</th></tr>
+    <tr><td>Frontend</td><td>http://localhost:3000 (Docker) ή :5173 (npm run dev)</td></tr>
+    <tr><td>Backend API</td><td>http://localhost:8000</td></tr>
+    <tr><td>Swagger UI</td><td>http://localhost:8000/docs</td></tr>
+    <tr><td>ReDoc</td><td>http://localhost:8000/redoc</td></tr>
+  </table>
+
+  <h2>8.4 Tests</h2>
+<pre><code>cd backend
+PYTHONPATH=. ../.venv/bin/python -m pytest tests/ -v    # 159 tests
+
+# ή μέσω Makefile
+make test</code></pre>
+  <p>Τα tests δεν απαιτούν ζωντανή MongoDB: ένα in-memory fake fixture αντικαθιστά τον client, ενώ το <code>test_env_isolation.py</code> επιβεβαιώνει ότι καμία δοκιμή δεν διαρρέει προς πραγματική βάση.</p>
+
+  <h2>8.5 Deployment (Docker)</h2>
+  <p>Το <code>docker compose</code> εκκινεί τρία containers στον ίδιο host: frontend, backend και MongoDB. Το backend επικοινωνεί με δύο εξωτερικά APIs μέσω HTTPS, της Anthropic για τον agent και της OpenAI για τα embeddings, ενώ το ChromaDB βρίσκεται σε persistent volume προσαρτημένο στο backend.</p>
+
+  <div class="diagram">
+  <svg viewBox="0 0 760 330" xmlns="http://www.w3.org/2000/svg" font-family="Inter, sans-serif">
+    <defs>
+      <marker id="ar6" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+        <path d="M0,0 L6,3 L0,6 z" fill="#c9a84c"/>
+      </marker>
+    </defs>
+    <rect width="760" height="330" fill="#0f1117" rx="10"/>
+    <rect x="16" y="34" width="470" height="200" rx="10" fill="none" stroke="#1f2740" stroke-dasharray="5 4"/>
+    <text x="30" y="26" fill="#c9a84c" font-size="9" font-weight="800" letter-spacing="2">HOST · DOCKER COMPOSE</text>
+
+    <g text-anchor="middle">
+      <rect x="40" y="56" width="180" height="58" rx="8" fill="#161b2c" stroke="#1f2740"/>
+      <text x="130" y="76" fill="#ffffff" font-size="10.5" font-weight="700">frontend</text>
+      <text x="130" y="90" fill="#8ea8d8" font-size="8">React 18 · Vite · Nginx</text>
+      <text x="130" y="103" fill="#8ea8d8" font-size="8">container · port 3000</text>
+
+      <rect x="280" y="56" width="180" height="58" rx="8" fill="#161b2c" stroke="#c9a84c" stroke-opacity=".45"/>
+      <text x="370" y="76" fill="#c9a84c" font-size="10.5" font-weight="700">backend</text>
+      <text x="370" y="90" fill="#8ea8d8" font-size="8">FastAPI · Uvicorn · Python 3.12</text>
+      <text x="370" y="103" fill="#8ea8d8" font-size="8">container · port 8000</text>
+
+      <rect x="280" y="156" width="180" height="58" rx="8" fill="#161b2c" stroke="#1f2740"/>
+      <text x="370" y="176" fill="#ffffff" font-size="10.5" font-weight="700">mongodb</text>
+      <text x="370" y="190" fill="#8ea8d8" font-size="8">MongoDB</text>
+      <text x="370" y="203" fill="#8ea8d8" font-size="8">container · port 27017</text>
+
+      <rect x="546" y="56" width="190" height="58" rx="8" fill="#161b2c" stroke="#1f2740"/>
+      <text x="641" y="76" fill="#ffffff" font-size="10.5" font-weight="700">Anthropic API</text>
+      <text x="641" y="93" fill="#8ea8d8" font-size="8">Claude · agent + generation</text>
+
+      <rect x="546" y="132" width="190" height="58" rx="8" fill="#161b2c" stroke="#1f2740"/>
+      <text x="641" y="152" fill="#ffffff" font-size="10.5" font-weight="700">OpenAI API</text>
+      <text x="641" y="169" fill="#8ea8d8" font-size="8">text-embedding-3-small</text>
+    </g>
+
+    <line x1="222" y1="85" x2="276" y2="85" stroke="#c9a84c" marker-end="url(#ar6)"/>
+    <text x="249" y="79" fill="#8ea8d8" font-size="7.5" text-anchor="middle">HTTP</text>
+
+    <line x1="370" y1="116" x2="370" y2="152" stroke="#c9a84c" marker-end="url(#ar6)"/>
+    <text x="386" y="138" fill="#8ea8d8" font-size="7.5">Motor (async)</text>
+
+    <line x1="462" y1="80" x2="542" y2="80" stroke="#c9a84c" marker-end="url(#ar6)"/>
+    <line x1="462" y1="96" x2="542" y2="150" stroke="#c9a84c" marker-end="url(#ar6)"/>
+    <text x="500" y="74" fill="#8ea8d8" font-size="7.5" text-anchor="middle">HTTPS</text>
+
+    <rect x="40" y="156" width="180" height="58" rx="8" fill="#0f1117" stroke="#1f2740" stroke-dasharray="4 3"/>
+    <text x="130" y="178" fill="#8ea8d8" font-size="9.5" font-weight="700" text-anchor="middle">ChromaDB</text>
+    <text x="130" y="193" fill="#8ea8d8" font-size="7.5" text-anchor="middle">persistent volume</text>
+    <line x1="222" y1="185" x2="276" y2="185" stroke="#c9a84c" stroke-dasharray="4 3" marker-end="url(#ar6)"/>
+
+    <text x="380" y="262" fill="#8ea8d8" font-size="8.5" text-anchor="middle">Το volume του ChromaDB προσαρτάται στο backend container και επιβιώνει των επανεκκινήσεων.</text>
+    <text x="380" y="284" fill="#8ea8d8" font-size="8.5" text-anchor="middle">Σε παραγωγή η MongoDB αντικαθίσταται από MongoDB Atlas μέσω του MONGODB_URI.</text>
+  </svg>
+  </div>
+
+  <div class="note">
+    <p><strong>Προσοχή στο rebuild.</strong> Το <code>docker compose restart backend</code> ξαναξεκινά το υπάρχον image, δεν το ξαναχτίζει. Μετά από αλλαγή σε κώδικα ή prompts χρειάζεται:</p>
+    <pre style="margin:6pt 0 0"><code>docker compose build backend &amp;&amp; docker compose up -d backend</code></pre>
+    <p style="margin-top:6pt">Επαλήθευση ότι η αλλαγή έφτασε στο container:</p>
+    <pre style="margin:6pt 0 0"><code>docker compose exec backend cat /app/prompts/chat/v1.txt</code></pre>
+  </div>
+</div>
+
+<!-- ============================ CH 9 ============================ -->
+<div class="chapter">
+  <div class="kicker">Κεφάλαιο 9</div>
+  <h1>9. Παραδείγματα χρήσης</h1>
+  <div class="rule-sm"></div>
+  <p>Στιγμιότυπα από τη λειτουργία της εφαρμογής, σε dark και light mode, με το ελληνικό περιβάλλον και το τρέχον σύνολο δεδομένων: 12 προμηθευτές και 16 προσφορές σε δώδεκα κατηγορίες του ελληνικού δημοσίου.</p>
+
+  <h2>9.1 Document Q&amp;A · RAG (dark mode)</h2>
+  <div class="query">Ποια είναι τα βασικά άρθρα που αφορούν τις δημόσιες συμβάσεις;</div>
+  <p>Ο agent διάλεξε το <code>document_qa</code>, έτρεξε vector search και γύρισε τεκμηριωμένη απάντηση με παραπομπή στο Άρθρο 118 του Ν.4412/2016, μαζί με την πηγή και το usage badge.</p>
+  <figure>
+    <img src="screenshots/doc_9.1_document_qa.png" alt="Document Q&amp;A">
+    <figcaption>9.1 · Document Q&amp;A με ορατό το tool badge, τις πηγές δεξιά και το κόστος της κλήσης.</figcaption>
+  </figure>
+
+  <h2>9.2 Supplier lookup (dark mode)</h2>
+  <div class="query">Εύρεση προμηθευτών IT , μέσω suggestion chip</div>
+  <p>Καλέστηκε το <code>supplier_lookup</code>, το οποίο φιλτράρισε την κατηγορία «Εξοπλισμός IT» και επέστρεψε την Πληροφορική Α.Ε. (Εξοπλισμός IT, 4.5/5.0, info@pliroforiki.gr), με στοιχεία επικοινωνίας και προτεινόμενα επόμενα ερωτήματα.</p>
+  <figure>
+    <img src="screenshots/doc_9.2_supplier_lookup.png" alt="Supplier lookup">
+    <figcaption>9.2 · Αποτέλεσμα supplier lookup με κάρτα προμηθευτή και προτεινόμενες επόμενες ερωτήσεις.</figcaption>
+  </figure>
+
+  <h2>9.3 Σύγκριση προσφορών (light mode)</h2>
+  <div class="query">Σύγκρινε τις διαθέσιμες προσφορές</div>
+  <p>Το <code>bid_comparison</code> ταξινόμησε δέκα προσφορές κατά τιμή και έδειξε ranked λίστα με τιμή (USD/EUR), ημέρες παράδοσης, όρους πληρωμής και κατάσταση.</p>
+  <figure>
+    <img src="screenshots/doc_9.3_bid_comparison.png" alt="Σύγκριση προσφορών">
+    <figcaption>9.3 · Σύγκριση προσφορών σε light mode, ταξινομημένη κατά τιμή.</figcaption>
+  </figure>
+
+  <h2>9.4 Δημιουργία αναφοράς (dark mode)</h2>
+  <div class="query">Δημιούργησε αναφορά προμηθειών</div>
+  <p>Το <code>report_generation</code> συγκέντρωσε την πλήρη εικόνα του συστήματος:</p>
+  <table>
+    <tr><th style="width:50%">Στοιχείο</th><th>Τιμή</th></tr>
+    <tr><td>Σύνολο προμηθευτών</td><td>12</td></tr>
+    <tr><td>Μέση βαθμολογία</td><td>4.29 / 5.0</td></tr>
+    <tr><td>Σύνολο προσφορών</td><td>16</td></tr>
+    <tr><td>Συνολική αξία προσφορών</td><td>$199,200.00 (€183,264.00)</td></tr>
+    <tr><td>Μέσος χρόνος παράδοσης</td><td>14.9 ημέρες</td></tr>
+    <tr><td>Κατάσταση προσφορών</td><td>10 σε εκκρεμότητα · 4 αποδεκτές · 2 απορριφθείσες</td></tr>
+  </table>
+  <p>Οι δώδεκα κατηγορίες προμηθευτών καλύπτουν τυπικές ανάγκες φορέα του δημοσίου: γραφική ύλη και αναλώσιμα, είδη καθαρισμού, εκπαιδευτικό υλικό, ενεργειακός εξοπλισμός, εξοπλισμός IT, ιατρικά υλικά και εξοπλισμός, κατασκευές και συντήρηση, οχήματα και ανταλλακτικά, στολές και ένδυση, συστήματα ασφαλείας, τρόφιμα και ποτά, υπηρεσίες μεταφορών.</p>
+  <p style="font-size:9pt;color:var(--muted)">Η μετατροπή USD προς EUR γίνεται με σταθερή ισοτιμία 1 USD = 0.92 EUR, ορισμένη στο system prompt. Σε παραγωγή θα αντλούνταν από εξωτερική πηγή.</p>
+  <figure>
+    <img src="screenshots/doc_9.4_report_generation.png" alt="Αναφορά προμηθειών">
+    <figcaption>9.4 · Συγκεντρωτική αναφορά προμηθειών.</figcaption>
+  </figure>
+</div>
+
+<!-- ============================ CH 10 ============================ -->
+<div class="chapter">
+  <div class="kicker">Κεφάλαιο 10</div>
+  <h1>10. Όρια &amp; επόμενα βήματα</h1>
+  <div class="rule-sm"></div>
+
+  <h2>10.1 Πού βρίσκεται η ανάπτυξη</h2>
+  <p>Η Phase 2 ολοκληρώθηκε τον Αύγουστο του 2026 και περιλαμβάνει: ontology με δέκα Pydantic v2 μοντέλα, RBAC με JWT και τρεις ρόλους, multi-tenancy στο ChromaDB με ContextVar και where filter, audit log σε MongoDB με fire-and-forget εγγραφή, versioning των prompts με hot-reload, singleton Mongo client με lazy initialisation, και ασύγχρονο <code>document_qa</code>. Το CI είναι πράσινο με 159 tests.</p>
+
+  <h2>10.2 Τι δεν κάνει ακόμη</h2>
+  <p>Το κόστος του LLM είναι το πιο χειροπιαστό όριο: η Claude χρεώνει περίπου $3/MTok στο input και $15/MTok στο output. Το prompt caching το μειώνει, δεν το εξαφανίζει· σε production θα ήθελε ένα Redis caching layer από πάνω.</p>
+  <p>Το PDF parsing γίνεται μόνο σε κείμενο, με pypdf· σκαναρισμένα PDF χωρίς OCR δεν υποστηρίζονται. Το embedding model (text-embedding-3-small) είναι σχεδιασμένο κυρίως για αγγλικά, οπότε στα ελληνικά η ακρίβεια πέφτει λίγο.</p>
+  <p>Η εγγραφή κλειδώνει επίτηδες: το UserCreate schema δέχεται μόνο <code>Literal["viewer"]</code>, και αίτημα με άλλο ρόλο επιστρέφει 422. Οι admin δημιουργούνται μέσω του lifespan (FIRST_SUPERUSER_EMAIL). Τέλος, τα demo δεδομένα εισάγονται με το <code>seed.py</code>· σε πραγματική χρήση θα χρειαζόταν σύνδεση με ΕΣΗΔΗΣ/ΚΗΜΔΗΣ.</p>
+
+  <h2>10.3 Τι έρχεται</h2>
+  <h3>Phase 3, περισσότερα tools &amp; workflows</h3>
+  <p>Νέα εργαλεία στον agent: αναζήτηση CPV, νομικός έλεγχος σε επίπεδο άρθρου του Ν.4412/2016, risk scoring, σύνοψη συμβάσεων, παραγωγή διακηρύξεων. Και μια μηχανή καταστάσεων για την έγκριση: Draft → Submitted → Under Review → Approved/Rejected.</p>
+
+  <h3>Phase 4, governance &amp; observability</h3>
+  <p>Αυτόματο πλαίσιο αξιολόγησης (ragas/deepeval) για faithfulness, answer relevancy και context recall, πάνω σε ένα golden set (<code>evals/golden_set.json</code>: 18 ερωτήματα + 3 injection tests). Παράλληλα, ουρές με Redis και OCR (Tesseract) για να μπαίνουν στο pipeline και τα σκαναρισμένα PDF.</p>
+
+  <h3>Phase 5, Pre-Award Legal Audit Module</h3>
+  <p>Deterministic validation endpoint (<code>POST /api/tenders/audit</code>) που δέχεται προσχέδιο διακήρυξης και επιστρέφει structured risk report: νομικοί κίνδυνοι, ελλείπουσες υποχρεωτικές ρήτρες, τεχνικά κενά (ISO/EN), αναιτιολόγητοι αποκλεισμοί οικονομικών φορέων. Ξεχωριστό ChromaDB collection με Ν.4412/2016 και νομολογία ΕΑΔΗΣΥ (Ενιαία Αρχή Δημόσιων Συμβάσεων). Κάθε εντοπισμένος κίνδυνος φέρει υποχρεωτικό citation (article_ref + απόφαση ΕΑΔΗΣΥ). Σκοπός: μείωση lead time ανάθεσης και αποτροπή προδικαστικών προσφυγών. Decision-support only. Απαιτείται human-in-the-loop.</p>
+  <p>Πιο μακριά: πραγματική σύνδεση με το ΕΣΗΔΗΣ, μετάβαση σε Kubernetes πέρα από το docker compose, και ένα production tracing pipeline με LangSmith (το οποίο είναι ήδη συνδεδεμένο μέσω env vars).</p>
+</div>
+
+<!-- ============================ CH 11 ============================ -->
+<div class="chapter">
+  <div class="kicker">Κεφάλαιο 11</div>
+  <h1>11. Αναφορές &amp; βιβλιογραφία</h1>
+  <div class="rule-sm"></div>
+
+  <h2>11.1 Επιστημονική βιβλιογραφία</h2>
+  <p>Οι τεχνικές που χρησιμοποιεί το ProcureAI (ReAct, RAG, reranking, prompt caching, θωράκιση απέναντι σε injection) στηρίζονται σε δημοσιευμένη έρευνα. Οι θεμελιώδεις εργασίες:</p>
+  <table class="tight">
+    <tr><th style="width:6%">#</th><th>Εργασία</th></tr>
+    <tr><td>1</td><td>Yao, S., Zhao, J., Yu, D., Du, N., Shafran, I., Narasimhan, K., &amp; Cao, Y. (2023). ReAct: Synergizing Reasoning and Acting in Language Models. ICLR 2023. arXiv:2210.03629.</td></tr>
+    <tr><td>2</td><td>Lewis, P., Perez, E., Piktus, A., et al. (2020). Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks. NeurIPS 2020. arXiv:2005.11401.</td></tr>
+    <tr><td>3</td><td>Vaswani, A., Shazeer, N., Parmar, N., et al. (2017). Attention Is All You Need. NeurIPS 2017. arXiv:1706.03762.</td></tr>
+    <tr><td>4</td><td>Wei, J., Wang, X., Schuurmans, D., et al. (2022). Chain-of-Thought Prompting Elicits Reasoning in Large Language Models. NeurIPS 2022. arXiv:2201.11903.</td></tr>
+    <tr><td>5</td><td>Brown, T., Mann, B., Ryder, N., et al. (2020). Language Models are Few-Shot Learners. NeurIPS 2020. arXiv:2005.14165.</td></tr>
+    <tr><td>6</td><td>Karpukhin, V., Oğuz, B., Min, S., et al. (2020). Dense Passage Retrieval for Open-Domain Question Answering. EMNLP 2020. arXiv:2004.04906.</td></tr>
+    <tr><td>7</td><td>Nogueira, R., &amp; Cho, K. (2019). Passage Re-ranking with BERT. arXiv:1901.04085.</td></tr>
+    <tr><td>8</td><td>Reimers, N., &amp; Gurevych, I. (2019). Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks. EMNLP 2019. arXiv:1908.10084.</td></tr>
+    <tr><td>9</td><td>Devlin, J., Chang, M.-W., Lee, K., &amp; Toutanova, K. (2019). BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding. NAACL 2019. arXiv:1810.04805.</td></tr>
+    <tr><td>10</td><td>Gao, Y., Xiong, Y., Gao, X., et al. (2023). Retrieval-Augmented Generation for Large Language Models: A Survey. arXiv:2312.10997.</td></tr>
+    <tr><td>11</td><td>Es, S., James, J., Espinosa-Anke, L., &amp; Schockaert, S. (2023). RAGAS: Automated Evaluation of Retrieval Augmented Generation. arXiv:2309.15217.</td></tr>
+    <tr><td>12</td><td>Greshake, K., Abdelnabi, S., Mishra, S., et al. (2023). Not What You've Signed Up For: Compromising Real-World LLM-Integrated Applications with Indirect Prompt Injection. AISec @ CCS 2023. arXiv:2302.12173.</td></tr>
+    <tr><td>13</td><td>Robertson, S., &amp; Zaragoza, H. (2009). The Probabilistic Relevance Framework: BM25 and Beyond. Foundations and Trends in Information Retrieval, 3(4), 333-389.</td></tr>
+  </table>
+
+  <h2>11.2 Τεχνικές αναφορές &amp; τεκμηρίωση</h2>
+  <ul>
+    <li>Ν.4412/2016, Δημόσιες Συμβάσεις Έργων, Προμηθειών και Υπηρεσιών (ΦΕΚ Α' 147/8.8.2016)</li>
+    <li>LangChain, agents &amp; ReAct: python.langchain.com/docs/modules/agents/</li>
+    <li>Anthropic Claude API: docs.anthropic.com</li>
+    <li>ChromaDB: docs.trychroma.com</li>
+    <li>FastAPI: fastapi.tiangolo.com</li>
+    <li>React: react.dev · Tailwind CSS v4: tailwindcss.com</li>
+    <li>MongoDB Atlas: mongodb.com/atlas · Pydantic v2: docs.pydantic.dev</li>
+    <li>OpenAI Embeddings: platform.openai.com/docs/guides/embeddings</li>
+    <li>Sentry: docs.sentry.io · SlowAPI: github.com/laurentS/slowapi</li>
+  </ul>
+
+  <div style="margin-top:26pt;padding-top:14pt;border-top:2px solid var(--gold);text-align:center">
+    <div style="font-weight:800;font-size:11pt;color:var(--ink)">ProcureAI, AI-Native Procurement Assistant</div>
+    <div style="font-size:9.5pt;color:var(--muted);margin-top:4pt">Built by Georgios Panagopoulos · github.com/GiorgosPanagopoulos/procureai</div>
+  </div>
+</div>
+
+</body>
+</html>
