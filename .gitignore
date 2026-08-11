@@ -207,3 +207,5 @@ backend/chroma_test/
 # Env backups
 .env.*
 !.env.example
+cookies.txt
+cookies.txt
