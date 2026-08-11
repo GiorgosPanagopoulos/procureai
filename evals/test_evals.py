@@ -52,7 +52,7 @@ def _looks_like_refusal(text: str) -> bool:
 def test_golden_case(case: Dict[str, Any]):
     import asyncio
 
-    from main import run_agent  # type: ignore[import]
+    from agent.executor import run_agent  # type: ignore[import]
 
     result = asyncio.run(run_agent(case["query"], conversation_id=case["id"]))
     response_text: str = result.get("response", "")

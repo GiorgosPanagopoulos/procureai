@@ -1,7 +1,14 @@
-"""Generate valid PDF files for testing procurement data."""
+"""Generate valid PDF files for testing procurement data.
+
+Usage:
+    python scripts/generate_pdfs.py
+"""
 
 from datetime import datetime
 from pathlib import Path
+
+_ROOT = Path(__file__).resolve().parent.parent
+_PDF_DIR = _ROOT / "backend" / "data" / "pdfs"
 
 try:
     from reportlab.lib import colors
@@ -22,7 +29,7 @@ except ImportError:
 
 def create_contract_buildpro():
     """Create a sample construction contract PDF."""
-    pdf_path = Path(__file__).parent / "data" / "pdfs" / "contract_buildpro.pdf"
+    pdf_path = _PDF_DIR / "contract_buildpro.pdf"
 
     doc = SimpleDocTemplate(str(pdf_path), pagesize=letter)
     styles = getSampleStyleSheet()
@@ -87,7 +94,7 @@ def create_contract_buildpro():
 
 def create_contract_techsupply():
     """Create a sample technology supply agreement PDF."""
-    pdf_path = Path(__file__).parent / "data" / "pdfs" / "contract_techsupply.pdf"
+    pdf_path = _PDF_DIR / "contract_techsupply.pdf"
 
     doc = SimpleDocTemplate(str(pdf_path), pagesize=letter)
     styles = getSampleStyleSheet()
@@ -150,7 +157,7 @@ def create_contract_techsupply():
 
 def create_pricelist_mediequip():
     """Create a sample medical equipment price list PDF."""
-    pdf_path = Path(__file__).parent / "data" / "pdfs" / "pricelist_mediequip.pdf"
+    pdf_path = _PDF_DIR / "pricelist_mediequip.pdf"
 
     doc = SimpleDocTemplate(str(pdf_path), pagesize=letter)
     styles = getSampleStyleSheet()
@@ -217,7 +224,7 @@ def create_pricelist_mediequip():
 
 def create_pricelist_officemart():
     """Create a sample office supplies price list PDF."""
-    pdf_path = Path(__file__).parent / "data" / "pdfs" / "pricelist_officemart.pdf"
+    pdf_path = _PDF_DIR / "pricelist_officemart.pdf"
 
     doc = SimpleDocTemplate(str(pdf_path), pagesize=letter)
     styles = getSampleStyleSheet()

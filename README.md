@@ -25,7 +25,7 @@
 
 ---
 
-ProcureAI is an AI-powered procurement assistant built for Greek public sector organizations. It answers natural language queries about public contracts, processes documents published on **ΚΗΜΔΗΣ** and **ΕΣΗΔΗΣ**, and applies **N.4412/2016** (Public Contracts for Works, Supplies and Services) as the authoritative legal basis for every response. The system includes production-grade RBAC (3 roles), audit logging, prompt versioning, and a procurement ontology — backed by 160 tests across all modules.
+ProcureAI is an AI-powered procurement assistant built for Greek public sector organizations. It answers natural language queries about public contracts, processes documents published on **ΚΗΜΔΗΣ** and **ΕΣΗΔΗΣ**, and applies **N.4412/2016** (Public Contracts for Works, Supplies and Services) as the authoritative legal basis for every response. The system includes production-grade RBAC (3 roles), audit logging, prompt versioning, and a procurement ontology — backed by 159 tests across all modules.
 
 ---
 
@@ -430,7 +430,7 @@ procureai/
 │   ├── crud/                   # DB operations
 │   ├── api/routes/             # Auth router
 │   ├── utils/                  # Lazy-loading helpers
-│   ├── tests/                  # 160 pytest tests across all modules
+│   ├── tests/                  # 159 pytest tests across all modules
 │   ├── data/
 │   │   ├── pdfs/               # Sample procurement contracts & N.4412/2016 excerpts
 │   │   └── seed.py             # MongoDB seed script
@@ -493,7 +493,7 @@ Key technical decisions:
 
 ## 🔭 Roadmap
 
-### ✅ Phase 2 — Domain Intelligence (Complete · 160 tests)
+### ✅ Phase 2 — Domain Intelligence (Complete · 159 tests)
 - Procurement ontology — 10 Pydantic v2 models covering the full procurement lifecycle
 - RBAC — Admin / Procurement Officer / Viewer roles, JWT-embedded, enforced via FastAPI Depends()
 - ChromaDB multi-tenancy — per-user document isolation via where={user_id} + ContextVar threading

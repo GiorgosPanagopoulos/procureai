@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 """
-Test script for the ProcureAI ReAct Agent
-Tests intent routing and tool selection with example procurement queries
+Manual routing check for the ProcureAI ReAct Agent (not a pytest test).
+Prints the expected tool routing for example procurement queries.
+
+Usage:
+    python scripts/test_agent.py
 """
 
 import asyncio
