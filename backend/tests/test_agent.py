@@ -327,3 +327,27 @@ def test_chat_prompt_answers_in_the_language_of_the_message():
         "in Greek regardless of the answer language."
     ) in template
     assert "Respond in Greek when the user writes in Greek." not in template
+
+
+def test_chat_prompt_routes_aggregate_questions_to_report_generation():
+    # v1.4 rule: eval case q18 ("What is the total value of all bids in the system?")
+    # went to bid_comparison in both 2026-09-12 runs, and the same happens in the UI
+    # for "συνοπτική αναφορά όλων των προσφορών". bid_comparison only sees a capped
+    # page, so aggregate questions must be routed to report_generation.
+    from agent.prompt import get_react_prompt
+    from core.prompt_loader import prompt_loader
+
+    template = get_react_prompt().template
+    rules = template.split("TOOL SELECTION RULES")[1].split("{tools}")[0]
+
+    aggregate_rule = next(line for line in rules.splitlines() if "total value of all bids" in line)
+    assert "ALWAYS use report_generation" in aggregate_rule
+    assert "συνοπτική αναφορά όλων των προσφορών" in aggregate_rule
+    for cue in ("totals", "summaries", "overviews"):
+        assert cue in aggregate_rule
+
+    comparison_rule = next(line for line in rules.splitlines() if "use bid_comparison" in line)
+    assert "specific subset" in comparison_rule
+    assert 'Never use it to answer "all bids" or "total" questions' in comparison_rule
+
+    assert prompt_loader.get_with_metadata("chat").metadata.version == "v1.4"
