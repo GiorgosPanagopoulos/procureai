@@ -25,7 +25,7 @@
 
 ---
 
-ProcureAI is an AI-powered procurement assistant built for Greek public sector organizations. It answers natural language queries about public contracts, processes documents published on **ΚΗΜΔΗΣ** and **ΕΣΗΔΗΣ**, and applies **N.4412/2016** (Public Contracts for Works, Supplies and Services) as the authoritative legal basis for every response. The system includes production-grade RBAC (3 roles), audit logging, and prompt versioning — backed by 168 tests across all modules.
+ProcureAI is an AI-powered procurement assistant built for Greek public sector organizations. It answers natural language queries about public contracts, processes documents published on **ΚΗΜΔΗΣ** and **ΕΣΗΔΗΣ**, and applies **N.4412/2016** (Public Contracts for Works, Supplies and Services) as the authoritative legal basis for every response. The system includes production-grade RBAC (3 roles), audit logging, and prompt versioning — backed by 178 tests across all modules.
 
 ---
 
@@ -427,7 +427,7 @@ procureai/
 │   ├── crud/                   # DB operations
 │   ├── api/routes/             # Auth router
 │   ├── utils/                  # Lazy-loading helpers
-│   ├── tests/                  # 168 pytest tests across all modules
+│   ├── tests/                  # 178 pytest tests across all modules
 │   ├── data/
 │   │   ├── pdfs/               # Sample procurement contracts & N.4412/2016 excerpts
 │   │   └── seed.py             # MongoDB seed script
@@ -488,9 +488,31 @@ Key technical decisions:
 
 ---
 
+## 📏 Evaluation
+
+The golden set in [`evals/golden_set.json`](evals/golden_set.json) is run against a live backend
+with `python evals/run_evals.py --out evals/results/<date>.json` (see the script's docstring for
+the login and rate-limit handling). Raw per-case output is committed under
+[`evals/results/`](evals/results/).
+
+| Run | Cases | Pass rate | Avg latency | Avg cost / query | Model · prompt |
+|-----|-------|-----------|-------------|------------------|----------------|
+| [2026-09-12](evals/results/2026-09-12.json) | 18 | **3 / 18 (17%)** | 16.7 s | $0.021 (total $0.38) | `claude-sonnet-4-6` · chat v1.2 |
+
+What the golden set covers: tool routing for the four tools (17/18 correct on this run — only q18,
+"total value of all bids", went to `bid_comparison` instead of `report_generation`), three
+prompt-injection cases (all three were refused), and keyword presence in the answer. What it does
+not measure: answer language, groundedness, or numeric correctness — 16/18 answers came back in
+Greek for English queries, and the harness only matches English keywords and English refusal
+phrases, which is what produced the low headline number; a keyword check also passes when the
+"not found" answer merely repeats the question's words. Run on local MongoDB (seeded sample data)
+and a local ChromaDB with 8 chunks.
+
+---
+
 ## 🔭 Roadmap
 
-### ✅ Phase 2 — Domain Intelligence (Complete · 168 tests)
+### ✅ Phase 2 — Domain Intelligence (Complete · 178 tests)
 - Structured outputs — bid_comparison returns a validated Pydantic v2 model as the agent's observation
 - RBAC — Admin / Procurement Officer / Viewer roles, JWT-embedded, enforced via FastAPI Depends()
 - ChromaDB multi-tenancy — per-user document isolation via where={user_id} + ContextVar threading
