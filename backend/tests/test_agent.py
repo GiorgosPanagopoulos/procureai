@@ -305,3 +305,22 @@ async def test_document_qa_reranker_reorders_and_truncates():
     assert answer.startswith("Reranked answer")
     sources = answer.split("Sources: ")[1].split(", ")
     assert set(sources) == {"doc5.pdf", "doc4.pdf", "doc3.pdf", "doc2.pdf", "doc1.pdf"}
+
+
+# ── chat prompt ──────────────────────────────────────────────────────────────
+
+
+def test_chat_prompt_answers_in_the_language_of_the_message():
+    # v1.3 rule: the 2026-09-12 eval run answered English queries in Greek because the
+    # prompt only said what to do for Greek input. The executor's prompt must carry the
+    # bidirectional rule so the language check never silently regresses.
+    from agent.prompt import get_react_prompt
+
+    template = get_react_prompt().template
+
+    assert (
+        "Always respond in the same language as the user's message. If the message is in "
+        "English, answer in English; if in Greek, answer in Greek. Retrieved documents may be "
+        "in Greek regardless of the answer language."
+    ) in template
+    assert "Respond in Greek when the user writes in Greek." not in template
