@@ -41,6 +41,10 @@ async def document_qa(question: str) -> str:
 
     sentry_sdk.add_breadcrumb(category="rag", message="RAG retrieval start", level="info")
     try:
+        # Chroma raises when n_results exceeds the number of stored chunks, so a
+        # small collection would otherwise look like "no relevant documents".
+        stored_chunks = await asyncio.to_thread(chroma_collection.count)
+        n_retrieve = max(1, min(n_retrieve, stored_chunks))
         with sentry_sdk.start_span(op="db.chromadb", description="RAG vector search") as _span:
             _span.set_data("collection", "procureai_documents")
             _span.set_data("n_results", n_retrieve)

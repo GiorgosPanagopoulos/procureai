@@ -256,6 +256,7 @@ async def test_document_qa_with_no_documents():
     from agent.tools import document_qa
 
     chroma = MagicMock()
+    chroma.count.return_value = 50
     chroma.query.return_value = {"documents": [[]], "metadatas": [[]]}
     client = _fake_anthropic("The information is not available in the provided documents.")
 
@@ -277,6 +278,7 @@ async def test_document_qa_reranker_reorders_and_truncates():
 
     docs = [f"chunk-{i}" for i in range(6)]
     chroma = MagicMock()
+    chroma.count.return_value = 50
     chroma.query.return_value = {
         "documents": [docs],
         "metadatas": [[{"source": f"doc{i}.pdf"} for i in range(6)]],
@@ -296,7 +298,8 @@ async def test_document_qa_reranker_reorders_and_truncates():
     ):
         answer = await document_qa.ainvoke("Payment terms?")
 
-    # Reranking mode retrieves a wider candidate set (20) before narrowing to 5.
+    # Reranking mode retrieves a wider candidate set (20) before narrowing to 5,
+    # as long as the store holds at least that many chunks.
     assert chroma.query.call_args.kwargs["n_results"] == 20
     reranker.predict.assert_called_once_with([("Payment terms?", d) for d in docs])
     assert _context_sent_to_claude(client) == "Context:\n" + "\n".join(
