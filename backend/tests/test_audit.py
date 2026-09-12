@@ -361,7 +361,7 @@ async def test_audit_delete_document_logs_source(officer):
 def test_extract_sources_from_answer():
     from routers.chat import _extract_sources
 
-    answer = "The price is $100.\n\nSources: contract.pdf, price_list.pdf"
+    answer = "The price is €100.00.\n\nSources: contract.pdf, price_list.pdf"
     assert _extract_sources(answer) == ["contract.pdf", "price_list.pdf"]
 
 

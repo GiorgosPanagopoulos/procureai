@@ -127,7 +127,6 @@ async def test_bid_comparison_returns_structured_json():
         bids=[
             RankedBid(
                 supplier_id="s1",
-                total_price_usd=486.0,
                 total_price_eur=450.0,
                 delivery_days=3,
                 status="accepted",

@@ -22,9 +22,6 @@ from agent.prompt import get_doc_qa_system_prompt
 
 log = structlog.get_logger()
 
-# Static reference rate; bid totals are stored in euros (Greek public sector).
-EUR_TO_USD = 1.08
-
 
 @tool
 async def document_qa(question: str) -> str:
@@ -183,7 +180,7 @@ async def bid_comparison(category: str = "") -> str:
             result = await structured.ainvoke(
                 "Rank these procurement bids best-value first, weighing total price "
                 f"against delivery time, and recommend one.\n"
-                f"Prices are stored in euros; convert to USD at {EUR_TO_USD} USD per EUR.\n"
+                "All prices are in euros (EUR); do not convert them.\n"
                 f"Bids:\n{json.dumps(raw_bids, ensure_ascii=False, indent=2)}"
             )
         if not isinstance(result, BidComparisonResult):
@@ -254,7 +251,7 @@ async def report_generation(report_type: str = "procurement") -> str:
                 s = bid.get("status", "pending")
                 statuses[s] = statuses.get(s, 0) + 1
             report += (
-                f"- Total Bid Value: ${total_value:,.2f}\n"
+                f"- Total Bid Value: €{total_value:,.2f}\n"
                 f"- Average Delivery Time: {avg_delivery:.1f} days\n"
                 f"- Status Distribution: {statuses}\n"
             )
