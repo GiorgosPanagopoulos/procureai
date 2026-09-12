@@ -5,7 +5,7 @@ Strategy:
 - Unit tests use a tmp_path-scoped PromptLoader so the real prompts directory
   is never modified and tests are fully isolated.
 - The singleton `prompt_loader` exported from core.prompt_loader is tested only
-  for the 5 expected production use cases.
+  for the 2 expected production use cases.
 - HTTP tests build a minimal FastAPI app with dependency overrides and patch
   `routers.admin.prompt_loader` to avoid touching the filesystem.
 """
@@ -54,13 +54,13 @@ def _make_admin_user() -> dict:
 # ── loading ───────────────────────────────────────────────────────────────────
 
 
-def test_all_five_production_prompts_load():
-    expected = {"chat", "doc_qa", "tender_generation", "risk_assessment", "legal_validation"}
+def test_all_production_prompts_load():
+    expected = {"chat", "doc_qa"}
     assert expected.issubset(set(prompt_loader.list_use_cases()))
 
 
 def test_all_production_prompts_have_v1():
-    for uc in ("chat", "doc_qa", "tender_generation", "risk_assessment", "legal_validation"):
+    for uc in ("chat", "doc_qa"):
         assert "v1" in prompt_loader.list_versions(uc), f"v1 missing for {uc}"
 
 
@@ -150,17 +150,11 @@ def test_list_versions_empty_for_unknown_use_case(tmp_path):
     assert loader.list_versions("ghost") == []
 
 
-def test_list_use_cases_returns_all_five(tmp_path):
-    for uc in ("chat", "doc_qa", "tender_generation", "risk_assessment", "legal_validation"):
+def test_list_use_cases_returns_every_loaded_use_case(tmp_path):
+    for uc in ("chat", "doc_qa"):
         _write_prompt(tmp_path, uc, "v1", f"{uc} text")
     loader = PromptLoader(tmp_path)
-    assert set(loader.list_use_cases()) == {
-        "chat",
-        "doc_qa",
-        "tender_generation",
-        "risk_assessment",
-        "legal_validation",
-    }
+    assert set(loader.list_use_cases()) == {"chat", "doc_qa"}
 
 
 # ── reload ────────────────────────────────────────────────────────────────────

@@ -25,7 +25,7 @@
 
 ---
 
-ProcureAI is an AI-powered procurement assistant built for Greek public sector organizations. It answers natural language queries about public contracts, processes documents published on **ΚΗΜΔΗΣ** and **ΕΣΗΔΗΣ**, and applies **N.4412/2016** (Public Contracts for Works, Supplies and Services) as the authoritative legal basis for every response. The system includes production-grade RBAC (3 roles), audit logging, prompt versioning, and a procurement ontology — backed by 159 tests across all modules.
+ProcureAI is an AI-powered procurement assistant built for Greek public sector organizations. It answers natural language queries about public contracts, processes documents published on **ΚΗΜΔΗΣ** and **ΕΣΗΔΗΣ**, and applies **N.4412/2016** (Public Contracts for Works, Supplies and Services) as the authoritative legal basis for every response. The system includes production-grade RBAC (3 roles), audit logging, and prompt versioning — backed by 168 tests across all modules.
 
 ---
 
@@ -62,7 +62,7 @@ Full technical documentation (architecture, sequence, deployment, RAG & auth flo
 | 🏢 **Multi-tenancy** | ChromaDB per-user document isolation via where={user_id} metadata filter + ContextVar threading |
 | 🗒️ **Audit Log** | Every query logged to MongoDB (user, query, AI response summary, sources, timestamp) — exposed at /admin/audit-logs |
 | 📝 **Prompt Versioning** | File-based versioned prompts per use case under /prompts/use_case/v1.txt, loaded via PromptLoader singleton |
-| 🧩 **Procurement Ontology** | 10 Pydantic v2 domain models: Tender, Supplier, Contract, ProcurementRequest, EvaluationCriteria, BudgetAllocation, ApprovalStage, ComplianceCheck, RiskAssessment |
+| 🧩 **Structured Outputs** | Claude returns bid rankings as a validated Pydantic v2 model, so the ReAct agent observes stable JSON instead of prose |
 
 ---
 
@@ -416,21 +416,18 @@ procureai/
 │   │   ├── suppliers.py        # /suppliers, /bids
 │   │   └── reports.py          # /reports
 │   ├── schemas/                # Pydantic request/response models
-│   ├── models/                 # 10 procurement domain entities (Pydantic v2 ontology)
+│   ├── models/                 # Supplier, Bid, User (Pydantic v2)
 │   ├── auth/                   # JWT auth, role enforcement, RBAC Depends() decorators
 │   ├── audit/                  # Fire-and-forget audit log writer + MongoDB collection
 │   ├── prompts/                # Versioned prompt files, one subdir per use case
 │   │   ├── chat/                    # v1.txt — ReAct agent system prompt
-│   │   ├── doc_qa/                  # v1.txt — document Q&A system prompt
-│   │   ├── legal_validation/        # v1.txt
-│   │   ├── risk_assessment/         # v1.txt
-│   │   └── tender_generation/       # v1.txt
+│   │   └── doc_qa/                  # v1.txt — document Q&A system prompt
 │   ├── security/               # PII redaction
 │   ├── core/                   # RBAC, audit, prompt loader, Sentry init
 │   ├── crud/                   # DB operations
 │   ├── api/routes/             # Auth router
 │   ├── utils/                  # Lazy-loading helpers
-│   ├── tests/                  # 159 pytest tests across all modules
+│   ├── tests/                  # 168 pytest tests across all modules
 │   ├── data/
 │   │   ├── pdfs/               # Sample procurement contracts & N.4412/2016 excerpts
 │   │   └── seed.py             # MongoDB seed script
@@ -493,8 +490,8 @@ Key technical decisions:
 
 ## 🔭 Roadmap
 
-### ✅ Phase 2 — Domain Intelligence (Complete · 159 tests)
-- Procurement ontology — 10 Pydantic v2 models covering the full procurement lifecycle
+### ✅ Phase 2 — Domain Intelligence (Complete · 168 tests)
+- Structured outputs — bid_comparison returns a validated Pydantic v2 model as the agent's observation
 - RBAC — Admin / Procurement Officer / Viewer roles, JWT-embedded, enforced via FastAPI Depends()
 - ChromaDB multi-tenancy — per-user document isolation via where={user_id} + ContextVar threading
 - Audit log — MongoDB collection, fire-and-forget async writes, /admin/audit-logs endpoint
@@ -503,7 +500,7 @@ Key technical decisions:
 
 ### 🔜 Phase 3 — Enterprise Workflows
 - Tool-calling agent: AgentExecutor with dedicated tools for CPV code lookup, legal validation (Ν.4412/2016), supplier lookup, risk scoring, contract summarization, tender generation
-- Approval chain engine with state machine: ProcurementRequest → Manager → Legal → Finance → Final Approval
+- Approval chain engine with state machine: procurement request → Manager → Legal → Finance → Final Approval
 
 ### 🔜 Phase 4 — Governance & Observability
 - LLM evaluation framework with golden test set based on Ν.4412/2016 (groundedness, hallucination rate, compliance accuracy)
