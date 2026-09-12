@@ -298,11 +298,34 @@ for `SECRET_KEY` and `FIRST_SUPERUSER_PASSWORD` before any real deployment.
 
 ### 5. Re-seed manually (optional)
 
-Only needed if you want to reset sample data after first startup:
+`seed.py` only inserts when the `suppliers` collection is empty, so after a model change
+(e.g. a new `Bid` field) the existing documents stay as they are and the tools read stale
+data. Pass `--force` to wipe `suppliers` and `bids` and seed them again:
 
 ```bash
-cd backend && PYTHONPATH=. python data/seed.py
+cd backend && PYTHONPATH=. python data/seed.py            # no-op if suppliers exist
+cd backend && PYTHONPATH=. python data/seed.py --force    # wipe suppliers + bids, then seed
 ```
+
+### 6. Ingest the sample PDFs
+
+The backend ingests `backend/data/pdfs/` at startup **only when the vector store is
+empty**. PDFs added later — including the `N4412_*.pdf` law excerpts — are never picked up,
+and `document_qa` silently answers from model knowledge instead of the documents. Run the
+ingest script after cloning and whenever the folder changes:
+
+```bash
+python scripts/ingest_pdfs.py                    # ingest PDFs missing from the store
+python scripts/ingest_pdfs.py --force            # re-embed everything, replacing old chunks
+python scripts/ingest_pdfs.py N4412_genika_kriteria.pdf   # just the named files
+```
+
+Chunks are stored as `user_id="system"`, so every user can retrieve them. The script resolves
+`CHROMA_PATH` from `backend/`, exactly like `uvicorn` does, so it fills the same store the app
+reads. Each chunk is one OpenAI embedding call, which is why files already in the store are
+skipped unless `--force` is given. Under Docker the store lives in the `chroma_data` volume,
+which starts empty, so the first `docker compose up` ingests the folder on its own; the script
+is not part of the image.
 
 ---
 
@@ -427,10 +450,10 @@ procureai/
 │   ├── crud/                   # DB operations
 │   ├── api/routes/             # Auth router
 │   ├── utils/                  # Lazy-loading helpers
-│   ├── tests/                  # 179 pytest tests across all modules
+│   ├── tests/                  # 191 pytest tests across all modules
 │   ├── data/
 │   │   ├── pdfs/               # Sample procurement contracts & N.4412/2016 excerpts
-│   │   └── seed.py             # MongoDB seed script
+│   │   └── seed.py             # MongoDB seed script (--force wipes and re-seeds)
 │   ├── requirements.txt
 │   ├── requirements-rerank.txt # sentence-transformers/torch, only needed for the reranker
 │   └── .env.example
@@ -453,7 +476,7 @@ procureai/
 │   └── vite.config.ts
 ├── docs/screenshots/
 ├── evals/                      # Golden test set + eval runner (make eval)
-├── scripts/                    # Dev/setup scripts (hooks, chunk inspection)
+├── scripts/                    # Dev/setup scripts (hooks, PDF ingestion, chunk inspection)
 ├── Dockerfile.backend
 ├── Dockerfile.frontend
 ├── docker-compose.yml

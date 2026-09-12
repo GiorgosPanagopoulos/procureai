@@ -1,3 +1,4 @@
+import argparse
 import asyncio
 import os
 
@@ -239,33 +240,64 @@ mock_bids = [
 ]
 
 
-async def seed_if_empty(db) -> bool:
-    if await db.suppliers.count_documents({}, limit=1):
-        return False
+SKIP_MESSAGE = (
+    "Suppliers collection is not empty, skipping seed. "
+    "Re-run with --force to wipe suppliers and bids and seed them again."
+)
 
+
+async def _insert_seed_data(db) -> None:
     supplier_ids = {}
     for i, supplier in enumerate(mock_suppliers):
         result = await db.suppliers.insert_one(supplier.model_dump(by_alias=True))
         supplier_ids[str(i + 1)] = str(result.inserted_id)
 
     for bid in mock_bids:
-        bid.supplier_id = supplier_ids[bid.supplier_id]
-        await db.bids.insert_one(bid.model_dump(by_alias=True))
+        # model_copy so the module-level mock_bids keep their placeholder ids and
+        # a forced re-seed in the same process maps them again.
+        doc = bid.model_copy(update={"supplier_id": supplier_ids[bid.supplier_id]})
+        await db.bids.insert_one(doc.model_dump(by_alias=True))
 
+
+async def seed_if_empty(db) -> bool:
+    if await db.suppliers.count_documents({}, limit=1):
+        return False
+    await _insert_seed_data(db)
     return True
 
 
-async def seed_database():
+async def seed(db, force: bool = False) -> bool:
+    """Seed suppliers and bids. With force=True, wipe both collections first so a
+    schema change (e.g. a new Bid field) does not leave stale documents behind."""
+    if not force:
+        return await seed_if_empty(db)
+    await db.suppliers.delete_many({})
+    await db.bids.delete_many({})
+    await _insert_seed_data(db)
+    return True
+
+
+async def seed_database(force: bool = False):
     load_dotenv()
     mongodb_url = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
-    client = AsyncIOMotorClient(mongodb_url)
+    client: AsyncIOMotorClient = AsyncIOMotorClient(mongodb_url)
     db = client.procureai
 
-    if await seed_if_empty(db):
+    if await seed(db, force=force):
         print("Seed data inserted successfully!")
     else:
-        print("Suppliers collection is not empty, skipping seed.")
+        print(SKIP_MESSAGE)
+
+
+def _parse_args(argv=None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Seed the sample suppliers and bids.")
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="wipe the suppliers and bids collections before seeding",
+    )
+    return parser.parse_args(argv)
 
 
 if __name__ == "__main__":
-    asyncio.run(seed_database())
+    asyncio.run(seed_database(force=_parse_args().force))
