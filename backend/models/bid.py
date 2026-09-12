@@ -20,6 +20,7 @@ class BidItem(BaseModel):
 class Bid(BaseModel):
     id: Optional[str] = Field(default_factory=lambda: str(ObjectId()), alias="_id")
     supplier_id: str
+    category: str = ""
     items: List[BidItem]
     total_price: float
     delivery_days: int

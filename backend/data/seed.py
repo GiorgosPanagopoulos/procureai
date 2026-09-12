@@ -85,6 +85,7 @@ mock_suppliers = [
 mock_bids = [
     Bid(
         supplier_id="1",
+        category="Εξοπλισμός IT",
         items=[
             BidItem(name="Φορητός Η/Υ", quantity=10, unit_price=1100.0),
             BidItem(name="Οθόνη 27''", quantity=10, unit_price=280.0),
@@ -96,6 +97,7 @@ mock_bids = [
     ),
     Bid(
         supplier_id="2",
+        category="Γραφική Ύλη & Αναλώσιμα",
         items=[BidItem(name="Καρέκλα γραφείου εργονομική", quantity=50, unit_price=140.0)],
         total_price=7000.0,
         delivery_days=14,
@@ -104,6 +106,7 @@ mock_bids = [
     ),
     Bid(
         supplier_id="3",
+        category="Κατασκευές & Συντήρηση",
         items=[
             BidItem(name="Τσιμέντο (σάκος)", quantity=100, unit_price=9.0),
             BidItem(name="Χαλυβδίνες δοκοί", quantity=20, unit_price=450.0),
@@ -115,6 +118,7 @@ mock_bids = [
     ),
     Bid(
         supplier_id="4",
+        category="Ενεργειακός Εξοπλισμός",
         items=[BidItem(name="Φωτοβολταϊκά πάνελ", quantity=100, unit_price=180.0)],
         total_price=18000.0,
         delivery_days=30,
@@ -123,6 +127,7 @@ mock_bids = [
     ),
     Bid(
         supplier_id="5",
+        category="Ιατρικά Υλικά & Εξοπλισμός",
         items=[BidItem(name="Χειρουργικά γάντια (κιβώτιο)", quantity=1000, unit_price=0.45)],
         total_price=450.0,
         delivery_days=3,
@@ -131,6 +136,7 @@ mock_bids = [
     ),
     Bid(
         supplier_id="6",
+        category="Οχήματα & Ανταλλακτικά",
         items=[BidItem(name="Ελαστικά οχημάτων", quantity=200, unit_price=75.0)],
         total_price=15000.0,
         delivery_days=10,
@@ -139,6 +145,7 @@ mock_bids = [
     ),
     Bid(
         supplier_id="7",
+        category="Τρόφιμα & Ποτά",
         items=[BidItem(name="Καφές φίλτρου (κιλό)", quantity=500, unit_price=4.50)],
         total_price=2250.0,
         delivery_days=5,
@@ -147,6 +154,7 @@ mock_bids = [
     ),
     Bid(
         supplier_id="8",
+        category="Συστήματα Ασφαλείας",
         items=[
             BidItem(name="Κάμερα ασφαλείας IP", quantity=20, unit_price=230.0),
             BidItem(name="Σύστημα συναγερμού", quantity=5, unit_price=900.0),
@@ -158,6 +166,7 @@ mock_bids = [
     ),
     Bid(
         supplier_id="9",
+        category="Είδη Καθαρισμού",
         items=[BidItem(name="Αποσμητικό δαπέδων (λίτρα)", quantity=1000, unit_price=1.80)],
         total_price=1800.0,
         delivery_days=7,
@@ -166,6 +175,7 @@ mock_bids = [
     ),
     Bid(
         supplier_id="10",
+        category="Υπηρεσίες Μεταφορών",
         items=[BidItem(name="Μεταφορικά κιβώτια (τεμάχιο)", quantity=50, unit_price=280.0)],
         total_price=14000.0,
         delivery_days=20,
@@ -174,6 +184,7 @@ mock_bids = [
     ),
     Bid(
         supplier_id="11",
+        category="Εκπαιδευτικό Υλικό",
         items=[BidItem(name="Εγχειρίδια εκπαίδευσης", quantity=200, unit_price=45.0)],
         total_price=9000.0,
         delivery_days=14,
@@ -182,6 +193,7 @@ mock_bids = [
     ),
     Bid(
         supplier_id="12",
+        category="Στολές & Ένδυση",
         items=[BidItem(name="Φόρμες υπηρεσίας", quantity=500, unit_price=9.0)],
         total_price=4500.0,
         delivery_days=10,
@@ -190,6 +202,7 @@ mock_bids = [
     ),
     Bid(
         supplier_id="1",
+        category="Εξοπλισμός IT",
         items=[BidItem(name="Εκτυπωτής laser", quantity=5, unit_price=380.0)],
         total_price=1900.0,
         delivery_days=5,
@@ -198,6 +211,7 @@ mock_bids = [
     ),
     Bid(
         supplier_id="2",
+        category="Γραφική Ύλη & Αναλώσιμα",
         items=[BidItem(name="Μπλοκ σημειώσεων Α4", quantity=100, unit_price=2.50)],
         total_price=250.0,
         delivery_days=3,
@@ -206,6 +220,7 @@ mock_bids = [
     ),
     Bid(
         supplier_id="3",
+        category="Κατασκευές & Συντήρηση",
         items=[BidItem(name="Τούβλα (παλέτα)", quantity=5000, unit_price=0.45)],
         total_price=2250.0,
         delivery_days=15,
@@ -214,6 +229,7 @@ mock_bids = [
     ),
     Bid(
         supplier_id="4",
+        category="Ενεργειακός Εξοπλισμός",
         items=[BidItem(name="Ανεμογεννήτρια", quantity=2, unit_price=45000.0)],
         total_price=90000.0,
         delivery_days=60,

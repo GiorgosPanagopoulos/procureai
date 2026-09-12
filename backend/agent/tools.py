@@ -1,4 +1,5 @@
 import asyncio
+import re
 from typing import Dict, List
 
 import numpy as np
@@ -125,8 +126,15 @@ async def bid_comparison(category: str = "") -> str:
     Input: optional category filter (e.g. 'office equipment', 'IT hardware')
     or empty string to compare all bids."""
     try:
-        bids_list = await db.bids.find({}).limit(10).to_list(length=10)
+        mongo_query: Dict = {}
+        if category.strip():
+            # re.escape so a category containing regex metacharacters is matched literally.
+            mongo_query["category"] = {"$regex": re.escape(category.strip()), "$options": "i"}
+
+        bids_list = await db.bids.find(mongo_query).limit(10).to_list(length=10)
         if not bids_list:
+            if category.strip():
+                return f"No bids found for category: {category.strip()}"
             return "No bids found in the system."
         sorted_bids = sorted(
             bids_list,
