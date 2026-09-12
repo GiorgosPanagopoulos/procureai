@@ -22,6 +22,11 @@ from agent.prompt import get_doc_qa_system_prompt
 
 log = structlog.get_logger()
 
+# Rows handed to the model per lookup. The tools count the full match set as
+# well, so a capped result is reported as "showing N of M" rather than as M.
+_BID_LIMIT = 10
+_SUPPLIER_LIMIT = 10
+
 
 @tool
 async def document_qa(question: str) -> str:
@@ -126,10 +131,16 @@ async def document_qa(question: str) -> str:
     return answer + sources_note
 
 
-def _format_bids_text(bids: List[Dict]) -> str:
+def _format_bids_text(bids: List[Dict], total_matched: int) -> str:
     """Plain-text ranking used as the fallback observation when Claude is unavailable."""
     ranked = sorted(bids, key=lambda b: (b.get("total_price", 0), b.get("delivery_days", 0)))
-    result = "Bid Comparison Results:\n"
+    if total_matched > len(ranked):
+        result = (
+            f"Bid Comparison Results (showing {len(ranked)} of {total_matched} matching bids; "
+            "results truncated):\n"
+        )
+    else:
+        result = f"Bid Comparison Results ({total_matched} bids):\n"
     for i, bid in enumerate(ranked, 1):
         result += (
             f"\n{i}. Supplier ID: {bid.get('supplier_id', 'N/A')}\n"
@@ -152,13 +163,16 @@ async def bid_comparison(category: str = "") -> str:
             # re.escape so a category containing regex metacharacters is matched literally.
             mongo_query["category"] = {"$regex": re.escape(category.strip()), "$options": "i"}
 
-        bids_list = await db.bids.find(mongo_query).limit(10).to_list(length=10)
+        total_matched = await db.bids.count_documents(mongo_query)
+        bids_list = await db.bids.find(mongo_query).limit(_BID_LIMIT).to_list(length=_BID_LIMIT)
         if not bids_list:
             if category.strip():
                 return f"No bids found for category: {category.strip()}"
             return "No bids found in the system."
     except Exception as exc:
         return f"Error comparing bids: {exc}"
+
+    truncated = total_matched > len(bids_list)
 
     raw_bids = [
         {
@@ -178,6 +192,13 @@ async def bid_comparison(category: str = "") -> str:
             _span.set_data("model", MODEL_NAME)
             _span.set_data("tool", "bid_comparison")
             _span.set_data("bid_count", len(raw_bids))
+            _span.set_data("total_matched", total_matched)
+            coverage = f"{len(raw_bids)} of {total_matched} matching bids are listed below"
+            if truncated:
+                coverage += (
+                    "; the list is truncated, so the recommendation must say it covers "
+                    f"only {len(raw_bids)} of the {total_matched} matching bids"
+                )
             # claude_llm carries _UsageCallback, which feeds _current_usage on
             # on_llm_end; accumulating here as well would double-count the call.
             structured = claude_llm.with_structured_output(BidComparisonResult)
@@ -185,14 +206,17 @@ async def bid_comparison(category: str = "") -> str:
                 "Rank these procurement bids best-value first, weighing total price "
                 f"against delivery time, and recommend one.\n"
                 "All prices are in euros (EUR); do not convert them.\n"
+                f"{coverage}.\n"
                 f"Bids:\n{json.dumps(raw_bids, ensure_ascii=False, indent=2)}"
             )
         if not isinstance(result, BidComparisonResult):
             raise TypeError(f"Unexpected structured output type: {type(result).__name__}")
+        # The counts come from Mongo, not from the model: overwrite whatever it echoed.
+        result = result.model_copy(update={"total_matched": total_matched, "truncated": truncated})
         return result.model_dump_json(indent=2)
     except Exception as exc:
         log.warning("bid_comparison_structured_failed", error=str(exc))
-        return _format_bids_text(bids_list)
+        return _format_bids_text(bids_list, total_matched)
 
 
 @tool
@@ -211,12 +235,23 @@ async def supplier_lookup(query: str = "") -> str:
         elif query.strip():
             mongo_query["category"] = {"$regex": query.strip(), "$options": "i"}
 
-        suppliers_list = await db.suppliers.find(mongo_query).limit(10).to_list(length=10)
+        total_matched = await db.suppliers.count_documents(mongo_query)
+        suppliers_list = (
+            await db.suppliers.find(mongo_query)
+            .limit(_SUPPLIER_LIMIT)
+            .to_list(length=_SUPPLIER_LIMIT)
+        )
         if not suppliers_list:
             return f"No suppliers found matching: {query}"
 
         sorted_s = sorted(suppliers_list, key=lambda x: x.get("rating", 0), reverse=True)
-        result = f"Supplier Lookup Results ({len(sorted_s)} found):\n"
+        if total_matched > len(sorted_s):
+            result = (
+                f"Supplier Lookup Results (showing {len(sorted_s)} of {total_matched} "
+                "matching suppliers; results truncated):\n"
+            )
+        else:
+            result = f"Supplier Lookup Results ({len(sorted_s)} found):\n"
         for i, s in enumerate(sorted_s, 1):
             result += (
                 f"\n{i}. {s.get('name', 'N/A')}\n"

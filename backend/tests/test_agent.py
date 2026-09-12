@@ -74,7 +74,7 @@ def _fake_tools_db(suppliers: Optional[list] = None, bids: Optional[list] = None
         cursor.limit.return_value = cursor
         cursor.to_list = AsyncMock(return_value=docs)
         find = MagicMock(side_effect=error) if error else MagicMock(return_value=cursor)
-        return MagicMock(find=find)
+        return MagicMock(find=find, count_documents=AsyncMock(return_value=len(docs)))
 
     return MagicMock(
         suppliers=_collection(suppliers or []),

@@ -17,3 +17,11 @@ class BidComparisonResult(BaseModel):
 
     bids: List[RankedBid] = Field(description="Bids ordered best-value first")
     recommendation: str = Field(description="Which bid to award and why, in two or three sentences")
+    total_matched: int = Field(
+        description="Number of bids in the database that matched the filter, "
+        "which can exceed the number of bids listed"
+    )
+    truncated: bool = Field(
+        description="True when fewer bids are listed than matched, i.e. the ranking "
+        "covers a sample and the answer must say so (e.g. 'showing 10 of 16 matching bids')"
+    )

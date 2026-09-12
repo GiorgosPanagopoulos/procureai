@@ -3,6 +3,7 @@ import json
 import re
 import sys
 from types import SimpleNamespace
+from typing import Optional
 from unittest.mock import AsyncMock, MagicMock, patch
 
 # Stub the LLM/embedding stack BEFORE importing agent.tools so no real
@@ -118,12 +119,35 @@ async def test_document_qa_clamps_n_results_to_collection_size():
     assert "Sources: law.pdf" in observation
 
 
-def _fake_bids_db(bids) -> MagicMock:
-    """Stand-in for db.bids: find(...).limit(n).to_list(length=n)."""
+def _fake_collection(docs, total: Optional[int] = None) -> MagicMock:
+    """Stand-in for a Motor collection: count_documents(q) and find(q).limit(n).to_list(length=n).
+
+    `total` is what count_documents reports; it defaults to len(docs) (nothing
+    truncated) and can be set higher to simulate a match set beyond the limit.
+    """
     cursor = MagicMock()
     cursor.limit.return_value = cursor
-    cursor.to_list = AsyncMock(return_value=bids)
-    return MagicMock(bids=MagicMock(find=MagicMock(return_value=cursor)))
+    cursor.to_list = AsyncMock(return_value=docs)
+    return MagicMock(
+        find=MagicMock(return_value=cursor),
+        count_documents=AsyncMock(return_value=len(docs) if total is None else total),
+    )
+
+
+def _fake_bids_db(bids, total: Optional[int] = None) -> MagicMock:
+    return MagicMock(bids=_fake_collection(bids, total))
+
+
+def _fake_suppliers_db(suppliers, total: Optional[int] = None) -> MagicMock:
+    return MagicMock(suppliers=_fake_collection(suppliers, total))
+
+
+def _bid(i: int) -> dict:
+    return {"supplier_id": f"s{i}", "total_price": 100.0 * i, "delivery_days": i}
+
+
+def _supplier(i: int) -> dict:
+    return {"name": f"Supplier {i}", "category": "IT", "rating": 3.0 + i / 10, "contact": "n/a"}
 
 
 async def test_bid_comparison_applies_category_filter():
@@ -188,6 +212,8 @@ async def test_bid_comparison_returns_structured_json():
             )
         ],
         recommendation="Award to s1: lowest total price and fastest delivery.",
+        total_matched=1,
+        truncated=False,
     )
     fake_db = _fake_bids_db([{"supplier_id": "s1", "total_price": 450.0, "delivery_days": 3}])
     llm = _structured_llm(parsed)
@@ -197,6 +223,72 @@ async def test_bid_comparison_returns_structured_json():
 
     llm.with_structured_output.assert_called_once_with(BidComparisonResult)
     assert json.loads(observation) == parsed.model_dump()
+
+
+def _ranked(bids: list) -> list:
+    from schemas import RankedBid
+
+    return [
+        RankedBid(
+            supplier_id=b["supplier_id"],
+            total_price_eur=b["total_price"],
+            delivery_days=b["delivery_days"],
+            status="pending",
+        )
+        for b in bids
+    ]
+
+
+async def test_bid_comparison_labels_truncated_results():
+    """Regression: 16 bids matched but only 10 were fetched, and the report said
+    "Total bids: 10". The counts must come from Mongo, not from the capped page."""
+    from agent.tools import bid_comparison
+    from schemas import BidComparisonResult
+
+    page = [_bid(i) for i in range(1, 11)]
+    fake_db = _fake_bids_db(page, total=16)
+    # The model echoes the wrong counts; the tool must overwrite them.
+    llm = _structured_llm(
+        BidComparisonResult(
+            bids=_ranked(page), recommendation="Award to s1.", total_matched=10, truncated=False
+        )
+    )
+
+    with patch("agent.tools.db", fake_db), patch("agent.tools.claude_llm", llm):
+        observation = json.loads(await bid_comparison.ainvoke("Εξοπλισμός IT"))
+
+    mongo_query = fake_db.bids.find.call_args.args[0]
+    fake_db.bids.count_documents.assert_awaited_once_with(mongo_query)
+    fake_db.bids.find.return_value.limit.assert_called_once_with(10)
+    assert observation["total_matched"] == 16
+    assert observation["truncated"] is True
+    assert len(observation["bids"]) == 10
+    # The model is told about the gap so the recommendation can state it.
+    prompt = llm.with_structured_output.return_value.ainvoke.call_args.args[0]
+    assert "10 of 16 matching bids" in prompt
+    assert "truncated" in prompt
+
+
+async def test_bid_comparison_reports_full_set_when_not_truncated():
+    from agent.tools import bid_comparison
+    from schemas import BidComparisonResult
+
+    page = [_bid(i) for i in range(1, 4)]
+    fake_db = _fake_bids_db(page)  # count_documents == len(page) == 3
+    llm = _structured_llm(
+        BidComparisonResult(
+            bids=_ranked(page), recommendation="Award to s1.", total_matched=3, truncated=False
+        )
+    )
+
+    with patch("agent.tools.db", fake_db), patch("agent.tools.claude_llm", llm):
+        observation = json.loads(await bid_comparison.ainvoke(""))
+
+    assert observation["total_matched"] == 3
+    assert observation["truncated"] is False
+    prompt = llm.with_structured_output.return_value.ainvoke.call_args.args[0]
+    assert "3 of 3 matching bids" in prompt
+    assert "truncated" not in prompt
 
 
 async def test_bid_comparison_falls_back_to_plain_text_when_structured_call_fails():
@@ -213,5 +305,51 @@ async def test_bid_comparison_falls_back_to_plain_text_when_structured_call_fail
     with patch("agent.tools.db", fake_db), patch("agent.tools.claude_llm", llm):
         observation = await bid_comparison.ainvoke("")
 
-    assert observation.startswith("Bid Comparison Results:")
+    assert observation.startswith("Bid Comparison Results (2 bids):")
     assert observation.index("cheap") < observation.index("expensive")
+
+
+async def test_bid_comparison_plain_text_fallback_labels_truncation():
+    from agent.tools import bid_comparison
+
+    fake_db = _fake_bids_db([_bid(1), _bid(2)], total=5)
+    llm = _structured_llm(RuntimeError("anthropic unavailable"))
+
+    with patch("agent.tools.db", fake_db), patch("agent.tools.claude_llm", llm):
+        observation = await bid_comparison.ainvoke("")
+
+    assert observation.startswith(
+        "Bid Comparison Results (showing 2 of 5 matching bids; results truncated):"
+    )
+
+
+# ── supplier_lookup ──────────────────────────────────────────────────────────
+
+
+async def test_supplier_lookup_labels_truncated_results():
+    from agent.tools import supplier_lookup
+
+    fake_db = _fake_suppliers_db([_supplier(i) for i in range(1, 11)], total=16)
+
+    with patch("agent.tools.db", fake_db):
+        observation = await supplier_lookup.ainvoke("IT")
+
+    mongo_query = fake_db.suppliers.find.call_args.args[0]
+    fake_db.suppliers.count_documents.assert_awaited_once_with(mongo_query)
+    fake_db.suppliers.find.return_value.limit.assert_called_once_with(10)
+    assert observation.startswith(
+        "Supplier Lookup Results (showing 10 of 16 matching suppliers; results truncated):"
+    )
+    assert observation.count("\n   Rating:") == 10
+
+
+async def test_supplier_lookup_reports_full_set_when_not_truncated():
+    from agent.tools import supplier_lookup
+
+    fake_db = _fake_suppliers_db([_supplier(1), _supplier(2)])
+
+    with patch("agent.tools.db", fake_db):
+        observation = await supplier_lookup.ainvoke("IT")
+
+    assert observation.startswith("Supplier Lookup Results (2 found):")
+    assert "truncated" not in observation
