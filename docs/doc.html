@@ -2,7 +2,7 @@
 <html lang="el">
 <head>
 <meta charset="UTF-8">
-<title>ProcureAI · Documentation v4</title>
+<title>ProcureAI · Documentation v5</title>
 <style>
 /* ============ GP Navy/Gold Design System ============ */
 :root {
@@ -145,7 +145,7 @@ li { margin-bottom:3pt; }
   </div>
   <div class="author">
     <div class="who">Γεώργιος Παναγόπουλος</div>
-    <div class="contact">gpana.ai@gmail.com &nbsp;·&nbsp; Σεπτέμβριος 2026<br>
+    <div class="contact">gpana.ai@gmail.com &nbsp;·&nbsp; 12 Σεπτεμβρίου 2026<br>
     github.com/GiorgosPanagopoulos/procureai</div>
   </div>
 </div>
@@ -162,7 +162,7 @@ li { margin-bottom:3pt; }
     <li><div class="t">Αρχιτεκτονική &amp; ροή δεδομένων</div><div class="s">Δομή κώδικα · αρχιτεκτονικό διάγραμμα · ReAct · RAG · RBAC/audit · sequence &amp; auth flow</div></li>
     <li><div class="t">API Reference (FastAPI endpoints)</div><div class="s">Authentication · chat · δεδομένα · admin · health</div></li>
     <li><div class="t">Το περιβάλλον χρήστη</div><div class="s">Δομή frontend · δύο γλώσσες · θέματα · responsive</div></li>
-    <li><div class="t">Τεχνικές Generative AI</div><div class="s">ReAct · RAG · prompt versioning · structured outputs · επιδόσεις &amp; κόστος</div></li>
+    <li><div class="t">Τεχνικές Generative AI</div><div class="s">ReAct · RAG · prompt versioning · structured outputs · αξιολόγηση στο golden set</div></li>
     <li><div class="t">Εγκατάσταση &amp; εκτέλεση</div><div class="s">Setup · credentials · tests · deployment (Docker)</div></li>
     <li><div class="t">Παραδείγματα χρήσης (screenshots)</div><div class="s">Τέσσερα σενάρια σε dark και light mode</div></li>
     <li><div class="t">Όρια &amp; επόμενα βήματα</div><div class="s">Τι δεν κάνει ακόμη · roadmap Phase 3-5</div></li>
@@ -184,7 +184,7 @@ li { margin-bottom:3pt; }
   <p>Ο στόχος είναι απλός: ο χρήστης διατυπώνει το ερώτημά του με δικά του λόγια, και ο agent αποφασίζει μόνος του ποιο εργαλείο ταιριάζει. Δεν υπάρχει μενού με κουμπιά «τρέξε αυτή τη λειτουργία», η δρομολόγηση γίνεται από το μοντέλο. Τα τέσσερα εργαλεία είναι:</p>
   <ul>
     <li><code>document_qa</code>, ερωτήσεις επί μεταφορτωμένων PDF, με vector search στο ChromaDB και απαντήσεις που φέρουν τις πηγές τους.</li>
-    <li><code>bid_comparison</code>, κατάταξη προσφορών με κριτήρια τιμής, χρόνου παράδοσης και όρων πληρωμής· τα δεδομένα έρχονται από τη MongoDB.</li>
+    <li><code>bid_comparison</code>, κατάταξη προσφορών με κριτήρια τιμής, χρόνου παράδοσης και όρων πληρωμής· τα δεδομένα έρχονται από τη MongoDB (με προαιρετικό φίλτρο κατηγορίας) και η κατάταξη επιστρέφει από την Claude ως επικυρωμένο Pydantic σχήμα.</li>
     <li><code>supplier_lookup</code>, εύρεση και αξιολόγηση προμηθευτών, με φιλτράρισμα ανά κατηγορία ή βαθμολογία.</li>
     <li><code>report_generation</code>, συγκεντρωτική εικόνα των προμηθειών: προμηθευτές, προσφορές, αξία, κατάσταση.</li>
   </ul>
@@ -192,7 +192,7 @@ li { margin-bottom:3pt; }
 
   <h2>1.3 Πλαίσιο ανάπτυξης</h2>
   <p>Η εφαρμογή γράφτηκε ως τελική εργασία του προγράμματος ΚΕΔΙΒΙΜ/ΟΠΑ «AI for Developers» (6 ECTS) και καλύπτει σχεδόν όλη την ύλη του: Python και FastAPI από την πρώτη ενότητα, prompt engineering από τη δεύτερη, αρχιτεκτονική AI συστημάτων από την τρίτη, RAG από την τέταρτη και agents με το ReAct pattern από την πέμπτη, με μερικά στοιχεία open-source μοντέλων από την έκτη. Η αναλυτική αντιστοίχιση ενοτήτων και τεχνικών βρίσκεται στον πίνακα του §7.10.</p>
-  <p>Η ανάπτυξη έγινε σε φάσεις. Η Phase 1 έθεσε τον πυρήνα (agent, RAG, βασικό UI). Η Phase 2, που ολοκληρώθηκε τον Αύγουστο του 2026, πρόσθεσε το στρώμα διακυβέρνησης: ontology με δέκα Pydantic μοντέλα, RBAC με JWT, multi-tenancy στο ChromaDB, audit log και versioning των prompts, μαζί με εκτενές refactoring σε backend και frontend.</p>
+  <p>Η ανάπτυξη έγινε σε φάσεις. Η Phase 1 έθεσε τον πυρήνα (agent, RAG, βασικό UI). Η Phase 2, που ολοκληρώθηκε τον Αύγουστο του 2026, πρόσθεσε το στρώμα διακυβέρνησης: RBAC με JWT, multi-tenancy στο ChromaDB, audit log, versioning των prompts και structured outputs στο <code>bid_comparison</code>, μαζί με εκτενές refactoring σε backend και frontend.</p>
 </div>
 
 <!-- ============================ CH 2 ============================ -->
@@ -212,7 +212,7 @@ li { margin-bottom:3pt; }
 
   <h2>2.2 Τέσσερα σενάρια</h2>
   <p><strong>Document Q&amp;A.</strong> Ένας procurement officer μεταφορτώνει το PDF του Ν.4412/2016 και θέτει το ερώτημα «ποια είναι τα βασικά άρθρα για τις δημόσιες συμβάσεις;». Ο agent επιλέγει μόνος του το <code>document_qa</code>, εκτελεί vector search στο ChromaDB και επιστρέφει απάντηση με τις πηγές. Όλο το σκεπτικό του (Thought, Action, Observation) φαίνεται στο UI αν ο χρήστης το ζητήσει.</p>
-  <p><strong>Σύγκριση προσφορών.</strong> Στο «σύγκρινε τις διαθέσιμες προσφορές» ο agent περνά στο <code>bid_comparison</code>, ανακτά τις προσφορές από τη MongoDB και τις ταξινομεί κατά τιμή και χρόνο παράδοσης.</p>
+  <p><strong>Σύγκριση προσφορών.</strong> Στο «σύγκρινε τις διαθέσιμες προσφορές» ο agent περνά στο <code>bid_comparison</code>, που ανακτά τις προσφορές από τη MongoDB, τις δίνει στην Claude με <code>with_structured_output(BidComparisonResult)</code> και επιστρέφει κατάταξη κατά τιμή και χρόνο παράδοσης μαζί με σύσταση, ως JSON.</p>
   <p><strong>Αναζήτηση προμηθευτών.</strong> Στο «βρες προμηθευτές IT» καλείται το <code>supplier_lookup</code>, που φιλτράρει με regex στην κατηγορία και επιστρέφει αποτελέσματα ταξινομημένα κατά βαθμολογία.</p>
   <p><strong>Αναφορά.</strong> Στο «φτιάξε μου αναφορά προμηθειών» το <code>report_generation</code> συγκεντρώνει προμηθευτές και προσφορές και παράγει μια δομημένη σύνοψη.</p>
 
@@ -223,7 +223,7 @@ li { margin-bottom:3pt; }
     <tr><td>Ανέβασμα εγγράφων</td><td>Ο χρήστης μεταφορτώνει ένα PDF με μεταφορά (drag-and-drop)· το κείμενο εξάγεται με pypdf, διασπάται σε chunks των 500 χαρακτήρων με 50 overlap ώστε να μη χάνεται το νόημα στα όρια, και κάθε chunk λαμβάνει embedding και αποθηκεύεται στο ChromaDB ως vector.</td><td>Υψηλή</td></tr>
     <tr><td>Δρομολόγηση μέσω agent</td><td>Δεν υπάρχει σταθερό μενού με κουμπιά. Ο ReAct agent διαβάζει το ερώτημα και αποφασίζει μόνος του ποιο από τα τέσσερα tools ταιριάζει, μέσα σε βρόχο Thought → Action → Observation και μέχρι πέντε επαναλήψεις. Όλο το σκεπτικό παραμένει ορατό.</td><td>Υψηλή</td></tr>
     <tr><td>Document Q&amp;A (RAG)</td><td>Το ερώτημα γίνεται vector, το ChromaDB ανακτά τα πιο σχετικά chunks, κι αυτά προωθούνται στην Claude μαζί με την ερώτηση. Η απάντηση επιστρέφεται πάντα με τις πηγές της (ποιο έγγραφο και ποιο σημείο) ώστε να ελέγχεται.</td><td>Υψηλή</td></tr>
-    <tr><td>Σύγκριση προσφορών</td><td>Τραβάει τις προσφορές από τη MongoDB και τις βάζει σε σειρά κατά τιμή και χρόνο παράδοσης. Δίπλα σε κάθε μία φαίνονται οι όροι πληρωμής, η κατάσταση και η τιμή σε USD και EUR.</td><td>Υψηλή</td></tr>
+    <tr><td>Σύγκριση προσφορών</td><td>Τραβάει τις προσφορές από τη MongoDB και τις βάζει σε σειρά κατά τιμή και χρόνο παράδοσης. Δίπλα σε κάθε μία φαίνονται οι όροι πληρωμής, η κατάσταση και η τιμή σε EUR· η κατάταξη και η σύσταση επιστρέφουν από την Claude ως δομημένο JSON (<code>BidComparisonResult</code>).</td><td>Υψηλή</td></tr>
     <tr><td>Αναζήτηση προμηθευτών</td><td>Φιλτράρει με regex στην κατηγορία (π.χ. «Εξοπλισμός IT») και επιστρέφει τους προμηθευτές ταξινομημένους κατά βαθμολογία, με κατηγορία, rating και στοιχεία επικοινωνίας, και προτείνει επόμενα ερωτήματα.</td><td>Υψηλή</td></tr>
     <tr><td>Έλεγχος πρόσβασης</td><td>Login με JWT αποθηκευμένο σε httpOnly cookie. Κάθε endpoint ξέρει ποιοι ρόλοι το αγγίζουν· ένας viewer που επιχειρεί chat ή upload λαμβάνει 403, και η εγγραφή δέχεται μόνο ρόλο viewer.</td><td>Υψηλή</td></tr>
     <tr><td>Απομόνωση δεδομένων ανά χρήστη</td><td>Κάθε request μεταφέρει το user_id μέσω ContextVar. Το where filter στο ChromaDB επιτρέπει στον χρήστη να βλέπει μόνο τα δικά του έγγραφα συν τα system, τον Ν.4412/2016 που έχει ανέβει κεντρικά. Οι διαγραφές κλειδώνουν ανά χρήστη και ανά source.</td><td>Υψηλή</td></tr>
@@ -231,7 +231,7 @@ li { margin-bottom:3pt; }
     <tr><td>Απόκρυψη προσωπικών δεδομένων</td><td>Πριν σταλεί οτιδήποτε προς το μοντέλο, ΑΦΜ, ΑΜΚΑ, email και ελληνικά τηλέφωνα εντοπίζονται με regex και αντικαθίστανται με placeholders όπως <code>[AFM_REDACTED]</code>. Στα logs μένει μόνο το πλήθος, ποτέ το περιεχόμενο.</td><td>Μεσαία</td></tr>
     <tr><td>Δίγλωσσο περιβάλλον</td><td>Όλο το UI αλλάζει ανάμεσα σε Ελληνικά και Αγγλικά με ένα toggle, υπάρχει dark και light θέμα, και έξι έτοιμα ερωτήματα ανά γλώσσα που με ένα κλικ τροφοδοτούν κατευθείαν τον agent.</td><td>Μεσαία</td></tr>
     <tr><td>Όρια ρυθμού</td><td>Throttling ανά IP με SlowAPI: 10 αιτήματα το λεπτό στο chat που είναι το ακριβό σημείο, 30 στα υπόλοιπα. Έτσι μια κατάχρηση ή ένα ελαττωματικό loop δεν θέτει την υπηρεσία εκτός λειτουργίας ούτε αυξάνει υπέρμετρα το κόστος.</td><td>Μεσαία</td></tr>
-    <tr><td>Βιβλιοθήκη prompts</td><td>Πέντε use cases (chat, doc_qa, tender, risk, legal) ζουν σε versioned αρχεία με YAML header. Ξαναφορτώνονται εν θερμώ πριν από κάθε κλήση και είναι όλα κάτω από Git, οπότε κάθε αλλαγή φαίνεται στο ιστορικό.</td><td>Μεσαία</td></tr>
+    <tr><td>Βιβλιοθήκη prompts</td><td>Δύο use cases (chat, doc_qa) ζουν σε versioned αρχεία με YAML header. Ξαναφορτώνονται εν θερμώ πριν από κάθε κλήση και είναι όλα κάτω από Git, οπότε κάθε αλλαγή φαίνεται στο ιστορικό.</td><td>Μεσαία</td></tr>
   </table>
 </div>
 
@@ -276,7 +276,7 @@ li { margin-bottom:3pt; }
   <h2>3.3 DevOps &amp; ποιότητα κώδικα</h2>
   <table>
     <tr><th style="width:34%">Εργαλείο</th><th>Ρόλος</th></tr>
-    <tr><td>pytest + pytest-asyncio</td><td>159 αυτοματοποιημένα tests, unit και integration, async, με mocked MongoDB fixture</td></tr>
+    <tr><td>pytest + pytest-asyncio</td><td>179 αυτοματοποιημένα tests, unit και integration, async, με mocked MongoDB fixture και mocked LLM για τον agent</td></tr>
     <tr><td>pre-commit</td><td>trailing-whitespace, ruff, mypy, detect-secrets</td></tr>
     <tr><td>GitHub Actions CI</td><td>Lint, test, type-check σε κάθε push και PR</td></tr>
     <tr><td>ruff</td><td>Linting και formatting (αντικαθιστά flake8/black)</td></tr>
@@ -307,14 +307,14 @@ li { margin-bottom:3pt; }
     <tr><td><code>data/</code></td><td>seed.py</td><td>Idempotent seeding: 12 προμηθευτές, 16 προσφορές, atomic superuser upsert</td></tr>
     <tr><td><code>llm/</code></td><td>clients · pricing · callbacks</td><td>Lazy LLM clients, υπολογισμός κόστους, LangChain callback</td></tr>
     <tr><td><code>middleware/</code></td><td>cors · correlation · rate_limit · audit_middleware</td><td>CORS, X-Correlation-ID, SlowAPI, fire-and-forget audit</td></tr>
-    <tr><td><code>models/</code></td><td>ontology · supplier · bid · user</td><td>10 ontology μοντέλα + Supplier, Bid, User</td></tr>
+    <tr><td><code>models/</code></td><td>supplier · bid · user</td><td>Pydantic v2 μοντέλα Supplier, Bid (με πεδίο <code>category</code> για φιλτράρισμα ανά κατηγορία) και User</td></tr>
     <tr><td><code>rag/</code></td><td>vectorstore · embeddings · chunking · ingest · reranker</td><td>ChromaDB, OpenAI embeddings, text splitting, ingestion PDF, CrossEncoder</td></tr>
     <tr><td><code>routers/</code></td><td>chat · suppliers · reports · health · admin</td><td>REST endpoints, κλήση agent, file upload</td></tr>
-    <tr><td><code>schemas/</code></td><td>auth · chat · user</td><td>Pydantic request/response μοντέλα</td></tr>
+    <tr><td><code>schemas/</code></td><td>auth · bid_comparison · chat · user</td><td>Pydantic request/response μοντέλα και το σχήμα structured output του bid_comparison</td></tr>
     <tr><td><code>security/</code></td><td>pii.py</td><td>Απόκρυψη ΑΦΜ, ΑΜΚΑ, email, τηλεφώνων</td></tr>
     <tr><td><code>utils/</code></td><td>lazy.py</td><td>LazyProxy: αναβολή αρχικοποίησης Mongo/Chroma/LLM clients μέχρι την πρώτη χρήση</td></tr>
-    <tr><td><code>tests/</code></td><td>test_auth · test_rbac · test_agent · test_rag · test_env_isolation κ.ά.</td><td>159 tests, unit και integration, με in-memory fake MongoDB fixture</td></tr>
-    <tr><td><code>prompts/</code></td><td>chat/v1.txt · doc_qa/v1.txt + 3 ακόμη</td><td>5 versioned αρχεία prompt (YAML header + κείμενο)</td></tr>
+    <tr><td><code>tests/</code></td><td>test_auth · test_rbac · test_agent · test_tools · test_chunking · test_ingest · test_env_isolation κ.ά.</td><td>179 tests, unit και integration, με in-memory fake MongoDB fixture· το test_agent.py (11 tests, mocked LLM) καλύπτει τον βρόχο run_agent, το trace, το max_iterations, τα σφάλματα tools, το PII redaction και τις διαδρομές του document_qa</td></tr>
+    <tr><td><code>prompts/</code></td><td>chat/v1.txt · doc_qa/v1.txt</td><td>2 versioned αρχεία prompt (YAML header + κείμενο)· το chat βρίσκεται στην έκδοση v1.3</td></tr>
   </table>
 
   <h2>4.2 Αρχιτεκτονικό διάγραμμα</h2>
@@ -419,13 +419,13 @@ li { margin-bottom:3pt; }
 
   <h2>4.3 Ο ReAct agent</h2>
   <p>Η δρομολόγηση όλου του συστήματος βασίζεται σε έναν LangChain ReAct agent (<code>create_react_agent</code> + AgentExecutor). Ο χρήστης στέλνει ελεύθερο κείμενο και ο agent εισέρχεται σε έναν βρόχο σκέψης (Thought, Action, Observation) επιλέγοντας μόνος του ποιο tool θα καλέσει, μέχρι πέντε επαναλήψεις. Τα ενδιάμεσα βήματα κρατιούνται και εμφανίζονται στο frontend.</p>
-  <p>Το system prompt (<code>prompts/chat/v1.txt</code>) δίνει στον agent τους κανόνες επιλογής εργαλείου, τη θωράκιση απέναντι σε prompt injection, και οδηγίες μετατροπής νομίσματος (USD προς EUR).</p>
+  <p>Το system prompt (<code>prompts/chat/v1.txt</code>) δίνει στον agent τους κανόνες επιλογής εργαλείου, τη θωράκιση απέναντι σε prompt injection, τον κανόνα νομίσματος (όλες οι τιμές σε EUR, χωρίς μετατροπή σε USD) και τον κανόνα να απαντά στη γλώσσα του μηνύματος του χρήστη. Το αρχείο φέρει στο YAML header του την τρέχουσα έκδοση, v1.3.</p>
   <div class="note">
     <p><strong>TOOL SELECTION RULES.</strong> Σε πρώιμη έκδοση ο agent απαντούσε σε νομικά ερωτήματα («ποια είναι τα όρια απευθείας ανάθεσης;») από τη δική του μνήμη, παρακάμπτοντας εντελώς το RAG. Το πρόβλημα δεν ήταν στα tools αλλά στο prompt: δεν υπήρχε ρητός κανόνας που να δεσμεύει τα νομικά ερωτήματα στο <code>document_qa</code>. Προστέθηκε ενότητα <em>TOOL SELECTION RULES</em> στο <code>prompts/chat/v1.txt</code> που ορίζει ότι κάθε ερώτημα σχετικό με άρθρα, κατώφλια, όρια ή διατάξεις του Ν.4412/2016 δρομολογείται υποχρεωτικά στο <code>document_qa</code> πριν συντεθεί οποιαδήποτε απάντηση. Το περιστατικό δείχνει πρακτικά γιατί τα prompts πρέπει να είναι versioned και κάτω από Git.</p>
   </div>
 
   <h2>4.4 Το RAG pipeline</h2>
-  <p>Στο ανέβασμα, το PDF περνά από εξαγωγή κειμένου με pypdf, διασπάται σε chunks των 500 χαρακτήρων με 50 overlap, κάθε chunk λαμβάνει embedding από το OpenAI και αποθηκεύεται στο ChromaDB μαζί με metadata (user_id, source, chunk).</p>
+  <p>Στο ανέβασμα, το PDF περνά από εξαγωγή κειμένου με pypdf, διασπάται σε chunks των 500 χαρακτήρων με overlap 50 χαρακτήρων (οι τελευταίοι 50 χαρακτήρες κάθε chunk επαναλαμβάνονται στην αρχή του επόμενου, με ανώτατο όριο το μισό του chunk_size, και η διάσπαση σέβεται τα όρια παραγράφων και γραμμών), κάθε chunk λαμβάνει embedding από το OpenAI και αποθηκεύεται στο ChromaDB μαζί με metadata (user_id, source, chunk).</p>
   <p>Στην ανάκτηση, το ερώτημα γίνεται κι αυτό vector, το ChromaDB ανακτά τα πιο κοντινά chunks (top-4 κανονικά, top-20 αν είναι ενεργός ο reranker) και ένας CrossEncoder (ms-marco-MiniLM) διατηρεί τα 5 καλύτερα. Αυτά μαζί με την ερώτηση προωθούνται στην Claude μέσω του messages API, με prompt caching, και επιστρέφεται η απάντηση με τις πηγές της.</p>
 
   <h2>4.5 RBAC &amp; audit</h2>
@@ -674,11 +674,11 @@ li { margin-bottom:3pt; }
   <p>Εδώ συγκεντρώνονται οι τεχνικές από τις ενότητες 2 έως 5 του προγράμματος: prompt engineering, αρχιτεκτονική, RAG και agents. Ο συγκεντρωτικός πίνακας αντιστοίχισης βρίσκεται στο §7.10.</p>
 
   <h2>7.1 ReAct agent pattern</h2>
-  <p>Ο agent τρέχει με <code>create_react_agent</code> + AgentExecutor και <code>return_intermediate_steps=True</code>. Τα τέσσερα tools είναι decorated με <code>@tool</code>: το <code>document_qa</code> (sync, ChromaDB + Claude) και τα <code>bid_comparison</code>, <code>supplier_lookup</code>, <code>report_generation</code> (async, MongoDB). Όριο πέντε επαναλήψεων, με <code>handle_parsing_errors=True</code>.</p>
+  <p>Ο agent τρέχει με <code>create_react_agent</code> + AgentExecutor και <code>return_intermediate_steps=True</code>. Τα τέσσερα tools είναι decorated με <code>@tool</code>: το <code>document_qa</code> (sync, ChromaDB + Claude), το <code>bid_comparison</code> (async, MongoDB + Claude με structured output, §7.4) και τα <code>supplier_lookup</code>, <code>report_generation</code> (async, μόνο MongoDB, χωρίς κλήση LLM). Όριο πέντε επαναλήψεων, με <code>handle_parsing_errors=True</code>.</p>
   <p>Το trace (Thought → Action → Action Input → Observation) καταγράφεται, αποθηκεύεται στη MongoDB και εμφανίζεται στο frontend σε αναδιπλούμενο panel. Κάθε κλήση μετράει tokens και κόστος μέσω ενός custom <code>UsageCallback</code> και ενός <code>_UsageAccum</code> ContextVar.</p>
 
   <h2>7.2 RAG pipeline</h2>
-  <p>Το splitting γίνεται με custom <code>split_text_chunks</code> που σέβεται τις παραγράφους, 500 χαρακτήρες, 50 overlap. Τα embeddings είναι OpenAI text-embedding-3-small (1536 διαστάσεις), με lazy-loaded client (LazyProxy). Το vector store είναι persistent ChromaDB, collection <code>procureai_documents</code>, με metadata user_id, source και chunk index.</p>
+  <p>Το splitting γίνεται με custom <code>split_text_chunks</code>: chunks των 500 χαρακτήρων που σέβονται τα όρια παραγράφων και γραμμών, με πραγματικό overlap 50 χαρακτήρων (η ουρά του προηγούμενου chunk μπαίνει στην αρχή του επόμενου· το overlap περιορίζεται σε <code>chunk_size // 2</code> ώστε τουλάχιστον το μισό κάθε chunk να είναι νέο περιεχόμενο). Τα embeddings είναι OpenAI text-embedding-3-small (1536 διαστάσεις), με lazy-loaded client (LazyProxy). Το vector store είναι persistent ChromaDB, collection <code>procureai_documents</code>, με metadata user_id, source και chunk index.</p>
   <p>Στην ανάκτηση: similarity search (top-4 κανονικά, top-20 με reranker) και where filter <code>{$or: [{user_id}, {user_id: 'system'}]}</code>. Ο προαιρετικός CrossEncoder (ms-marco-MiniLM-L-6-v2) ξανακατατάσσει στα top-5 αν το <code>USE_RERANKER</code> είναι true. Η generation γίνεται με το raw messages API της Anthropic και prompt caching (ephemeral) στο system prompt και το context.</p>
 
   <div class="diagram">
@@ -725,23 +725,15 @@ li { margin-bottom:3pt; }
   </div>
 
   <h2>7.3 Prompt engineering &amp; versioning</h2>
-  <p>Ένα PromptLoader singleton φορτώνει τα prompts από τον δίσκο (<code>prompts/{use_case}/v1.txt</code>). Κάθε αρχείο έχει YAML header (use_case, version, created, description), έναν διαχωριστή <code>---</code> και μετά το κείμενο. Πέντε use cases: chat (το ReAct template), doc_qa, tender_generation, risk_assessment, legal_validation. Πριν από κάθε κλήση του agent τρέχει <code>prompt_loader.reload()</code> για hot-reload, και τα prompts είναι όλα κάτω από Git.</p>
-  <p>Το πρακτικό όφελος φάνηκε στη διόρθωση της δρομολόγησης των νομικών ερωτημάτων (§4.3): η αλλαγή ήταν ένα κείμενο, όχι κώδικας, εφαρμόστηκε χωρίς redeploy και το ιστορικό της είναι ορατό στο <code>git log</code>.</p>
+  <p>Ένα PromptLoader singleton φορτώνει τα prompts από τον δίσκο (<code>prompts/{use_case}/v1.txt</code>). Κάθε αρχείο έχει YAML header (use_case, version, created, description), έναν διαχωριστή <code>---</code> και μετά το κείμενο. Δύο use cases: chat (το ReAct template, σήμερα στην έκδοση v1.3) και doc_qa. Πριν από κάθε κλήση του agent τρέχει <code>prompt_loader.reload()</code> για hot-reload, και τα prompts είναι όλα κάτω από Git.</p>
+  <p>Το πρακτικό όφελος φάνηκε στη διόρθωση της δρομολόγησης των νομικών ερωτημάτων (§4.3): η αλλαγή ήταν ένα κείμενο, όχι κώδικας, εφαρμόστηκε χωρίς redeploy και το ιστορικό της είναι ορατό στο <code>git log</code>. Οι δύο επόμενες εκδόσεις του chat prompt δείχνουν την ίδια ροή στην πράξη: η v1.2 αφαίρεσε τον κανόνα μετατροπής USD→EUR όταν οι τιμές έγιναν EUR από άκρη σε άκρη, και η v1.3 αντικατέστησε τον κανόνα γλώσσας με «always respond in the language of the user's message» αφού ο πρώτος γύρος αξιολόγησης (§7.9) έδειξε ότι τα αγγλικά ερωτήματα απαντιούνταν στα ελληνικά.</p>
 
-  <h2>7.4 Structured outputs (ontology)</h2>
-  <p>Δέκα Pydantic v2 μοντέλα στο <code>models/ontology.py</code>, με field validators. Το σχήμα δεν είναι μόνο τεκμηρίωση: εξάγεται σε JSON schema και χρησιμοποιείται ώστε οι απαντήσεις του μοντέλου να επιστρέφονται σε δομημένη μορφή που επικυρώνεται πριν αγγίξει τη βάση.</p>
+  <h2>7.4 Structured outputs (bid_comparison)</h2>
+  <p>Το <code>bid_comparison</code> είναι το σημείο όπου το μοντέλο δεν επιστρέφει πεζό κείμενο αλλά επικυρωμένο σχήμα. Το tool ανακτά έως δέκα προσφορές από τη MongoDB (προαιρετικά φιλτραρισμένες με regex στο πεδίο <code>category</code>), τις σειριοποιεί σε JSON και καλεί <code>claude_llm.with_structured_output(BidComparisonResult)</code>. Η Claude κατατάσσει τις προσφορές σταθμίζοντας τιμή και χρόνο παράδοσης και συνιστά μία· το αποτέλεσμα επικυρώνεται από την Pydantic v2 και επιστρέφει στον ReAct βρόχο ως observation σε μορφή JSON (<code>model_dump_json</code>), ώστε ο agent να συνθέτει την τελική απάντηση από σταθερά πεδία και όχι από ελεύθερο κείμενο. Αν η δομημένη κλήση αποτύχει για οποιονδήποτε λόγο, το tool καταγράφει προειδοποίηση και επιστρέφει την ίδια λίστα σε απλό κείμενο, οπότε ο χρήστης παίρνει πάντα απάντηση.</p>
   <table class="tight">
-    <tr><th style="width:22%">Μοντέλο</th><th style="width:46%">Βασικά πεδία</th><th>Validators</th></tr>
-    <tr><td>CPVCode</td><td>code, description, category</td><td>code: ακριβώς 8 ψηφία</td></tr>
-    <tr><td>Supplier</td><td>id, name, tax_id, contact_email, certifications</td><td>tax_id: 9 ψηφία (ΑΦΜ)</td></tr>
-    <tr><td>EvaluationCriteria</td><td>criterion_name, weight, scoring_method</td><td>weight: 0.0-1.0</td></tr>
-    <tr><td>BudgetAllocation</td><td>total_amount (Decimal), currency, fiscal_year, kae</td><td>Decimal serializer</td></tr>
-    <tr><td>ComplianceCheck</td><td>check_type, passed, legal_reference, notes</td><td>(κανένα)</td></tr>
-    <tr><td>RiskAssessment</td><td>risk_level, risk_factors, mitigation, score</td><td>score: 0.0-10.0</td></tr>
-    <tr><td>ApprovalStage</td><td>stage_name, approver_role, status, decision_at</td><td>(κανένα)</td></tr>
-    <tr><td>Tender</td><td>id, title, cpv_codes, budget, deadline, criteria, status</td><td>(κανένα)</td></tr>
-    <tr><td>Contract</td><td>id, tender_id, supplier, signed_at, value, status</td><td>Decimal serializer</td></tr>
-    <tr><td>ProcurementRequest</td><td>id, title, requester_id, budget, approval_stages, status</td><td>(κανένα)</td></tr>
+    <tr><th style="width:22%">Μοντέλο</th><th style="width:46%">Βασικά πεδία</th><th>Ρόλος</th></tr>
+    <tr><td>RankedBid</td><td>supplier_id, total_price_eur, delivery_days, status</td><td>Μία προσφορά όπως την κατέταξε το μοντέλο</td></tr>
+    <tr><td>BidComparisonResult</td><td>bids (List[RankedBid]), recommendation</td><td>Η κατάταξη best-value first και η σύσταση ανάθεσης σε δύο-τρεις προτάσεις</td></tr>
   </table>
 
   <h2>7.5 Multi-tenant ChromaDB</h2>
@@ -756,29 +748,28 @@ li { margin-bottom:3pt; }
   <h2>7.8 Prompt caching</h2>
   <p>Το <code>document_qa</code> στέλνει το system prompt και τα context chunks με <code>cache_control: {type: 'ephemeral'}</code>. Σε επαναλαμβανόμενα ερωτήματα αυτό μειώνει αισθητά το κόστος, το cache read κοστίζει $0.30/MTok έναντι $3.75 για το write και $3.00 για κανονικό input. Το usage tracking μετράει χωριστά cache_creation και cache_read tokens μέσω του <code>_UsageAccum</code>.</p>
 
-  <h2>7.9 Επιδόσεις &amp; κόστος (ενδεικτικά)</h2>
-  <table>
-    <tr><th style="width:50%">Μετρική</th><th>Ενδεικτική τιμή</th></tr>
-    <tr><td>Latency (chat, end-to-end)</td><td>~2.5s (εξαρτάται από το tool)</td></tr>
-    <tr><td>Μέση χρήση tokens</td><td>~800 tokens / αίτημα</td></tr>
-    <tr><td>Επίδραση reranker</td><td>+15% precision (top-k)</td></tr>
-    <tr><td>Κόστος / αίτημα</td><td>~$0.04 (με prompt caching)</td></tr>
-    <tr><td>Χρόνος import backend</td><td>1.59s (από 7.00s πριν το lazy loading)</td></tr>
+  <h2>7.9 Αξιολόγηση στο golden set</h2>
+  <p>Το golden set (<code>evals/golden_set.json</code>, 18 ερωτήματα εκ των οποίων 3 injection tests) τρέχει με το <code>evals/run_evals.py</code> απέναντι σε ζωντανό backend, και η πλήρης έξοδος ανά ερώτημα αποθηκεύεται στο <code>evals/results/</code>. Δύο καταγεγραμμένοι γύροι, και οι δύο με claude-sonnet-4-6, τοπική MongoDB με τα seeded δεδομένα και τοπικό ChromaDB με 8 chunks:</p>
+  <table class="tight">
+    <tr><th style="width:8%">Run</th><th style="width:14%">Ημερομηνία</th><th style="width:10%">Prompt</th><th>Pass rate</th><th>Tool routing</th><th>Injection refusals</th><th>Μέση latency</th><th>Μέσο κόστος</th></tr>
+    <tr><td>1</td><td>2026-09-12</td><td>chat v1.2</td><td>3 / 18 (16.7%)</td><td>14 / 15</td><td>0 / 3</td><td>16.7 s</td><td>$0.021</td></tr>
+    <tr><td>2</td><td>2026-09-12</td><td>chat v1.3</td><td>17 / 18 (94.4%)</td><td>14 / 15</td><td>3 / 3</td><td>15.6 s</td><td>$0.021</td></tr>
   </table>
-  <p style="font-size:9pt;color:var(--muted)">Οι τιμές είναι ενδεικτικές, αντλημένες από το ενσωματωμένο cost-tracking και το eval set. Δεν αποτελούν αυστηρό benchmark και θα επικαιροποιηθούν με συστηματικές μετρήσεις στη φάση αξιολόγησης (Phase 4).</p>
+  <p>Ο πρώτος γύρος απέτυχε στη γλώσσα, όχι στη συμπεριφορά: ο κανόνας της v1.2 κάλυπτε μόνο την ελληνική είσοδο, οπότε τα αγγλικά ερωτήματα απαντιούνταν στα ελληνικά, ενώ το harness ελέγχει αγγλικά keywords και αγγλικές φράσεις άρνησης (και τα τρία injection tests απορρίφθηκαν, αλλά στα ελληνικά). Η v1.3 αντικατέστησε τον κανόνα με «always respond in the language of the user's message», που είναι και η μόνη διαφορά ανάμεσα στους δύο γύρους, και ο δεύτερος πέρασε 17 από τα 18. Η μοναδική αποτυχία που απομένει είναι το q18 («What is the total value of all bids in the system?»), που δρομολογήθηκε στο <code>bid_comparison</code> αντί για το <code>report_generation</code>, όπως και στον πρώτο γύρο· η απάντηση περιείχε τα αναμενόμενα keywords. Το tool routing μετρά τα 15 μη-injection ερωτήματα, αφού οι αρνήσεις δεν δρομολογούνται σε κανένα tool. Πρέπει να είναι σαφές τι μετρά το golden set: παρουσία keywords και σωστή επιλογή tool, όχι ποιότητα απάντησης· μια απάντηση «δεν βρέθηκε» που επαναλαμβάνει τις λέξεις της ερώτησης περνά, και ούτε η θεμελίωση στις πηγές ούτε η αριθμητική ορθότητα ελέγχονται.</p>
+  <p style="font-size:9pt;color:var(--muted)">Πηγές: <code>evals/results/2026-09-12.json</code> (run 1) και <code>evals/results/2026-09-12b.json</code> (run 2). Το κόστος είναι η χρέωση του Anthropic API ανά ερώτημα, σε USD, όπως τη μετρά το ενσωματωμένο usage tracking (§7.1)· ο χρόνος import του backend παραμένει 1.59s (από 7.00s πριν το lazy loading).</p>
 
   <h2>7.10 Αντιστοίχιση τεχνικών με την ύλη του προγράμματος</h2>
   <p>Πού ακριβώς υλοποιείται κάθε τεχνική που διδάχθηκε στο πρόγραμμα:</p>
   <table class="tight">
     <tr><th style="width:8%">Ενότητα</th><th style="width:26%">Τεχνική</th><th style="width:34%">Πού υλοποιείται</th><th>Παρατήρηση</th></tr>
     <tr><td>1</td><td>Python &amp; FastAPI, async I/O</td><td><code>main.py</code>, <code>routers/</code>, Motor</td><td>Async από άκρη σε άκρη, μη μπλοκάροντα tools</td></tr>
-    <tr><td>2</td><td>Prompt engineering</td><td><code>prompts/chat/v1.txt</code> + 4 ακόμη</td><td>Role prompting, few-shot, TOOL SELECTION RULES</td></tr>
+    <tr><td>2</td><td>Prompt engineering</td><td><code>prompts/chat/v1.txt</code>, <code>prompts/doc_qa/v1.txt</code></td><td>Role prompting, few-shot, TOOL SELECTION RULES</td></tr>
     <tr><td>2</td><td>Prompt versioning</td><td><code>core/prompt_loader.py</code></td><td>File-based, YAML header, hot-reload, υπό Git</td></tr>
     <tr><td>2</td><td>Prompt injection defence</td><td><code>prompts/chat/v1.txt</code></td><td>Ρητή οδηγία αγνόησης εντολών μέσα σε έγγραφα</td></tr>
     <tr><td>3</td><td>Αρχιτεκτονική AI συστημάτων</td><td>Layered backend (§4.1), split frontend (§6.1)</td><td>Διαχωρισμός ευθυνών, lazy clients, singleton Mongo</td></tr>
-    <tr><td>3</td><td><strong>Structured outputs</strong></td><td><code>models/ontology.py</code>, <code>schemas/</code></td><td>10 Pydantic v2 μοντέλα με field validators, JSON schema</td></tr>
+    <tr><td>3</td><td><strong>Structured outputs</strong></td><td><code>agent/tools.py:bid_comparison</code>, <code>schemas/bid_comparison.py</code></td><td><code>claude_llm.with_structured_output(BidComparisonResult)</code>, Pydantic v2 σχήμα (λίστα RankedBid + recommendation), JSON ως ReAct observation, plain-text fallback σε αποτυχία</td></tr>
     <tr><td>3</td><td>Observability &amp; cost tracking</td><td><code>llm/callbacks.py</code>, <code>llm/pricing.py</code>, structlog, Sentry</td><td>Tokens και κόστος ανά κλήση, correlation IDs</td></tr>
-    <tr><td>4</td><td>Chunking &amp; embeddings</td><td><code>rag/chunking.py</code>, <code>rag/embeddings.py</code></td><td>500/50 με σεβασμό παραγράφων, text-embedding-3-small</td></tr>
+    <tr><td>4</td><td>Chunking &amp; embeddings</td><td><code>rag/chunking.py</code>, <code>rag/embeddings.py</code></td><td>500 χαρακτήρες, overlap 50 (≤ chunk_size // 2), με σεβασμό παραγράφων και γραμμών· text-embedding-3-small</td></tr>
     <tr><td>4</td><td>Vector search &amp; metadata filtering</td><td><code>rag/vectorstore.py</code>, <code>core/chroma_tenant.py</code></td><td>ChromaDB, where filter, multi-tenancy με ContextVar</td></tr>
     <tr><td>4</td><td>Reranking</td><td><code>rag/reranker.py</code></td><td>CrossEncoder ms-marco, top-20 → top-5, προαιρετικό</td></tr>
     <tr><td>4</td><td>Grounded generation με citations</td><td><code>agent/tools.py:document_qa</code></td><td>Κάθε απάντηση φέρει source και chunk index</td></tr>
@@ -855,11 +846,11 @@ docker compose up --build
 
   <h2>8.4 Tests</h2>
 <pre><code>cd backend
-PYTHONPATH=. ../.venv/bin/python -m pytest tests/ -v    # 159 tests
+PYTHONPATH=. ../.venv/bin/python -m pytest tests/ -v    # 179 tests
 
 # ή μέσω Makefile
 make test</code></pre>
-  <p>Τα tests δεν απαιτούν ζωντανή MongoDB: ένα in-memory fake fixture αντικαθιστά τον client, ενώ το <code>test_env_isolation.py</code> επιβεβαιώνει ότι καμία δοκιμή δεν διαρρέει προς πραγματική βάση.</p>
+  <p>Τα tests δεν απαιτούν ζωντανή MongoDB: ένα in-memory fake fixture αντικαθιστά τον client, ενώ το <code>test_env_isolation.py</code> επιβεβαιώνει ότι καμία δοκιμή δεν διαρρέει προς πραγματική βάση. Ούτε LLM απαιτείται: το <code>tests/test_agent.py</code> (11 tests) τρέχει τον ReAct βρόχο με mocked Claude και ελέγχει το <code>run_agent</code>, τη δομή του trace, τον σεβασμό του <code>max_iterations</code>, ότι ένα σφάλμα tool επιστρέφει ως observation αντί να ρίξει τον agent, ότι το PII αφαιρείται πριν φτάσει στο μοντέλο, και τις διαδρομές του <code>document_qa</code> με και χωρίς reranker.</p>
 
   <h2>8.5 Deployment (Docker)</h2>
   <p>Το <code>docker compose</code> εκκινεί τρία containers στον ίδιο host: frontend, backend και MongoDB. Το backend επικοινωνεί με δύο εξωτερικά APIs μέσω HTTPS, της Anthropic για τον agent και της OpenAI για τα embeddings, ενώ το ChromaDB βρίσκεται σε persistent volume προσαρτημένο στο backend.</p>
@@ -953,7 +944,7 @@ make test</code></pre>
 
   <h2>9.3 Σύγκριση προσφορών (light mode)</h2>
   <div class="query">Σύγκρινε τις διαθέσιμες προσφορές</div>
-  <p>Το <code>bid_comparison</code> ταξινόμησε δέκα προσφορές κατά τιμή και έδειξε ranked λίστα με τιμή (USD/EUR), ημέρες παράδοσης, όρους πληρωμής και κατάσταση.</p>
+  <p>Το <code>bid_comparison</code> έστειλε δέκα προσφορές στην Claude με structured output και έδειξε ranked λίστα με τιμή σε EUR, ημέρες παράδοσης, όρους πληρωμής, κατάσταση και μια σύντομη σύσταση ανάθεσης.</p>
   <figure>
     <img src="screenshots/doc_9.3_bid_comparison.png" alt="Σύγκριση προσφορών">
     <figcaption>9.3 · Σύγκριση προσφορών σε light mode, ταξινομημένη κατά τιμή.</figcaption>
@@ -967,12 +958,12 @@ make test</code></pre>
     <tr><td>Σύνολο προμηθευτών</td><td>12</td></tr>
     <tr><td>Μέση βαθμολογία</td><td>4.29 / 5.0</td></tr>
     <tr><td>Σύνολο προσφορών</td><td>16</td></tr>
-    <tr><td>Συνολική αξία προσφορών</td><td>$199,200.00 (€183,264.00)</td></tr>
+    <tr><td>Συνολική αξία προσφορών</td><td>€199,200.00</td></tr>
     <tr><td>Μέσος χρόνος παράδοσης</td><td>14.9 ημέρες</td></tr>
     <tr><td>Κατάσταση προσφορών</td><td>10 σε εκκρεμότητα · 4 αποδεκτές · 2 απορριφθείσες</td></tr>
   </table>
   <p>Οι δώδεκα κατηγορίες προμηθευτών καλύπτουν τυπικές ανάγκες φορέα του δημοσίου: γραφική ύλη και αναλώσιμα, είδη καθαρισμού, εκπαιδευτικό υλικό, ενεργειακός εξοπλισμός, εξοπλισμός IT, ιατρικά υλικά και εξοπλισμός, κατασκευές και συντήρηση, οχήματα και ανταλλακτικά, στολές και ένδυση, συστήματα ασφαλείας, τρόφιμα και ποτά, υπηρεσίες μεταφορών.</p>
-  <p style="font-size:9pt;color:var(--muted)">Η μετατροπή USD προς EUR γίνεται με σταθερή ισοτιμία 1 USD = 0.92 EUR, ορισμένη στο system prompt. Σε παραγωγή θα αντλούνταν από εξωτερική πηγή.</p>
+  <p style="font-size:9pt;color:var(--muted)">Όλες οι τιμές αποθηκεύονται και εμφανίζονται σε EUR, από τη MongoDB μέχρι την απάντηση· ο κανόνας CURRENCY του system prompt (v1.2 και μετά) απαγορεύει οποιαδήποτε μετατροπή σε USD. Οι προσφορές κυμαίνονται από €250.00 (μπλοκ σημειώσεων) έως €90,000.00 (ανεμογεννήτριες).</p>
   <figure>
     <img src="screenshots/doc_9.4_report_generation.png" alt="Αναφορά προμηθειών">
     <figcaption>9.4 · Συγκεντρωτική αναφορά προμηθειών.</figcaption>
@@ -986,19 +977,24 @@ make test</code></pre>
   <div class="rule-sm"></div>
 
   <h2>10.1 Πού βρίσκεται η ανάπτυξη</h2>
-  <p>Η Phase 2 ολοκληρώθηκε τον Αύγουστο του 2026 και περιλαμβάνει: ontology με δέκα Pydantic v2 μοντέλα, RBAC με JWT και τρεις ρόλους, multi-tenancy στο ChromaDB με ContextVar και where filter, audit log σε MongoDB με fire-and-forget εγγραφή, versioning των prompts με hot-reload, singleton Mongo client με lazy initialisation, και ασύγχρονο <code>document_qa</code>. Το CI είναι πράσινο με 159 tests.</p>
+  <p>Η Phase 2 ολοκληρώθηκε τον Αύγουστο του 2026 και περιλαμβάνει: structured outputs στο <code>bid_comparison</code> (Pydantic v2), RBAC με JWT και τρεις ρόλους, multi-tenancy στο ChromaDB με ContextVar και where filter, audit log σε MongoDB με fire-and-forget εγγραφή, versioning των prompts με hot-reload, singleton Mongo client με lazy initialisation, και ασύγχρονο <code>document_qa</code>. Το CI είναι πράσινο με 179 tests.</p>
 
   <h2>10.2 Τι δεν κάνει ακόμη</h2>
   <p>Το κόστος του LLM είναι το πιο χειροπιαστό όριο: η Claude χρεώνει περίπου $3/MTok στο input και $15/MTok στο output. Το prompt caching το μειώνει, δεν το εξαφανίζει· σε production θα ήθελε ένα Redis caching layer από πάνω.</p>
   <p>Το PDF parsing γίνεται μόνο σε κείμενο, με pypdf· σκαναρισμένα PDF χωρίς OCR δεν υποστηρίζονται. Το embedding model (text-embedding-3-small) είναι σχεδιασμένο κυρίως για αγγλικά, οπότε στα ελληνικά η ακρίβεια πέφτει λίγο.</p>
   <p>Η εγγραφή κλειδώνει επίτηδες: το UserCreate schema δέχεται μόνο <code>Literal["viewer"]</code>, και αίτημα με άλλο ρόλο επιστρέφει 422. Οι admin δημιουργούνται μέσω του lifespan (FIRST_SUPERUSER_EMAIL). Τέλος, τα demo δεδομένα εισάγονται με το <code>seed.py</code>· σε πραγματική χρήση θα χρειαζόταν σύνδεση με ΕΣΗΔΗΣ/ΚΗΜΔΗΣ.</p>
+  <p>Δύο ακόμη όρια αφορούν την αξιολόγηση:</p>
+  <ul>
+    <li>Το eval harness (<code>evals/run_evals.py</code>) μετρά παρουσία keywords και σωστή επιλογή tool, όχι σημασιολογική ορθότητα: δεν ελέγχει αν η απάντηση είναι θεμελιωμένη στις πηγές ούτε αν τα νούμερα είναι σωστά, οπότε το 17/18 του §7.9 είναι μέτρο δρομολόγησης και γλώσσας, όχι ποιότητας.</li>
+    <li>Οι δύο γύροι αξιολόγησης έτρεξαν με τοπικό <code>mongod</code> και τα seeded δεδομένα, όχι με το MongoDB Atlas της κανονικής εγκατάστασης· οι μετρήσεις latency και κόστους αντιστοιχούν σε αυτό το περιβάλλον.</li>
+  </ul>
 
   <h2>10.3 Τι έρχεται</h2>
   <h3>Phase 3, περισσότερα tools &amp; workflows</h3>
   <p>Νέα εργαλεία στον agent: αναζήτηση CPV, νομικός έλεγχος σε επίπεδο άρθρου του Ν.4412/2016, risk scoring, σύνοψη συμβάσεων, παραγωγή διακηρύξεων. Και μια μηχανή καταστάσεων για την έγκριση: Draft → Submitted → Under Review → Approved/Rejected.</p>
 
   <h3>Phase 4, governance &amp; observability</h3>
-  <p>Αυτόματο πλαίσιο αξιολόγησης (ragas/deepeval) για faithfulness, answer relevancy και context recall, πάνω σε ένα golden set (<code>evals/golden_set.json</code>: 18 ερωτήματα + 3 injection tests). Παράλληλα, ουρές με Redis και OCR (Tesseract) για να μπαίνουν στο pipeline και τα σκαναρισμένα PDF.</p>
+  <p>Αυτόματο πλαίσιο αξιολόγησης (ragas/deepeval) για faithfulness, answer relevancy και context recall, πάνω στο υπάρχον golden set (<code>evals/golden_set.json</code>: 18 ερωτήματα, εκ των οποίων 3 injection tests), που σήμερα ελέγχει μόνο keywords και routing (§7.9). Παράλληλα, ουρές με Redis και OCR (Tesseract) για να μπαίνουν στο pipeline και τα σκαναρισμένα PDF.</p>
 
   <h3>Phase 5, Pre-Award Legal Audit Module</h3>
   <p>Deterministic validation endpoint (<code>POST /api/tenders/audit</code>) που δέχεται προσχέδιο διακήρυξης και επιστρέφει structured risk report: νομικοί κίνδυνοι, ελλείπουσες υποχρεωτικές ρήτρες, τεχνικά κενά (ISO/EN), αναιτιολόγητοι αποκλεισμοί οικονομικών φορέων. Ξεχωριστό ChromaDB collection με Ν.4412/2016 και νομολογία ΕΑΔΗΣΥ (Ενιαία Αρχή Δημόσιων Συμβάσεων). Κάθε εντοπισμένος κίνδυνος φέρει υποχρεωτικό citation (article_ref + απόφαση ΕΑΔΗΣΥ). Σκοπός: μείωση lead time ανάθεσης και αποτροπή προδικαστικών προσφυγών. Decision-support only. Απαιτείται human-in-the-loop.</p>
