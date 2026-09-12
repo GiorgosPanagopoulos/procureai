@@ -1,4 +1,5 @@
 import asyncio
+import json
 import re
 import sys
 from types import SimpleNamespace
@@ -104,3 +105,59 @@ async def test_bid_comparison_without_category_queries_all_bids():
 
     assert fake_db.bids.find.call_args.args[0] == {}
     assert result == "No bids found in the system."
+
+
+def _structured_llm(result) -> MagicMock:
+    """Stand-in for claude_llm.with_structured_output(...).ainvoke(...)."""
+    chain = MagicMock()
+    chain.ainvoke = AsyncMock(
+        side_effect=result if isinstance(result, Exception) else None,
+        return_value=None if isinstance(result, Exception) else result,
+    )
+    llm = MagicMock()
+    llm.with_structured_output.return_value = chain
+    return llm
+
+
+async def test_bid_comparison_returns_structured_json():
+    from agent.tools import bid_comparison
+    from schemas import BidComparisonResult, RankedBid
+
+    parsed = BidComparisonResult(
+        bids=[
+            RankedBid(
+                supplier_id="s1",
+                total_price_usd=486.0,
+                total_price_eur=450.0,
+                delivery_days=3,
+                status="accepted",
+            )
+        ],
+        recommendation="Award to s1: lowest total price and fastest delivery.",
+    )
+    fake_db = _fake_bids_db([{"supplier_id": "s1", "total_price": 450.0, "delivery_days": 3}])
+    llm = _structured_llm(parsed)
+
+    with patch("agent.tools.db", fake_db), patch("agent.tools.claude_llm", llm):
+        observation = await bid_comparison.ainvoke("")
+
+    llm.with_structured_output.assert_called_once_with(BidComparisonResult)
+    assert json.loads(observation) == parsed.model_dump()
+
+
+async def test_bid_comparison_falls_back_to_plain_text_when_structured_call_fails():
+    from agent.tools import bid_comparison
+
+    fake_db = _fake_bids_db(
+        [
+            {"supplier_id": "expensive", "total_price": 900.0, "delivery_days": 2},
+            {"supplier_id": "cheap", "total_price": 100.0, "delivery_days": 9},
+        ]
+    )
+    llm = _structured_llm(RuntimeError("anthropic unavailable"))
+
+    with patch("agent.tools.db", fake_db), patch("agent.tools.claude_llm", llm):
+        observation = await bid_comparison.ainvoke("")
+
+    assert observation.startswith("Bid Comparison Results:")
+    assert observation.index("cheap") < observation.index("expensive")

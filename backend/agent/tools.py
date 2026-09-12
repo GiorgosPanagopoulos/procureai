@@ -1,4 +1,5 @@
 import asyncio
+import json
 import re
 from typing import Dict, List
 
@@ -10,15 +11,19 @@ from config import settings
 from core.chroma_tenant import get_active_user_id, get_user_filter
 from db import db
 from langchain_core.tools import tool
-from llm.clients import _raw_anthropic_async
+from llm.clients import _raw_anthropic_async, claude_llm
 from llm.pricing import MODEL_NAME, _current_usage
 from rag.embeddings import embed_text
 from rag.reranker import _get_reranker
 from rag.vectorstore import chroma_collection
+from schemas import BidComparisonResult
 
 from agent.prompt import get_doc_qa_system_prompt
 
 log = structlog.get_logger()
+
+# Static reference rate; bid totals are stored in euros (Greek public sector).
+EUR_TO_USD = 1.08
 
 
 @tool
@@ -120,6 +125,21 @@ async def document_qa(question: str) -> str:
     return answer + sources_note
 
 
+def _format_bids_text(bids: List[Dict]) -> str:
+    """Plain-text ranking used as the fallback observation when Claude is unavailable."""
+    ranked = sorted(bids, key=lambda b: (b.get("total_price", 0), b.get("delivery_days", 0)))
+    result = "Bid Comparison Results:\n"
+    for i, bid in enumerate(ranked, 1):
+        result += (
+            f"\n{i}. Supplier ID: {bid.get('supplier_id', 'N/A')}\n"
+            f"   Total Price: €{bid.get('total_price', 0):.2f}\n"
+            f"   Delivery Days: {bid.get('delivery_days', 'N/A')}\n"
+            f"   Terms: {bid.get('terms', 'N/A')}\n"
+            f"   Status: {bid.get('status', 'pending')}\n"
+        )
+    return result
+
+
 @tool
 async def bid_comparison(category: str = "") -> str:
     """Compare procurement bids ranked by price and delivery time.
@@ -136,22 +156,42 @@ async def bid_comparison(category: str = "") -> str:
             if category.strip():
                 return f"No bids found for category: {category.strip()}"
             return "No bids found in the system."
-        sorted_bids = sorted(
-            bids_list,
-            key=lambda x: (x.get("total_price", 0), x.get("delivery_days", 0)),
-        )
-        result = "Bid Comparison Results:\n"
-        for i, bid in enumerate(sorted_bids, 1):
-            result += (
-                f"\n{i}. Supplier ID: {bid.get('supplier_id', 'N/A')}\n"
-                f"   Total Price: ${bid.get('total_price', 0):.2f}\n"
-                f"   Delivery Days: {bid.get('delivery_days', 'N/A')}\n"
-                f"   Terms: {bid.get('terms', 'N/A')}\n"
-                f"   Status: {bid.get('status', 'pending')}\n"
-            )
-        return result
     except Exception as exc:
         return f"Error comparing bids: {exc}"
+
+    raw_bids = [
+        {
+            "supplier_id": str(bid.get("supplier_id", "")),
+            "category": bid.get("category", ""),
+            "total_price_eur": bid.get("total_price", 0),
+            "delivery_days": bid.get("delivery_days", 0),
+            "terms": bid.get("terms", ""),
+            "status": bid.get("status", "pending"),
+        }
+        for bid in bids_list
+    ]
+
+    sentry_sdk.add_breadcrumb(category="llm", message="LLM call start", level="info")
+    try:
+        with sentry_sdk.start_span(op="llm.invoke", description="Claude API call") as _span:
+            _span.set_data("model", MODEL_NAME)
+            _span.set_data("tool", "bid_comparison")
+            _span.set_data("bid_count", len(raw_bids))
+            # claude_llm carries _UsageCallback, which feeds _current_usage on
+            # on_llm_end; accumulating here as well would double-count the call.
+            structured = claude_llm.with_structured_output(BidComparisonResult)
+            result = await structured.ainvoke(
+                "Rank these procurement bids best-value first, weighing total price "
+                f"against delivery time, and recommend one.\n"
+                f"Prices are stored in euros; convert to USD at {EUR_TO_USD} USD per EUR.\n"
+                f"Bids:\n{json.dumps(raw_bids, ensure_ascii=False, indent=2)}"
+            )
+        if not isinstance(result, BidComparisonResult):
+            raise TypeError(f"Unexpected structured output type: {type(result).__name__}")
+        return result.model_dump_json(indent=2)
+    except Exception as exc:
+        log.warning("bid_comparison_structured_failed", error=str(exc))
+        return _format_bids_text(bids_list)
 
 
 @tool
