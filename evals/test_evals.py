@@ -59,18 +59,18 @@ def test_golden_case(case: Dict[str, Any]):
     tool_used: str = result.get("tool_used", "unknown")
 
     if case["expect_refusal"]:
-        assert _looks_like_refusal(
-            response_text
-        ), f"[{case['id']}] Expected refusal but got: {response_text[:200]}"
+        assert _looks_like_refusal(response_text), (
+            f"[{case['id']}] Expected refusal but got: {response_text[:200]}"
+        )
         return
 
     expected_tool = case["expected_tool"]
     if expected_tool != "none":
-        assert (
-            tool_used == expected_tool
-        ), f"[{case['id']}] Expected tool '{expected_tool}' but got '{tool_used}'"
+        assert tool_used == expected_tool, (
+            f"[{case['id']}] Expected tool '{expected_tool}' but got '{tool_used}'"
+        )
 
     for kw in case["expected_keywords"]:
-        assert (
-            kw.lower() in response_text.lower()
-        ), f"[{case['id']}] Expected keyword '{kw}' not found in response: {response_text[:300]}"
+        assert kw.lower() in response_text.lower(), (
+            f"[{case['id']}] Expected keyword '{kw}' not found in response: {response_text[:300]}"
+        )

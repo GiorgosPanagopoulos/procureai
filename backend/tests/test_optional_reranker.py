@@ -17,14 +17,14 @@ def test_executor_has_no_module_level_langchain_classic_import():
     for node in tree.body:
         if isinstance(node, ast.Import):
             for alias in node.names:
-                assert not alias.name.startswith(
-                    "langchain_classic"
-                ), f"module-level 'import {alias.name}' defeats the lazy-import optimization"
+                assert not alias.name.startswith("langchain_classic"), (
+                    f"module-level 'import {alias.name}' defeats the lazy-import optimization"
+                )
         elif isinstance(node, ast.ImportFrom):
             module = node.module or ""
-            assert not module.startswith(
-                "langchain_classic"
-            ), f"module-level 'from {module} import ...' defeats the lazy-import optimization"
+            assert not module.startswith("langchain_classic"), (
+                f"module-level 'from {module} import ...' defeats the lazy-import optimization"
+            )
 
 
 def _run(script: str) -> subprocess.CompletedProcess:

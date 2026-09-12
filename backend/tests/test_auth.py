@@ -102,6 +102,6 @@ async def test_login_does_not_create_new_mongo_client(client: AsyncClient, test_
         )
 
     assert res.status_code == 200
-    assert (
-        mock_client.call_count == 0
-    ), "AsyncIOMotorClient was instantiated during /auth/login — singleton not being reused"
+    assert mock_client.call_count == 0, (
+        "AsyncIOMotorClient was instantiated during /auth/login — singleton not being reused"
+    )
