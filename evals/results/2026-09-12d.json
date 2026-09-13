@@ -1,0 +1,153 @@
+{
+  "date": "2026-09-13",
+  "url": "http://localhost:8000",
+  "cases": 18,
+  "passed": 18,
+  "pass_rate": 100.0,
+  "avg_latency_s": 13.31,
+  "avg_cost_usd": 0.021138,
+  "total_cost_usd": 0.380484,
+  "results": [
+    {
+      "id": "q01",
+      "passed": true,
+      "reason": "",
+      "tool": "document_qa",
+      "elapsed": 24.899142026901245,
+      "cost": 0.025587
+    },
+    {
+      "id": "q02",
+      "passed": true,
+      "reason": "",
+      "tool": "bid_comparison",
+      "elapsed": 26.723002910614014,
+      "cost": 0.04266
+    },
+    {
+      "id": "q03",
+      "passed": true,
+      "reason": "",
+      "tool": "supplier_lookup",
+      "elapsed": 10.587306022644043,
+      "cost": 0.019941
+    },
+    {
+      "id": "q04",
+      "passed": true,
+      "reason": "",
+      "tool": "report_generation",
+      "elapsed": 10.183810234069824,
+      "cost": 0.017925
+    },
+    {
+      "id": "q05",
+      "passed": true,
+      "reason": "",
+      "tool": "document_qa",
+      "elapsed": 16.70312237739563,
+      "cost": 0.021204
+    },
+    {
+      "id": "q06",
+      "passed": true,
+      "reason": "",
+      "tool": "supplier_lookup",
+      "elapsed": 6.284859895706177,
+      "cost": 0.014745
+    },
+    {
+      "id": "q07",
+      "passed": true,
+      "reason": "",
+      "tool": "bid_comparison",
+      "elapsed": 20.069788694381714,
+      "cost": 0.037434
+    },
+    {
+      "id": "q08",
+      "passed": true,
+      "reason": "",
+      "tool": "supplier_lookup",
+      "elapsed": 12.732010126113892,
+      "cost": 0.024306
+    },
+    {
+      "id": "q09",
+      "passed": true,
+      "reason": "",
+      "tool": "report_generation",
+      "elapsed": 10.801805257797241,
+      "cost": 0.01848
+    },
+    {
+      "id": "q10",
+      "passed": true,
+      "reason": "",
+      "tool": "document_qa",
+      "elapsed": 16.003540992736816,
+      "cost": 0.021147
+    },
+    {
+      "id": "q11",
+      "passed": true,
+      "reason": "",
+      "tool": "supplier_lookup",
+      "elapsed": 9.214865922927856,
+      "cost": 0.01968
+    },
+    {
+      "id": "q12",
+      "passed": true,
+      "reason": "",
+      "tool": "bid_comparison",
+      "elapsed": 21.831122875213623,
+      "cost": 0.038625
+    },
+    {
+      "id": "q13",
+      "passed": true,
+      "reason": "",
+      "tool": "bid_comparison",
+      "elapsed": 23.69965410232544,
+      "cost": 0.044151
+    },
+    {
+      "id": "q14",
+      "passed": true,
+      "reason": "",
+      "tool": "unknown",
+      "elapsed": 3.499948024749756
+    },
+    {
+      "id": "q15",
+      "passed": true,
+      "reason": "",
+      "tool": "unknown",
+      "elapsed": 5.947880983352661
+    },
+    {
+      "id": "q16",
+      "passed": true,
+      "reason": "",
+      "tool": "unknown",
+      "elapsed": 4.762587785720825
+    },
+    {
+      "id": "q17",
+      "passed": true,
+      "reason": "",
+      "tool": "supplier_lookup",
+      "elapsed": 10.459514141082764,
+      "cost": 0.021846
+    },
+    {
+      "id": "q18",
+      "passed": true,
+      "reason": "",
+      "tool": "report_generation",
+      "elapsed": 5.26215124130249,
+      "cost": 0.012753
+    }
+  ]
+}
