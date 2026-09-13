@@ -119,11 +119,15 @@ async def test_document_qa_clamps_n_results_to_collection_size():
     assert "Sources: law.pdf" in observation
 
 
-def _fake_collection(docs, total: Optional[int] = None) -> MagicMock:
-    """Stand-in for a Motor collection: count_documents(q) and find(q).limit(n).to_list(length=n).
+def _fake_collection(
+    docs, total: Optional[int] = None, categories: Optional[list] = None
+) -> MagicMock:
+    """Stand-in for a Motor collection: count_documents(q), find(q).limit(n).to_list(length=n)
+    and distinct("category").
 
     `total` is what count_documents reports; it defaults to len(docs) (nothing
     truncated) and can be set higher to simulate a match set beyond the limit.
+    `categories` is what distinct("category") reports for the whole collection.
     """
     cursor = MagicMock()
     cursor.limit.return_value = cursor
@@ -131,15 +135,20 @@ def _fake_collection(docs, total: Optional[int] = None) -> MagicMock:
     return MagicMock(
         find=MagicMock(return_value=cursor),
         count_documents=AsyncMock(return_value=len(docs) if total is None else total),
+        distinct=AsyncMock(return_value=categories or []),
     )
 
 
-def _fake_bids_db(bids, total: Optional[int] = None) -> MagicMock:
-    return MagicMock(bids=_fake_collection(bids, total))
+def _fake_bids_db(
+    bids, total: Optional[int] = None, categories: Optional[list] = None
+) -> MagicMock:
+    return MagicMock(bids=_fake_collection(bids, total, categories))
 
 
-def _fake_suppliers_db(suppliers, total: Optional[int] = None) -> MagicMock:
-    return MagicMock(suppliers=_fake_collection(suppliers, total))
+def _fake_suppliers_db(
+    suppliers, total: Optional[int] = None, categories: Optional[list] = None
+) -> MagicMock:
+    return MagicMock(suppliers=_fake_collection(suppliers, total, categories))
 
 
 def _bid(i: int) -> dict:
@@ -162,7 +171,41 @@ async def test_bid_comparison_applies_category_filter():
     mongo_query = fake_db.bids.find.call_args.args[0]
     assert mongo_query["category"]["$options"] == "i"
     assert mongo_query["category"]["$regex"] == re.escape("Εξοπλισμός IT")
-    assert "Εξοπλισμός IT" in result
+    assert result == "No bids found for category: Εξοπλισμός IT."
+
+
+async def test_bid_comparison_lists_real_categories_when_filter_matches_nothing():
+    # Eval q07 ("Show me bids for medical equipment"): categories are Greek labels, so
+    # the agent tried "medical equipment", "Medical", "medical supplies", "healthcare"
+    # and then supplier_lookup("Medical"), hit the 5-iteration cap and answered
+    # "Agent stopped due to iteration limit". The observation must name the labels so
+    # the next call can use one.
+    from agent.tools import bid_comparison
+
+    fake_db = _fake_bids_db(
+        [], categories=["Εξοπλισμός IT", "Ιατρικά Υλικά & Εξοπλισμός", "", "Γραφική Ύλη"]
+    )
+    with patch("agent.tools.db", fake_db):
+        observation = await bid_comparison.ainvoke("medical equipment")
+
+    fake_db.bids.distinct.assert_awaited_once_with("category")
+    assert observation.startswith("No bids found for category: medical equipment.")
+    assert (
+        "Categories in the system are: Γραφική Ύλη, Εξοπλισμός IT, Ιατρικά Υλικά & Εξοπλισμός."
+        in observation
+    )
+    assert "Retry with one of these labels" in observation
+    assert "'Γραφική'" in observation
+
+
+async def test_bid_comparison_no_match_without_categories_stays_short():
+    from agent.tools import bid_comparison
+
+    fake_db = _fake_bids_db([])
+    with patch("agent.tools.db", fake_db):
+        observation = await bid_comparison.ainvoke("medical equipment")
+
+    assert observation == "No bids found for category: medical equipment."
 
 
 async def test_bid_comparison_escapes_regex_metacharacters():
@@ -341,6 +384,31 @@ async def test_supplier_lookup_labels_truncated_results():
         "Supplier Lookup Results (showing 10 of 16 matching suppliers; results truncated):"
     )
     assert observation.count("\n   Rating:") == 10
+
+
+async def test_supplier_lookup_lists_real_categories_when_filter_matches_nothing():
+    # Same dead end as bid_comparison in eval q07: supplier_lookup("Medical") returned
+    # "No suppliers found" against Greek category labels.
+    from agent.tools import supplier_lookup
+
+    fake_db = _fake_suppliers_db([], categories=["Ιατρικά Υλικά & Εξοπλισμός", "Εξοπλισμός IT"])
+    with patch("agent.tools.db", fake_db):
+        observation = await supplier_lookup.ainvoke("Medical")
+
+    fake_db.suppliers.distinct.assert_awaited_once_with("category")
+    assert observation.startswith("No suppliers found for category: Medical.")
+    assert "Categories in the system are: Εξοπλισμός IT, Ιατρικά Υλικά & Εξοπλισμός." in observation
+
+
+async def test_supplier_lookup_rating_filter_no_match_does_not_list_categories():
+    from agent.tools import supplier_lookup
+
+    fake_db = _fake_suppliers_db([], categories=["Εξοπλισμός IT"])
+    with patch("agent.tools.db", fake_db):
+        observation = await supplier_lookup.ainvoke("rating:4.9")
+
+    fake_db.suppliers.distinct.assert_not_awaited()
+    assert observation == "No suppliers found matching: rating:4.9"
 
 
 async def test_supplier_lookup_reports_full_set_when_not_truncated():

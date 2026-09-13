@@ -131,6 +131,25 @@ async def document_qa(question: str) -> str:
     return answer + sources_note
 
 
+async def _no_match_hint(collection, label: str, requested: str) -> str:
+    """Observation for a category filter that matched nothing.
+
+    Categories are stored as Greek labels ("Ιατρικά Υλικά & Εξοπλισμός"), so an
+    English filter such as "medical equipment" never matches. Listing the real
+    labels lets the agent retry once with one of them instead of guessing
+    synonyms until it hits the iteration cap (eval q07, 2026-09-12c).
+    """
+    categories = sorted(c for c in await collection.distinct("category") if c)
+    message = f"No {label} found for category: {requested}."
+    if not categories:
+        return message
+    return (
+        f"{message} Categories in the system are: {', '.join(categories)}. "
+        "Retry with one of these labels (a distinctive part of it, such as "
+        f"'{categories[0].split()[0]}', is enough)."
+    )
+
+
 def _format_bids_text(bids: List[Dict], total_matched: int) -> str:
     """Plain-text ranking used as the fallback observation when Claude is unavailable."""
     ranked = sorted(bids, key=lambda b: (b.get("total_price", 0), b.get("delivery_days", 0)))
@@ -172,7 +191,7 @@ async def bid_comparison(category: str = "") -> str:
         bids_list = await db.bids.find(mongo_query).limit(_BID_LIMIT).to_list(length=_BID_LIMIT)
         if not bids_list:
             if category.strip():
-                return f"No bids found for category: {category.strip()}"
+                return await _no_match_hint(db.bids, "bids", category.strip())
             return "No bids found in the system."
     except Exception as exc:
         return f"Error comparing bids: {exc}"
@@ -247,6 +266,8 @@ async def supplier_lookup(query: str = "") -> str:
             .to_list(length=_SUPPLIER_LIMIT)
         )
         if not suppliers_list:
+            if "category" in mongo_query:
+                return await _no_match_hint(db.suppliers, "suppliers", query.strip())
             return f"No suppliers found matching: {query}"
 
         sorted_s = sorted(suppliers_list, key=lambda x: x.get("rating", 0), reverse=True)
