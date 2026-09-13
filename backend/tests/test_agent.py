@@ -329,6 +329,32 @@ def test_chat_prompt_answers_in_the_language_of_the_message():
     assert "Respond in Greek when the user writes in Greek." not in template
 
 
+def test_chat_prompt_keeps_document_currency_and_formats_database_prices_as_eur():
+    # v1.5 rule: the v1.2 "all prices are EUR" rule made the agent relabel document
+    # figures. In eval q01 (2026-09-12c) document_qa quoted "$875,500.00 USD" from
+    # contract_techsupply.pdf and the final answer printed "€875,500.00" — same number,
+    # swapped symbol. The prompt must state both halves: database prices are EUR,
+    # document figures keep the currency the document states.
+    from agent.prompt import get_react_prompt
+
+    template = get_react_prompt().template
+    currency_rules = template.split("CURRENCY RULES")[1].split("TOOL SELECTION RULES")[0]
+
+    database_rule = next(line for line in currency_rules.splitlines() if "database" in line)
+    for tool_name in ("bid_comparison", "supplier_lookup", "report_generation"):
+        assert tool_name in database_rule
+    assert "in EUR" in database_rule
+    assert "€ with two decimals" in database_rule
+
+    document_rule = next(line for line in currency_rules.splitlines() if "document_qa" in line)
+    assert "keep the currency stated in the document" in document_rule
+    assert "Never relabel them and never convert them" in document_rule
+    assert "if a document says USD, say USD and name the source document" in document_rule
+
+    # The old blanket rule must be gone: it is what produced the relabelling.
+    assert "All prices are in EUR" not in template
+
+
 def test_chat_prompt_routes_aggregate_questions_to_report_generation():
     # v1.4 rule: eval case q18 ("What is the total value of all bids in the system?")
     # went to bid_comparison in both 2026-09-12 runs, and the same happens in the UI
@@ -350,4 +376,4 @@ def test_chat_prompt_routes_aggregate_questions_to_report_generation():
     assert "specific subset" in comparison_rule
     assert 'Never use it to answer "all bids" or "total" questions' in comparison_rule
 
-    assert prompt_loader.get_with_metadata("chat").metadata.version == "v1.4"
+    assert prompt_loader.get_with_metadata("chat").metadata.version == "v1.5"
