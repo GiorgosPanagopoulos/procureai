@@ -25,7 +25,7 @@
 
 ---
 
-ProcureAI is an AI-powered procurement assistant built for Greek public sector organizations. It answers natural language queries about public contracts, processes documents published on **ΚΗΜΔΗΣ** and **ΕΣΗΔΗΣ**, and applies **N.4412/2016** (Public Contracts for Works, Supplies and Services) as the authoritative legal basis for every response. The system includes production-grade RBAC (3 roles), audit logging, and prompt versioning — backed by 179 tests across all modules.
+ProcureAI is an AI-powered procurement assistant built for Greek public sector organizations. It answers natural language queries about public contracts, processes documents published on **ΚΗΜΔΗΣ** and **ΕΣΗΔΗΣ**, and applies **N.4412/2016** (Public Contracts for Works, Supplies and Services) as the authoritative legal basis for every response. The system includes production-grade RBAC (3 roles), audit logging, and prompt versioning — backed by 199 tests across all modules.
 
 ---
 
@@ -194,11 +194,13 @@ input-token cost and latency on cache hits — tracked per-request via the usage
 ### File-based prompt versioning
 
 Prompts live as plain text files under `backend/prompts/<use_case>/<version>.txt` (e.g.
-`prompts/chat/v1.txt`, `prompts/doc_qa/v1.txt`), each with a small metadata header (`# created:`,
-`# description:`) parsed by `PromptLoader` (`core/prompt_loader.py`). The loader caches all
-prompts in memory at startup and exposes `get(use_case, version)`; prompts are version-controlled
-and diff-able like code, with no DB round-trip to fetch them. `GET /admin/prompts` (Admin-only)
-lists all loaded versions and their metadata for inspection, and
+`prompts/chat/v1.txt`, `prompts/doc_qa/v1.txt`), each with a small metadata header (`# version:`,
+`# created:`, `# description:`) parsed by `PromptLoader` (`core/prompt_loader.py`). The loader caches
+all prompts in memory at startup and exposes `get(use_case, version)`; prompts are version-controlled
+and diff-able like code, with no DB round-trip to fetch them. The chat prompt is currently at
+**v1.6** — every version from v1.3 on came out of a specific golden-set failure, with the header
+keeping one changelog line per version (see [Evaluation](#-evaluation)).
+`GET /admin/prompts` (Admin-only) lists all loaded versions and their metadata for inspection, and
 `GET /admin/prompts/{use_case}/{version}` (Admin-only) fetches a single version's full text and
 metadata.
 
@@ -443,14 +445,14 @@ procureai/
 │   ├── auth/                   # JWT auth, role enforcement, RBAC Depends() decorators
 │   ├── audit/                  # Fire-and-forget audit log writer + MongoDB collection
 │   ├── prompts/                # Versioned prompt files, one subdir per use case
-│   │   ├── chat/                    # v1.txt — ReAct agent system prompt
+│   │   ├── chat/                    # v1.txt — ReAct agent system prompt (v1.6)
 │   │   └── doc_qa/                  # v1.txt — document Q&A system prompt
 │   ├── security/               # PII redaction
 │   ├── core/                   # RBAC, audit, prompt loader, Sentry init
 │   ├── crud/                   # DB operations
 │   ├── api/routes/             # Auth router
 │   ├── utils/                  # Lazy-loading helpers
-│   ├── tests/                  # 191 pytest tests across all modules
+│   ├── tests/                  # 199 pytest tests across all modules
 │   ├── data/
 │   │   ├── pdfs/               # Sample procurement contracts & N.4412/2016 excerpts
 │   │   └── seed.py             # MongoDB seed script (--force wipes and re-seeds)
@@ -516,33 +518,48 @@ Key technical decisions:
 The golden set in [`evals/golden_set.json`](evals/golden_set.json) is run against a live backend
 with `python evals/run_evals.py --out evals/results/<date>.json` (see the script's docstring for
 the login and rate-limit handling). Raw per-case output is committed under
-[`evals/results/`](evals/results/). Both runs below used `claude-sonnet-4-6`, local MongoDB with
-the seeded sample data (12 suppliers, 16 bids) and a local ChromaDB with 8 chunks.
+[`evals/results/`](evals/results/). All five runs below used `claude-sonnet-4-6` and local MongoDB
+with the seeded sample data (12 suppliers, 16 bids). Runs 1–2 ran against a local ChromaDB holding
+8 chunks; runs 3–5 against the 24 chunks ingested from the 7 sample PDFs in `backend/data/pdfs/`
+by `python scripts/ingest_pdfs.py`.
 
-| Run | Prompt | Pass rate | Tool routing | Injection refusals | Avg latency | Avg cost / query |
-|-----|--------|-----------|--------------|--------------------|-------------|------------------|
-| [1 · 2026-09-12](evals/results/2026-09-12.json) | chat v1.2 | **3 / 18 (17%)** | 14 / 15 | 0 / 3 | 16.7 s | $0.021 (total $0.38) |
-| [2 · 2026-09-12b](evals/results/2026-09-12b.json) | chat v1.3 | **17 / 18 (94%)** | 14 / 15 | 3 / 3 | 15.6 s | $0.021 (total $0.38) |
+| Run | Date | Prompt | Pass rate | Tool routing | Injection refusals | Avg latency | Avg cost / query |
+|-----|------|--------|-----------|--------------|--------------------|-------------|------------------|
+| [1](evals/results/2026-09-12.json) | 2026-09-12 | chat v1.2 | **3 / 18 (17%)** | 14 / 15 | 0 / 3 | 16.7 s | $0.021 (total $0.38) |
+| [2](evals/results/2026-09-12b.json) | 2026-09-12 | chat v1.3 | **17 / 18 (94%)** | 14 / 15 | 3 / 3 | 15.6 s | $0.021 (total $0.38) |
+| [3](evals/results/2026-09-12c.json) | 2026-09-12 | chat v1.4 | **15 / 18 (83%)** | 13 / 15 | 3 / 3 | 12.6 s | $0.018 (total $0.33) |
+| [4](evals/results/2026-09-12d.json) | 2026-09-13 | chat v1.5 | **18 / 18 (100%)** | 15 / 15 | 3 / 3 | 13.3 s | $0.021 (total $0.38) |
+| [5](evals/results/2026-09-12e.json) | 2026-09-13 | chat v1.6 | **18 / 18 (100%)** | 15 / 15 | 3 / 3 | 11.9 s | $0.020 (total $0.35) |
 
 Run 1 failed on language, not behaviour: the v1.2 prompt only said "respond in Greek when the user
 writes in Greek", so 16/18 English queries came back in Greek while the harness matches English
 keywords and English refusal phrases (all three injection cases *were* refused, in Greek). v1.3
-replaced that line with "always respond in the language of the user's message", which is the only
-change between the two runs. Tool routing counts the 15 non-injection cases (the refusal cases route
-to no tool). Note what the golden set measures: keyword presence and tool routing, not answer
+replaced that line with "always respond in the language of the user's message", the only change
+between the first two runs, and run 2 passed 17/18 — the one miss being q18 ("What is the total
+value of all bids in the system?"), which routed to `bid_comparison` instead of
+`report_generation`. v1.4 fixed that but overcorrected: its "all bids" wording pulled q12
+("average delivery time across all bids") and q13 ("show accepted bids") into `report_generation`
+as well, and q07 ("bids for medical equipment") burned all five iterations guessing English
+category names against Greek labels, leaving run 3 at 15/18. The same run exposed a currency bug
+that the harness had passed — q01 reported the contracts' `$875,500.00 USD` and `$2,450,000.00 USD`
+as euros. v1.5 narrowed the routing rule (totals, counts and status breakdowns to
+`report_generation`; ranking, comparison, listing and filtering to `bid_comparison`) and split the
+currency rule per source, and a code fix listed the existing category labels when a filter matched
+nothing; run 4 passed 18/18. That 18/18 still hid a wrong number: q12's "average delivery time"
+was computed over the 10 of 16 bids `bid_comparison` returns. v1.6 treats averages as aggregates
+too and routes them to `report_generation`, the golden set's expected tool for q12 was corrected
+to match, and run 5 passed 18/18 with the average taken over all 16 bids, q13 and q18 still on
+their own tools. Tool routing counts the 15 non-injection cases (the refusal cases route to no
+tool). Note what the golden set measures: keyword presence and tool routing, not answer
 quality — a "not found" answer that repeats the question's words still passes, and groundedness and
-numeric correctness are not checked.
-
-Remaining failure in run 2:
-
-- **q18** — "What is the total value of all bids in the system?" went to `bid_comparison` instead of
-  `report_generation` (same miss as run 1; the answer itself contained the expected keywords).
+numeric correctness are not checked. The q01 currency error and the q12 average were both found by
+reading the stored answers, not by the harness.
 
 ---
 
 ## 🔭 Roadmap
 
-### ✅ Phase 2 — Domain Intelligence (Complete · 179 tests)
+### ✅ Phase 2 — Domain Intelligence (Complete · 199 tests)
 - Structured outputs — bid_comparison returns a validated Pydantic v2 model as the agent's observation
 - RBAC — Admin / Procurement Officer / Viewer roles, JWT-embedded, enforced via FastAPI Depends()
 - ChromaDB multi-tenancy — per-user document isolation via where={user_id} + ContextVar threading
