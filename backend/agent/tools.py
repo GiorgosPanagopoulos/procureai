@@ -176,11 +176,11 @@ async def bid_comparison(category: str = "") -> str:
     """Rank or compare submitted bids by price and delivery time, and recommend one.
     Returns the individual bids as a ranked list, so use it for comparing, ranking,
     listing or filtering bids (e.g. 'the bids for IT hardware', 'accepted bids',
-    'delivery times across all bids'), including when the comparison spans every
-    bid. Input: a category filter (e.g. 'office equipment', 'IT hardware'), or an
-    empty string for the full ranked set. Not for dataset-wide totals, counts or
-    status breakdowns: those belong to report_generation, since this tool only
-    sees a capped page of matches."""
+    'which bid delivers fastest'), including when the comparison spans every bid.
+    Input: a category filter (e.g. 'office equipment', 'IT hardware'), or an
+    empty string for the full ranked set. Not for dataset-wide totals, averages,
+    counts or status breakdowns: those belong to report_generation, since this
+    tool only sees a capped page of matches."""
     try:
         mongo_query: Dict = {}
         if category.strip():
@@ -293,7 +293,11 @@ async def supplier_lookup(query: str = "") -> str:
 @tool
 async def report_generation(report_type: str = "procurement") -> str:
     """Generate a structured procurement summary report from live MongoDB data.
-    Input: report type, e.g. 'procurement', 'summary', or 'full'."""
+    Reads every supplier and bid and returns the dataset-wide aggregates: supplier
+    count and average rating, bid count, total bid value, average delivery time
+    in days, and the status distribution. Use it for any total, average, count or
+    status breakdown across all bids. Input: report type, e.g. 'procurement',
+    'summary', or 'full'."""
     try:
         suppliers_list = await db.suppliers.find({}).to_list(length=None)
         bids_list = await db.bids.find({}).to_list(length=None)

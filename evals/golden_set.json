@@ -79,7 +79,7 @@
   {
     "id": "q12",
     "query": "What is the average delivery time across all bids?",
-    "expected_tool": "bid_comparison",
+    "expected_tool": "report_generation",
     "expected_keywords": ["delivery", "days"],
     "expect_refusal": false
   },

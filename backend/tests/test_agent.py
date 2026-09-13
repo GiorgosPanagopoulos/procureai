@@ -357,11 +357,12 @@ def test_chat_prompt_keeps_document_currency_and_formats_database_prices_as_eur(
 
 def test_chat_prompt_separates_aggregates_from_bid_comparisons():
     # v1.4 sent q18 ("total value of all bids") to report_generation, but its "all bids"
-    # wording also pulled q12 ("average delivery time across all bids") and q13 ("show
-    # accepted bids") there (2026-09-12c: 17/18 → 15/18). v1.5 narrows it: only totals,
-    # counts and status breakdowns are aggregates; ranking, comparing, listing or
-    # filtering bids is bid_comparison even when the request spans every bid, because
-    # it returns a ranked list rather than one figure.
+    # wording also pulled q13 ("show accepted bids") there (2026-09-12c: 17/18 → 15/18).
+    # v1.5 narrowed it to totals, counts and status breakdowns, but listed "delivery
+    # times across all bids" under bid_comparison, so q12 ("average delivery time across
+    # all bids") was answered from the 10-of-16 bids the tool returns. v1.6: an average
+    # over all bids is an aggregate and goes to report_generation; ranking, comparing,
+    # listing or filtering bids stays with bid_comparison even when it spans every bid.
     from agent.prompt import get_react_prompt
     from core.prompt_loader import prompt_loader
 
@@ -370,7 +371,8 @@ def test_chat_prompt_separates_aggregates_from_bid_comparisons():
 
     aggregate_rule = next(line for line in rules.splitlines() if "total value of all bids" in line)
     assert "ALWAYS use report_generation" in aggregate_rule
-    assert "totals, sums, counts and status breakdowns across ALL bids" in aggregate_rule
+    assert "totals, sums, averages, counts and status breakdowns across ALL bids" in aggregate_rule
+    assert '"average delivery time across all bids"' in aggregate_rule
     assert "συνοπτική αναφορά όλων των προσφορών" in aggregate_rule
     # The v1.4 catch-alls that misrouted q12/q13 must not come back.
     for cue in ("overviews", "statistics across the whole dataset", '"summary of all bids"'):
@@ -382,11 +384,13 @@ def test_chat_prompt_separates_aggregates_from_bid_comparisons():
     assert "returns the individual bids as a ranked list" in comparison_rule
     assert "empty string for the full ranked set" in comparison_rule
     assert '"show accepted bids"' in comparison_rule
-    assert '"delivery times across all bids"' in comparison_rule
+    # The v1.5 example that sent averages to the capped tool must not come back.
+    assert "delivery times across all bids" not in comparison_rule
+    assert "an average" in comparison_rule
     assert "Never use it" not in comparison_rule
     assert "specific subset" not in comparison_rule
 
-    assert prompt_loader.get_with_metadata("chat").metadata.version == "v1.5"
+    assert prompt_loader.get_with_metadata("chat").metadata.version == "v1.6"
 
 
 def test_bid_comparison_description_matches_routing_rules():
@@ -398,5 +402,20 @@ def test_bid_comparison_description_matches_routing_rules():
     description = " ".join(bid_comparison.description.split())
     assert "including when the comparison spans every bid" in description
     assert "empty string for the full ranked set" in description
-    assert "totals, counts or status breakdowns: those belong to report_generation" in description
+    assert (
+        "totals, averages, counts or status breakdowns: those belong to report_generation"
+        in description
+    )
+    assert "delivery times across all bids" not in description
     assert "overviews" not in description
+
+
+def test_report_generation_description_names_its_aggregates():
+    # q12 ("average delivery time across all bids") routes on the docstring as much as
+    # on the prompt: the agent has to see that the average is computed here.
+    from agent.tools import report_generation
+
+    description = " ".join(report_generation.description.split())
+    assert "Reads every supplier and bid" in description
+    assert "average delivery time" in description
+    assert "any total, average, count or status breakdown across all bids" in description

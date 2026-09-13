@@ -421,3 +421,18 @@ async def test_supplier_lookup_reports_full_set_when_not_truncated():
 
     assert observation.startswith("Supplier Lookup Results (2 found):")
     assert "truncated" not in observation
+
+
+async def test_report_generation_averages_delivery_over_every_bid():
+    """q12 (2026-09-12d) passed via bid_comparison with an average over 10 of 16 bids.
+    The report reads the whole collection, so its average must cover every bid."""
+    from agent.tools import report_generation
+
+    bids = [_bid(i) for i in range(1, 17)]  # delivery_days 1..16, mean 8.5
+    fake_db = MagicMock(suppliers=_fake_collection([]), bids=_fake_collection(bids))
+    with patch("agent.tools.db", fake_db):
+        result = await report_generation.ainvoke("summary")
+
+    fake_db.bids.find.return_value.to_list.assert_awaited_once_with(length=None)
+    assert "- Total Bids: 16" in result
+    assert "- Average Delivery Time: 8.5 days" in result
