@@ -568,16 +568,16 @@ reading the stored answers, not by the harness.
 - Security: admin self-assignment gap closed on /register — UserCreate schema enforces Literal["viewer"], HTTP 422 on violation, admin seeding via lifespan only
 
 ### 🔜 Phase 3 — Enterprise Workflows
-- Tool-calling agent: AgentExecutor with dedicated tools for CPV code lookup, legal validation (Ν.4412/2016), supplier lookup, risk scoring, contract summarization, tender generation
+- More agent tools on top of the ReAct agent already shipped in Phase 2 (`supplier_lookup`, `bid_comparison`, `document_qa`, `report_generation`): CPV code lookup, article-level legal validation against Ν.4412/2016, risk scoring, contract summarization, tender generation
 - Approval chain engine with state machine: procurement request → Manager → Legal → Finance → Final Approval
 
 ### 🔜 Phase 4 — Governance & Observability
-- LLM evaluation framework with golden test set based on Ν.4412/2016 (groundedness, hallucination rate, compliance accuracy)
-- Async processing pipeline: Redis queues + OCR for PDF ingestion, embeddings generation, and vendor scoring
+- Semantic eval metrics over the existing golden set — ragas/deepeval for faithfulness, answer relevancy and context recall. [`evals/golden_set.json`](evals/golden_set.json) (18 cases, 3 of them injection tests), [`evals/run_evals.py`](evals/run_evals.py) and five recorded runs are already in the repo, but they check keyword presence and tool routing only (see [Evaluation](#-evaluation))
+- Async processing pipeline: Redis queues + OCR (Tesseract) so scanned PDFs enter the pipeline — ingestion and embedding today are synchronous and text-only (`scripts/ingest_pdfs.py`, `POST /upload`) — plus queued vendor scoring
 
 ### 🔜 Phase 5 — Pre-Award Legal Audit Module 🛡️
 - Deterministic legal-validation endpoint (`POST /api/tenders/audit`) that accepts a draft tender notice and returns a structured risk report
-- Separate ChromaDB collection: Ν.4412/2016 (articles) + ΕΑΔΗΣΥ case law (Hellenic Single Public Procurement Authority)
+- Dedicated ChromaDB collection for the audit: full Ν.4412/2016 articles + ΕΑΔΗΣΥ case law (Hellenic Single Public Procurement Authority) — today's law excerpts share the `system` documents that `document_qa` reads
 - Gap analysis: legal risks, missing mandatory clauses, technical gaps (ISO/EN), unjustified exclusions
 - Structured output with mandatory citations per risk (`article_ref` + source decision)
 - Business value: reduced award lead time, avoidance of pre-contractual appeals (ΕΑΔΗΣΥ) and litigation costs (Council of State)
