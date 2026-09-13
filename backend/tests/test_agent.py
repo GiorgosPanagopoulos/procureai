@@ -355,11 +355,13 @@ def test_chat_prompt_keeps_document_currency_and_formats_database_prices_as_eur(
     assert "All prices are in EUR" not in template
 
 
-def test_chat_prompt_routes_aggregate_questions_to_report_generation():
-    # v1.4 rule: eval case q18 ("What is the total value of all bids in the system?")
-    # went to bid_comparison in both 2026-09-12 runs, and the same happens in the UI
-    # for "συνοπτική αναφορά όλων των προσφορών". bid_comparison only sees a capped
-    # page, so aggregate questions must be routed to report_generation.
+def test_chat_prompt_separates_aggregates_from_bid_comparisons():
+    # v1.4 sent q18 ("total value of all bids") to report_generation, but its "all bids"
+    # wording also pulled q12 ("average delivery time across all bids") and q13 ("show
+    # accepted bids") there (2026-09-12c: 17/18 → 15/18). v1.5 narrows it: only totals,
+    # counts and status breakdowns are aggregates; ranking, comparing, listing or
+    # filtering bids is bid_comparison even when the request spans every bid, because
+    # it returns a ranked list rather than one figure.
     from agent.prompt import get_react_prompt
     from core.prompt_loader import prompt_loader
 
@@ -368,12 +370,33 @@ def test_chat_prompt_routes_aggregate_questions_to_report_generation():
 
     aggregate_rule = next(line for line in rules.splitlines() if "total value of all bids" in line)
     assert "ALWAYS use report_generation" in aggregate_rule
+    assert "totals, sums, counts and status breakdowns across ALL bids" in aggregate_rule
     assert "συνοπτική αναφορά όλων των προσφορών" in aggregate_rule
-    for cue in ("totals", "summaries", "overviews"):
-        assert cue in aggregate_rule
+    # The v1.4 catch-alls that misrouted q12/q13 must not come back.
+    for cue in ("overviews", "statistics across the whole dataset", '"summary of all bids"'):
+        assert cue not in aggregate_rule
 
     comparison_rule = next(line for line in rules.splitlines() if "use bid_comparison" in line)
-    assert "specific subset" in comparison_rule
-    assert 'Never use it to answer "all bids" or "total" questions' in comparison_rule
+    assert "ranking, comparing, listing or filtering bids" in comparison_rule
+    assert "even when the request spans every bid" in comparison_rule
+    assert "returns the individual bids as a ranked list" in comparison_rule
+    assert "empty string for the full ranked set" in comparison_rule
+    assert '"show accepted bids"' in comparison_rule
+    assert '"delivery times across all bids"' in comparison_rule
+    assert "Never use it" not in comparison_rule
+    assert "specific subset" not in comparison_rule
 
     assert prompt_loader.get_with_metadata("chat").metadata.version == "v1.5"
+
+
+def test_bid_comparison_description_matches_routing_rules():
+    # The agent sees the tool docstring through {tools}; it must not contradict the
+    # prompt. The previous wording said overviews "of all bids" belong to
+    # report_generation, which is what pulled q12/q13 the wrong way.
+    from agent.tools import bid_comparison
+
+    description = " ".join(bid_comparison.description.split())
+    assert "including when the comparison spans every bid" in description
+    assert "empty string for the full ranked set" in description
+    assert "totals, counts or status breakdowns: those belong to report_generation" in description
+    assert "overviews" not in description

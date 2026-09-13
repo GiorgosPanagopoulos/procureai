@@ -154,12 +154,14 @@ def _format_bids_text(bids: List[Dict], total_matched: int) -> str:
 
 @tool
 async def bid_comparison(category: str = "") -> str:
-    """Rank a specific subset of submitted bids against each other by price and
-    delivery time, and recommend one. Use it when the user wants the bids for one
-    category or supplier compared. Input: the category filter (e.g. 'office
-    equipment', 'IT hardware'). Not for dataset-wide questions: totals, counts,
-    summaries or overviews of all bids belong to report_generation, since this
-    tool only sees a capped page of matches."""
+    """Rank or compare submitted bids by price and delivery time, and recommend one.
+    Returns the individual bids as a ranked list, so use it for comparing, ranking,
+    listing or filtering bids (e.g. 'the bids for IT hardware', 'accepted bids',
+    'delivery times across all bids'), including when the comparison spans every
+    bid. Input: a category filter (e.g. 'office equipment', 'IT hardware'), or an
+    empty string for the full ranked set. Not for dataset-wide totals, counts or
+    status breakdowns: those belong to report_generation, since this tool only
+    sees a capped page of matches."""
     try:
         mongo_query: Dict = {}
         if category.strip():
