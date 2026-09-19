@@ -395,7 +395,6 @@ use, so the first chat request after startup takes ~6s longer than subsequent on
 | `GET` | `/` | Public | — | Health check |
 | `GET` | `/suppliers` | Viewer+ | 30/min | Return all supplier records |
 | `GET` | `/bids` | Viewer+ | 30/min | Return all bid records |
-| `GET` | `/reports` | Viewer+ | 30/min | Generate a structured procurement summary report |
 | `POST` | `/chat` | Procurement Officer+ | 10/min | Send `{"message":"…"}` to ReAct agent; returns `response`, `trace`, `usage`, `conversation_id` |
 | `POST` | `/upload` | Procurement Officer+ | 30/min | Upload a PDF document (multipart form) |
 | `GET` | `/conversations/{id}/trace` | Viewer+ | — | Get ReAct reasoning trace for a conversation |
@@ -438,8 +437,7 @@ procureai/
 │   ├── routers/
 │   │   ├── health.py           # GET /
 │   │   ├── chat.py             # /chat, /upload, /doc_qa, /conversations/{id}/trace
-│   │   ├── suppliers.py        # /suppliers, /bids
-│   │   └── reports.py          # /reports
+│   │   └── suppliers.py        # /suppliers, /bids
 │   ├── schemas/                # Pydantic request/response models
 │   ├── models/                 # Supplier, Bid, User (Pydantic v2)
 │   ├── auth/                   # JWT auth, role enforcement, RBAC Depends() decorators

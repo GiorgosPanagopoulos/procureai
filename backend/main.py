@@ -17,7 +17,6 @@ from rag.ingest import ingest_pdf_file, is_vectorstore_empty
 from routers.admin import router as admin_router
 from routers.chat import router as chat_router
 from routers.health import router as health_router
-from routers.reports import router as reports_router
 from routers.suppliers import router as suppliers_router
 from utils.lazy import _is_initialized
 
@@ -126,7 +125,6 @@ app.include_router(auth_router)
 app.include_router(health_router)
 app.include_router(chat_router)
 app.include_router(suppliers_router)
-app.include_router(reports_router)
 app.include_router(admin_router)
 
 if __name__ == "__main__":
