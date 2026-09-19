@@ -59,8 +59,9 @@ def init_sentry(dsn: str | None, environment: str, release: str) -> None:
         dsn=dsn,
         environment=environment,
         release=release,
-        traces_sample_rate=0.3 if is_prod else 1.0,
-        profiles_sample_rate=0.1 if is_prod else 1.0,
+        # keep error reporting everywhere, sample traces only in production
+        traces_sample_rate=0.3 if is_prod else 0.05,
+        profiles_sample_rate=0.1 if is_prod else 0.0,
         send_default_pii=False,
         enable_tracing=True,
         integrations=[
