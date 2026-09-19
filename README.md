@@ -195,11 +195,14 @@ input-token cost and latency on cache hits — tracked per-request via the usage
 
 Prompts live as plain text files under `backend/prompts/<use_case>/<version>.txt` (e.g.
 `prompts/chat/v1.txt`, `prompts/doc_qa/v1.txt`), each with a small metadata header (`# version:`,
-`# created:`, `# description:`) parsed by `PromptLoader` (`core/prompt_loader.py`). The loader caches
-all prompts in memory at startup and exposes `get(use_case, version)`; prompts are version-controlled
-and diff-able like code, with no DB round-trip to fetch them. The chat prompt is currently at
-**v1.6** — every version from v1.3 on came out of a specific golden-set failure, with the header
-keeping one changelog line per version (see [Evaluation](#-evaluation)).
+`# created:`, `# description:`) parsed by `PromptLoader` (`core/prompt_loader.py`). The loader reads
+every prompt into an in-memory cache when the process starts and exposes `get(use_case, version)`;
+the agent calls `prompt_loader.reload()` before building the ReAct prompt on each chat request and
+before each `document_qa` call, so an edited prompt file takes effect on the next request without a
+restart (hot-reload). Prompts are version-controlled and diff-able like code, with no DB round-trip
+to fetch them. The chat prompt is currently at **v1.6** — every version from v1.3 on came out of a
+specific golden-set failure, with the header keeping one changelog line per version (see
+[Evaluation](#-evaluation)).
 `GET /admin/prompts` (Admin-only) lists all loaded versions and their metadata for inspection, and
 `GET /admin/prompts/{use_case}/{version}` (Admin-only) fetches a single version's full text and
 metadata.
