@@ -29,9 +29,24 @@
 
 **[lemon-sand-0d105161e.3.azurestaticapps.net](https://lemon-sand-0d105161e.3.azurestaticapps.net)** — runs on Azure Container Apps (backend) and Azure Static Web Apps (frontend).
 
+### Demo account
+
+The live demo has a shared, read-only demo login. Credentials are shared separately, not in this repo.
+
+- **Chat and document Q&A work** and share a budget of `DEMO_DAILY_LIMIT` LLM requests per UTC day
+  (default 10). After that the API returns `429` and the chat says *"Demo limit reached for today,
+  try again tomorrow."*
+- **Nothing can be changed:** uploading, deleting documents and creating users return `403`, whatever
+  the account's role. The upload box is hidden.
+- Supplier, bid and stats views are not counted.
+
+Create one with `python scripts/create_user.py --email demo@example.com --demo`. It makes a `viewer`
+with `is_demo: true`. Daily counters live in the `demo_usage` collection and expire after 48 hours
+through a TTL index that the backend creates on startup.
+
 ---
 
-ProcureAI is an AI-powered procurement assistant built for Greek public sector organizations. It answers natural language queries about public contracts, processes documents published on **ΚΗΜΔΗΣ** and **ΕΣΗΔΗΣ**, and applies **N.4412/2016** (Public Contracts for Works, Supplies and Services) as the authoritative legal basis for every response. The system includes production-grade RBAC (3 roles), audit logging, and prompt versioning — backed by 229 tests across all modules.
+ProcureAI is an AI-powered procurement assistant built for Greek public sector organizations. It answers natural language queries about public contracts, processes documents published on **ΚΗΜΔΗΣ** and **ΕΣΗΔΗΣ**, and applies **N.4412/2016** (Public Contracts for Works, Supplies and Services) as the authoritative legal basis for every response. The system includes production-grade RBAC (3 roles), audit logging, and prompt versioning — backed by 245 tests across all modules.
 
 ---
 
@@ -424,6 +439,7 @@ Copy `backend/.env.example` to `backend/.env` and fill in the values below:
 | `MONGODB_URI` | MongoDB Atlas connection string | ✅ | `mongodb://localhost:27017/?directConnection=true` |
 | `SECRET_KEY` | Signing key for JWT access tokens | ✅ | `changethis` |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | JWT access token lifetime, in minutes | ➖ | `30` |
+| `DEMO_DAILY_LIMIT` | LLM requests (chat + doc Q&A) a demo account may make per UTC day | ➖ | `10` |
 | `FIRST_SUPERUSER_EMAIL` | Email for the admin account seeded on first startup | ➖ | `admin@procureai.local` |
 | `FIRST_SUPERUSER_PASSWORD` | Password for the seeded admin account | ➖ | `changethis` |
 | `ALLOWED_ORIGINS` | Comma-separated CORS origins | ➖ | `http://localhost:3000,http://localhost:5173` |
@@ -533,7 +549,7 @@ procureai/
 │   ├── crud/                   # DB operations
 │   ├── api/routes/             # Auth router
 │   ├── utils/                  # Lazy-loading helpers
-│   ├── tests/                  # 229 pytest tests across all modules
+│   ├── tests/                  # 245 pytest tests across all modules
 │   ├── data/
 │   │   ├── pdfs/               # Sample procurement contracts & N.4412/2016 excerpts
 │   │   └── seed.py             # MongoDB seed script (--force wipes and re-seeds)
