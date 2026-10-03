@@ -19,7 +19,7 @@ describe('HeroStats', () => {
     expect(screen.getByTestId('stat-suppliers')).toHaveTextContent('3 Suppliers');
     expect(screen.getByTestId('stat-bids')).toHaveTextContent('4 Bids');
     // Compact EUR output varies by ICU/CLDR version (e.g. NBSP vs no space), so allow flexible whitespace.
-    expect(screen.getByTestId('stat-pipeline')).toHaveTextContent(/€\s*4K\s*Pipeline/);
+    expect(screen.getByTestId('stat-pipeline')).toHaveTextContent(/€\s*4(\.0)?[kK]\s*Pipeline/);
     expect(screen.getByTestId('stat-delivery')).toHaveTextContent('12.8 days avg delivery');
     expect(screen.queryByTestId('hero-stats-loading')).not.toBeInTheDocument();
   });
