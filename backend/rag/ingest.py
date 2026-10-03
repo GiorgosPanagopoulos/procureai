@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 import structlog
-from core.chroma_tenant import build_metadata
+from core.tenant import build_metadata
 from exceptions import DocumentIngestionError
 from pypdf import PdfReader
 

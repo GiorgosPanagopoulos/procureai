@@ -6,8 +6,8 @@ import structlog
 from agent.executor import run_agent
 from agent.tools import document_qa
 from core.audit import AuditEntry
-from core.chroma_tenant import _current_user_id
 from core.rbac import require_procurement_officer, require_viewer
+from core.tenant import _current_user_id
 from db import db
 from exceptions import AgentExecutionError, DocumentIngestionError, NotFoundError, ValidationError
 from fastapi import APIRouter, Depends, File, Request, UploadFile

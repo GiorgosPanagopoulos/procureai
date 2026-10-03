@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Sample 20 random chunks from ChromaDB and show the top-3 most similar
+"""Sample 20 random chunks from the Atlas vector store and show the top-3 most similar
 golden-set queries for each, using cosine similarity over OpenAI embeddings.
 
 Usage:
@@ -14,10 +14,11 @@ import sys
 from pathlib import Path
 
 _ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(_ROOT / "backend"))
 
-from chromadb import Client as ChromaClient  # type: ignore  # noqa: E402
-from chromadb.config import Settings as ChromaSettings  # type: ignore  # noqa: E402
+from dotenv import load_dotenv  # noqa: E402
+from pymongo import MongoClient  # noqa: E402
+
+load_dotenv(_ROOT / "backend" / ".env")
 
 try:
     import numpy as np
@@ -47,7 +48,8 @@ def embed(text: str, client: OpenAI) -> list[float]:
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--n", type=int, default=20, help="Number of chunks to sample")
-    parser.add_argument("--chroma-path", default=str(_ROOT / "backend" / "chroma_db"))
+    parser.add_argument("--uri", default=os.getenv("MONGODB_URI", "mongodb://localhost:27017"))
+    parser.add_argument("--collection", default=os.getenv("VECTOR_COLLECTION", "document_chunks"))
     args = parser.parse_args()
 
     api_key = os.getenv("OPENAI_API_KEY")
@@ -61,19 +63,12 @@ def main():
         golden: list[dict] = json.load(f)
     queries = [q["query"] for q in golden]
 
-    chroma = ChromaClient(
-        settings=ChromaSettings(persist_directory=args.chroma_path, is_persistent=True)
-    )
-    try:
-        col = chroma.get_collection("procureai_documents")
-    except Exception:
-        print("Collection 'procureai_documents' not found. Ingest PDFs first.")
-        sys.exit(1)
-
-    all_data = col.get(include=["documents", "metadatas"])
-    all_ids = all_data["ids"]
-    all_docs = all_data["documents"]
-    all_metas = all_data["metadatas"]
+    mongo = MongoClient(args.uri)
+    rows = list(mongo.procureai[args.collection].find({}, {"embedding": 0}))
+    mongo.close()
+    all_ids = [str(r["_id"]) for r in rows]
+    all_docs = [r.get("text", "") for r in rows]
+    all_metas = rows
 
     if not all_ids:
         print("Vector store is empty — ingest PDFs first.")

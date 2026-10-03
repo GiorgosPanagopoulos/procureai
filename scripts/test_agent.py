@@ -48,7 +48,7 @@ async def test_agent_routing():
         print("  → Tool(s):")
 
         if expected == "document_qa":
-            print("     - Document Q&A: Search ChromaDB for contract terms")
+            print("     - Document Q&A: Search Atlas Vector Search for contract terms")
         elif expected == "bid_comparison":
             print("     - Bid Comparison: Query MongoDB bids, rank by price/delivery")
         elif expected == "supplier_lookup":
@@ -68,8 +68,8 @@ async def test_agent_routing():
    - Classifies user intent into: document_qa, bid_comparison, supplier_lookup, report, multi_tool
    - Extracts relevant parameters (category, rating, etc.)
 
-2. Tool Executor: Executes the selected tool(s) against MongoDB and ChromaDB
-   - Document Q&A: Searches ChromaDB vector store for procurement documents
+2. Tool Executor: Executes the selected tool(s) against MongoDB and Atlas Vector Search
+   - Document Q&A: Searches the Atlas Vector Search store for procurement documents
    - Bid Comparison: Aggregates and ranks bids by price, delivery time, terms
    - Supplier Lookup: Finds and recommends suppliers with filtering
    - Report Generation: Generates procurement summary reports
@@ -88,7 +88,7 @@ async def test_agent_routing():
     print("=" * 70)
     print("""
 Tools Integrated:
-✓ document_qa() - ChromaDB RAG search for PDF documents
+✓ document_qa() - Atlas Vector Search RAG for PDF documents
 ✓ bid_comparison_tool() - MongoDB bid aggregation and ranking
 ✓ supplier_lookup_tool() - MongoDB supplier search with recommendations
 ✓ report_generation_tool() - Procurement data summarization
@@ -99,13 +99,13 @@ Agent Loop:
 1. User submits query via /chat endpoint
 2. Intent classifier processes query
 3. Tool selector routes to appropriate tool(s)
-4. Tool executor retrieves data from MongoDB/ChromaDB
+4. Tool executor retrieves data from MongoDB/Atlas Vector Search
 5. Response composer synthesizes natural language answer
 6. Final response returned to user with tool attribution
 
 Integration Points:
 - MongoDB Atlas: Suppliers and Bids collections
-- ChromaDB: Vector store for procurement documents
+- MongoDB Atlas Vector Search: document_chunks collection for procurement documents
 - OpenAI API: Embeddings and LLM inference
     """)
 

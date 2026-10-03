@@ -7,7 +7,7 @@ sys.modules.setdefault("rag.vectorstore", MagicMock())
 
 import numpy as np  # noqa: E402
 import pytest  # noqa: E402
-from core.chroma_tenant import (  # noqa: E402
+from core.tenant import (  # noqa: E402
     _current_user_id,
     build_metadata,
     get_active_user_id,

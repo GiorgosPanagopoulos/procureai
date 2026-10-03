@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Ingest the PDFs in backend/data/pdfs/ into ChromaDB as user_id="system".
+"""Ingest the PDFs in backend/data/pdfs/ into the Atlas vector store as user_id="system".
 
 The backend only ingests this folder at startup when the vector store is empty,
 so PDFs added after the first start (e.g. the N4412_*.pdf law excerpts) are
@@ -23,24 +23,19 @@ _ROOT = Path(__file__).resolve().parent.parent
 _BACKEND = _ROOT / "backend"
 _PDF_DIR = _BACKEND / "data" / "pdfs"
 
-# backend/.env may set a relative CHROMA_PATH (./chroma_db); resolve it the way
-# `cd backend && uvicorn main:app` does so the script fills the store the app reads.
+# Run from backend/ the way `cd backend && uvicorn main:app` does.
 os.chdir(_BACKEND)
 sys.path.insert(0, str(_BACKEND))
 
 from exceptions import DocumentIngestionError  # noqa: E402
 from rag.ingest import ingest_pdf_file  # noqa: E402
-from rag.vectorstore import chroma_collection  # noqa: E402
+from rag.vectorstore import count_chunks, delete_chunks, vector_store  # noqa: E402
 
 SYSTEM_USER = "system"
 
 
 def _existing_chunk_ids(source: str) -> list[str]:
-    result = chroma_collection.get(
-        where={"$and": [{"user_id": SYSTEM_USER}, {"source": source}]},
-        include=[],
-    )
-    return list(result.get("ids") or [])
+    return vector_store.collection.distinct("_id", {"user_id": SYSTEM_USER, "source": source})
 
 
 def _parse_args(argv=None) -> argparse.Namespace:
@@ -80,7 +75,7 @@ def main(argv=None) -> int:
             skipped += 1
             continue
         if existing:
-            chroma_collection.delete(ids=existing)
+            delete_chunks({"_id": {"$in": existing}})
         try:
             result = ingest_pdf_file(pdf_path, user_id=SYSTEM_USER)
         except DocumentIngestionError as exc:
@@ -93,7 +88,7 @@ def main(argv=None) -> int:
 
     print(
         f"\n{ingested} ingested, {skipped} skipped, {failed} failed; "
-        f"store now holds {chroma_collection.count()} chunks"
+        f"store now holds {count_chunks()} chunks"
     )
     return 1 if failed else 0
 

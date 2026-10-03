@@ -17,7 +17,6 @@ class Settings(BaseSettings):
     ANTHROPIC_API_KEY: str = ""
     OPENAI_API_KEY: str = ""
     MONGODB_URI: str = "mongodb://localhost:27017"
-    CHROMA_PATH: str = str(_BACKEND_DIR / "chroma_db")
     # RAG chunks live in this collection of the procureai database; the index is
     # defined in rag/atlas_vector_index.json and must be created in Atlas.
     VECTOR_COLLECTION: str = "document_chunks"

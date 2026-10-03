@@ -7,7 +7,7 @@ import sentry_sdk
 import structlog
 from anthropic.types import TextBlock
 from config import settings
-from core.chroma_tenant import get_active_user_id, get_search_filter
+from core.tenant import get_active_user_id, get_search_filter
 from db import db
 from langchain_core.tools import tool
 from llm.clients import _raw_anthropic_async, claude_llm
@@ -49,7 +49,7 @@ async def document_qa(question: str) -> str:
             _span.set_data("collection", settings.VECTOR_COLLECTION)
             _span.set_data("n_results", n_retrieve)
             # $vectorSearch returns fewer than k hits when fewer chunks match the
-            # filter, so unlike Chroma there is no need to clamp k to the store size.
+            # filter, so k needs no clamping to the store size.
             results = await asyncio.to_thread(
                 vector_store.similarity_search_by_vector,
                 query_embedding,
