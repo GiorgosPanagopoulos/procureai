@@ -26,7 +26,7 @@ def _utc_now() -> datetime:
     return datetime.now(timezone.utc)
 
 
-def _is_demo(user: dict) -> bool:
+def is_demo_user(user: dict) -> bool:
     return bool(user.get("is_demo", False))
 
 
@@ -36,7 +36,7 @@ async def ensure_demo_indexes() -> None:
 
 
 async def enforce_demo_quota(current_user: dict = Depends(get_current_user)) -> None:
-    if not _is_demo(current_user):
+    if not is_demo_user(current_user):
         return
     now = _utc_now()
     user_id = str(current_user["_id"])
@@ -57,7 +57,7 @@ async def enforce_demo_quota(current_user: dict = Depends(get_current_user)) -> 
 
 
 async def forbid_demo(current_user: dict = Depends(get_current_user)) -> dict:
-    if _is_demo(current_user):
+    if is_demo_user(current_user):
         raise HTTPException(status_code=403, detail="Not available on the demo account")
     return current_user
 
@@ -65,6 +65,6 @@ async def forbid_demo(current_user: dict = Depends(get_current_user)) -> dict:
 async def require_chat_access(current_user: dict = Depends(get_current_user)) -> dict:
     """Procurement officers and admins, plus demo accounts (which are viewers)."""
     role = current_user.get("role", UserRole.VIEWER)
-    if role in (UserRole.ADMIN, UserRole.PROCUREMENT_OFFICER) or _is_demo(current_user):
+    if role in (UserRole.ADMIN, UserRole.PROCUREMENT_OFFICER) or is_demo_user(current_user):
         return current_user
     raise HTTPException(status_code=403, detail="Procurement officer access required")

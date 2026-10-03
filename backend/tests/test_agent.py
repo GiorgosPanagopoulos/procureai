@@ -93,12 +93,17 @@ def executor_db():
         yield fake
 
 
-async def _run(llm: ScriptedChatModel, user_input: str, tools_db: Optional[MagicMock] = None):
+async def _run(
+    llm: ScriptedChatModel,
+    user_input: str,
+    tools_db: Optional[MagicMock] = None,
+    **kwargs,
+):
     with (
         patch("agent.executor.claude_llm", llm),
         patch("agent.tools.db", tools_db or _fake_tools_db()),
     ):
-        return await run_agent(user_input, "conv-test")
+        return await run_agent(user_input, "conv-test", **kwargs)
 
 
 # ── run_agent ────────────────────────────────────────────────────────────────
@@ -127,6 +132,20 @@ async def test_run_agent_returns_final_answer_and_trace(executor_db):
     persisted = executor_db.conversations.update_one.call_args.args[1]["$set"]
     assert persisted["trace"] == result["trace"]
     assert executor_db.conversations.update_one.call_args.kwargs["upsert"] is True
+
+
+async def test_conversation_owner_is_set_only_on_insert(executor_db):
+    await _run(ScriptedChatModel(responses=[FINAL]), "hi", user_id="u1")
+
+    update = executor_db.conversations.update_one.call_args.args[1]
+    assert update["$setOnInsert"] == {"user_id": "u1"}
+    assert "user_id" not in update["$set"]
+
+
+async def test_no_owner_recorded_without_user_id(executor_db):
+    await _run(ScriptedChatModel(responses=[FINAL]), "hi")
+
+    assert "$setOnInsert" not in executor_db.conversations.update_one.call_args.args[1]
 
 
 async def test_trace_lists_tool_calls_in_order(executor_db):

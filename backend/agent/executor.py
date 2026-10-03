@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Dict, List
+from typing import TYPE_CHECKING, Dict, List, Optional
 
 import sentry_sdk
 import structlog
@@ -55,7 +55,7 @@ def _build_trace(steps: List) -> List[Dict]:
     return trace
 
 
-async def run_agent(user_input: str, conversation_id: str) -> Dict:
+async def run_agent(user_input: str, conversation_id: str, user_id: Optional[str] = None) -> Dict:
     if not user_input.strip():
         return {
             "response": "Please provide a query.",
@@ -122,18 +122,18 @@ async def run_agent(user_input: str, conversation_id: str) -> Dict:
             **usage,
         }
     )
-    await db.conversations.update_one(
-        {"conversation_id": conversation_id},
-        {
-            "$set": {
-                "conversation_id": conversation_id,
-                "trace": trace,
-                "query": clean_input,
-                "updated_at": datetime.now(timezone.utc),
-            }
-        },
-        upsert=True,
-    )
+    update: Dict = {
+        "$set": {
+            "conversation_id": conversation_id,
+            "trace": trace,
+            "query": clean_input,
+            "updated_at": datetime.now(timezone.utc),
+        }
+    }
+    if user_id:
+        # Owner is fixed at creation; /conversations/{id}/trace checks it.
+        update["$setOnInsert"] = {"user_id": user_id}
+    await db.conversations.update_one({"conversation_id": conversation_id}, update, upsert=True)
     log.info(
         "agent_done",
         conversation_id=conversation_id,

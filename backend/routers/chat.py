@@ -6,8 +6,8 @@ import structlog
 from agent.executor import run_agent
 from agent.tools import document_qa
 from core.audit import AuditEntry
-from core.demo import enforce_demo_quota, forbid_demo, require_chat_access
-from core.rbac import require_procurement_officer, require_viewer
+from core.demo import enforce_demo_quota, forbid_demo, is_demo_user, require_chat_access
+from core.rbac import UserRole, require_procurement_officer, require_viewer
 from core.tenant import _current_user_id
 from db import db
 from exceptions import AgentExecutionError, DocumentIngestionError, NotFoundError, ValidationError
@@ -36,6 +36,18 @@ def _client_ip(request: Request) -> Optional[str]:
     return request.client.host if request.client else None
 
 
+def _can_read_conversation(user: dict, doc: dict) -> bool:
+    # The demo login is shared by every visitor, so "owner" would mean all of them.
+    if is_demo_user(user):
+        return False
+    return user.get("role") == UserRole.ADMIN or doc.get("user_id") == str(user["_id"])
+
+
+async def _owns_or_new(conversation_id: str, user_id: str) -> bool:
+    doc = await db.conversations.find_one({"conversation_id": conversation_id})
+    return doc is None or doc.get("user_id") == user_id
+
+
 @router.post("/chat")
 @limiter.limit("10/minute")
 async def chat(
@@ -46,11 +58,14 @@ async def chat(
 ):
     if not payload.message.strip():
         raise ValidationError("Message cannot be empty")
-    cid = payload.conversation_id or str(uuid.uuid4())
     user_id = str(current_user["_id"])
+    cid = payload.conversation_id or str(uuid.uuid4())
+    # Someone else's id would overwrite their trace; start a fresh conversation instead.
+    if payload.conversation_id and not await _owns_or_new(cid, user_id):
+        cid = str(uuid.uuid4())
     token = _current_user_id.set(user_id)
     try:
-        result = await run_agent(payload.message, cid)
+        result = await run_agent(payload.message, cid, user_id=user_id)
     except AgentExecutionError:
         raise
     finally:
@@ -194,6 +209,7 @@ async def delete_documents(
 @router.get("/conversations/{conversation_id}/trace")
 async def get_trace(conversation_id: str, current_user: dict = Depends(require_viewer)):
     doc = await db.conversations.find_one({"conversation_id": conversation_id})
-    if not doc:
+    # 404 rather than 403 so ids belonging to other users aren't confirmed to exist.
+    if not doc or not _can_read_conversation(current_user, doc):
         raise NotFoundError("Conversation not found")
     return {"conversation_id": conversation_id, "trace": doc.get("trace", [])}

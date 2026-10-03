@@ -26,8 +26,9 @@ class _FakeCollection:
 
     Same hand-rolled style as tests/test_audit.py::_mock_db. Only
     implements what the code under test calls: find_one with an
-    equality filter, insert_one, count_documents, find_one_and_update
-    ($inc / $setOnInsert, upsert, returns the updated doc), create_index
+    equality filter, insert_one, count_documents, update_one /
+    find_one_and_update ($set / $inc / $setOnInsert, upsert;
+    find_one_and_update returns the updated doc), create_index
     (recorded, not enforced), and aggregate with a single ungrouped
     $group stage ($sum / $avg).
     """
@@ -55,9 +56,14 @@ class _FakeCollection:
                 return None
             doc = {**filt, **update.get("$setOnInsert", {})}
             self._docs.append(doc)
+        doc.update(update.get("$set", {}))
         for key, amount in update.get("$inc", {}).items():
             doc[key] = doc.get(key, 0) + amount
         return dict(doc)
+
+    async def update_one(self, filt: dict, update: dict, upsert: bool = False):
+        doc = await self.find_one_and_update(filt, update, upsert=upsert)
+        return SimpleNamespace(matched_count=int(doc is not None))
 
     async def create_index(self, keys: Any, **kwargs) -> str:
         self.indexes.append((keys, kwargs))
@@ -107,12 +113,14 @@ class _FakeDB:
         self.suppliers = _FakeCollection()
         self.bids = _FakeCollection()
         self.demo_usage = _FakeCollection()
+        self.conversations = _FakeCollection()
 
     def reset(self) -> None:
         self.users.reset()
         self.suppliers.reset()
         self.bids.reset()
         self.demo_usage.reset()
+        self.conversations.reset()
 
 
 class _FakeMongoClient:
