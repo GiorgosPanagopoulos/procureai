@@ -209,3 +209,4 @@ backend/chroma_test/
 !.env.example
 cookies.txt
 cookies.txt
+backend/ca.yaml
