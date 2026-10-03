@@ -364,9 +364,22 @@ not part of the image.
 
 RAG chunks live in the `document_chunks` collection of the `procureai` database, next to the
 app data. `document_qa` queries it with `$vectorSearch`, which needs a vector index named
-`vector_index`. M0 clusters can't create it from the driver, so create it once in the Atlas UI
-(**Atlas Search → Create Search Index → Atlas Vector Search → JSON Editor**) from
-[`backend/rag/atlas_vector_index.json`](backend/rag/atlas_vector_index.json), or with the CLI:
+`vector_index`. Create it once from
+[`backend/rag/atlas_vector_index.json`](backend/rag/atlas_vector_index.json). The driver works
+on M0 too:
+
+```python
+import json, os
+from pymongo import MongoClient
+from pymongo.operations import SearchIndexModel
+
+spec = json.load(open("backend/rag/atlas_vector_index.json"))
+MongoClient(os.environ["MONGODB_URI"])[spec["database"]][spec["collectionName"]].create_search_index(
+    SearchIndexModel(definition=spec["definition"], name=spec["name"], type="vectorSearch"))
+```
+
+The Atlas UI (**Atlas Search → Create Search Index → Atlas Vector Search → JSON Editor**) or the
+CLI work as well:
 
 ```bash
 atlas clusters search indexes create --clusterName <cluster> --file backend/rag/atlas_vector_index.json

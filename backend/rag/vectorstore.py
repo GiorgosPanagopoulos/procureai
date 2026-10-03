@@ -40,7 +40,8 @@ def _create_vector_store():
         text_key=TEXT_KEY,
         embedding_key=EMBEDDING_KEY,
         relevance_score_fn="cosine",
-        # M0 clusters need the index created in the Atlas UI/CLI.
+        # The index is created once from rag/atlas_vector_index.json (README step 7),
+        # not on every cold start.
         auto_create_index=False,
     )
 
