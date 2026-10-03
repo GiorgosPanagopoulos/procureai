@@ -25,7 +25,13 @@
 
 ---
 
-ProcureAI is an AI-powered procurement assistant built for Greek public sector organizations. It answers natural language queries about public contracts, processes documents published on **ΚΗΜΔΗΣ** and **ΕΣΗΔΗΣ**, and applies **N.4412/2016** (Public Contracts for Works, Supplies and Services) as the authoritative legal basis for every response. The system includes production-grade RBAC (3 roles), audit logging, and prompt versioning — backed by 199 tests across all modules.
+## 🚀 Live Demo
+
+**[lemon-sand-0d105161e.3.azurestaticapps.net](https://lemon-sand-0d105161e.3.azurestaticapps.net)** — runs on Azure Container Apps (backend) and Azure Static Web Apps (frontend).
+
+---
+
+ProcureAI is an AI-powered procurement assistant built for Greek public sector organizations. It answers natural language queries about public contracts, processes documents published on **ΚΗΜΔΗΣ** and **ΕΣΗΔΗΣ**, and applies **N.4412/2016** (Public Contracts for Works, Supplies and Services) as the authoritative legal basis for every response. The system includes production-grade RBAC (3 roles), audit logging, and prompt versioning — backed by 229 tests across all modules.
 
 ---
 
@@ -228,6 +234,8 @@ metadata.
 
 
 ## 🚀 Quick Start
+
+> **Note:** The production deployment runs on Azure — Container Apps for the backend, Static Web Apps for the frontend, and a MongoDB Atlas M0 cluster. The steps below are for running locally.
 
 ### 1. Clone the repository
 
@@ -525,7 +533,7 @@ procureai/
 │   ├── crud/                   # DB operations
 │   ├── api/routes/             # Auth router
 │   ├── utils/                  # Lazy-loading helpers
-│   ├── tests/                  # 199 pytest tests across all modules
+│   ├── tests/                  # 229 pytest tests across all modules
 │   ├── data/
 │   │   ├── pdfs/               # Sample procurement contracts & N.4412/2016 excerpts
 │   │   └── seed.py             # MongoDB seed script (--force wipes and re-seeds)
@@ -632,7 +640,7 @@ reading the stored answers, not by the harness.
 
 ## 🔭 Roadmap
 
-### ✅ Phase 2 — Domain Intelligence (Complete · 199 tests)
+### ✅ Phase 2 — Domain Intelligence (Complete · 229 tests)
 - Structured outputs — bid_comparison returns a validated Pydantic v2 model as the agent's observation
 - RBAC — Admin / Procurement Officer / Viewer roles, JWT-embedded, enforced via FastAPI Depends()
 - Multi-tenancy — per-user document isolation via a user_id metadata filter + ContextVar threading (ChromaDB `where` then, Atlas `$vectorSearch` pre-filter now)
