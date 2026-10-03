@@ -4,6 +4,7 @@
 Usage (from the repo root, with the backend venv active and backend/.env filled in):
     python scripts/create_user.py --email user@procureai.local --role viewer
     python scripts/create_user.py --email user@procureai.local --role admin --password 'somepass123'
+    python scripts/create_user.py --email demo@procureai.local --demo
 """
 
 import argparse
@@ -31,7 +32,7 @@ ROLES = ("viewer", "procurement_officer", "admin")
 
 
 async def create_user(
-    mongodb_uri: str, email: str, password: str, role: str, full_name: str
+    mongodb_uri: str, email: str, password: str, role: str, full_name: str, is_demo: bool = False
 ) -> int:
     client = AsyncIOMotorClient(mongodb_uri)
     db = client.procureai
@@ -45,9 +46,10 @@ async def create_user(
         hashed_password=get_password_hash(password),
         full_name=full_name,
         role=role,
+        is_demo=is_demo,
     )
     await db.users.insert_one(user.model_dump(by_alias=True))
-    print(f"Created {email} ({role})")
+    print(f"Created {email} ({role}{', demo' if is_demo else ''})")
     return 0
 
 
@@ -57,11 +59,19 @@ def _parse_args(argv=None) -> argparse.Namespace:
     parser.add_argument("--role", default="viewer", choices=ROLES)
     parser.add_argument("--full-name", default="")
     parser.add_argument("--password", help="omit to be prompted securely")
+    parser.add_argument(
+        "--demo",
+        action="store_true",
+        help="public demo account: viewer, daily LLM quota, no uploads or writes",
+    )
     return parser.parse_args(argv)
 
 
 def main() -> int:
     args = _parse_args()
+    if args.demo and args.role != "viewer":
+        print("--demo accounts are always viewers; drop --role", file=sys.stderr)
+        return 1
 
     password = args.password or getpass.getpass("Password: ")
     if len(password) < 12:
@@ -69,7 +79,9 @@ def main() -> int:
         return 1
 
     mongodb_uri = os.environ.get("MONGODB_URI", "mongodb://localhost:27017")
-    return asyncio.run(create_user(mongodb_uri, args.email, password, args.role, args.full_name))
+    return asyncio.run(
+        create_user(mongodb_uri, args.email, password, args.role, args.full_name, args.demo)
+    )
 
 
 if __name__ == "__main__":
