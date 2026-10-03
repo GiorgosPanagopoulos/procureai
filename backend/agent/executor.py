@@ -55,7 +55,12 @@ def _build_trace(steps: List) -> List[Dict]:
     return trace
 
 
-async def run_agent(user_input: str, conversation_id: str, user_id: Optional[str] = None) -> Dict:
+async def run_agent(
+    user_input: str,
+    conversation_id: str,
+    user_id: Optional[str] = None,
+    expires_at: Optional[datetime] = None,
+) -> Dict:
     if not user_input.strip():
         return {
             "response": "Please provide a query.",
@@ -133,6 +138,9 @@ async def run_agent(user_input: str, conversation_id: str, user_id: Optional[str
     if user_id:
         # Owner is fixed at creation; /conversations/{id}/trace checks it.
         update["$setOnInsert"] = {"user_id": user_id}
+    if expires_at:
+        # TTL index on expires_at; refreshed on every turn.
+        update["$set"]["expires_at"] = expires_at
     await db.conversations.update_one({"conversation_id": conversation_id}, update, upsert=True)
     log.info(
         "agent_done",

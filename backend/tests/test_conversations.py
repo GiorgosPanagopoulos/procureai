@@ -127,7 +127,7 @@ async def test_chat_passes_owner_to_agent(api, make_user, agent):
     res = await _chat(api, token, None)
 
     cid = res.json()["conversation_id"]
-    agent.assert_awaited_once_with("hello", cid, user_id=str(user["_id"]))
+    agent.assert_awaited_once_with("hello", cid, user_id=str(user["_id"]), expires_at=None)
 
 
 @pytest.mark.asyncio

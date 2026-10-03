@@ -4,7 +4,8 @@ Demo users get a small daily budget of LLM-backed requests and are blocked
 from anything that writes data, whatever their role.
 """
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+from typing import Optional
 
 import structlog
 from auth.dependencies import get_current_user
@@ -20,6 +21,8 @@ log = structlog.get_logger()
 
 # Counters only matter for the current UTC day; keep a day of slack before Mongo reaps them.
 DEMO_USAGE_TTL_SECONDS = 48 * 60 * 60
+# Visitors share the demo login, so their conversations shouldn't outlive the visit.
+DEMO_CONVERSATION_TTL = timedelta(hours=24)
 
 
 def _utc_now() -> datetime:
@@ -33,6 +36,13 @@ def is_demo_user(user: dict) -> bool:
 async def ensure_demo_indexes() -> None:
     # create_index is a no-op when an identical index already exists.
     await db.demo_usage.create_index("created_at", expireAfterSeconds=DEMO_USAGE_TTL_SECONDS)
+    # Expires each document at its own expires_at; only demo conversations set it.
+    await db.conversations.create_index("expires_at", expireAfterSeconds=0)
+
+
+def conversation_expiry(user: dict) -> Optional[datetime]:
+    """When a conversation written by this user should be deleted, or None to keep it."""
+    return _utc_now() + DEMO_CONVERSATION_TTL if is_demo_user(user) else None
 
 
 async def enforce_demo_quota(current_user: dict = Depends(get_current_user)) -> None:

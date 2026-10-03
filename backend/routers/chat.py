@@ -6,7 +6,13 @@ import structlog
 from agent.executor import run_agent
 from agent.tools import document_qa
 from core.audit import AuditEntry
-from core.demo import enforce_demo_quota, forbid_demo, is_demo_user, require_chat_access
+from core.demo import (
+    conversation_expiry,
+    enforce_demo_quota,
+    forbid_demo,
+    is_demo_user,
+    require_chat_access,
+)
 from core.rbac import UserRole, require_procurement_officer, require_viewer
 from core.tenant import _current_user_id
 from db import db
@@ -65,7 +71,9 @@ async def chat(
         cid = str(uuid.uuid4())
     token = _current_user_id.set(user_id)
     try:
-        result = await run_agent(payload.message, cid, user_id=user_id)
+        result = await run_agent(
+            payload.message, cid, user_id=user_id, expires_at=conversation_expiry(current_user)
+        )
     except AgentExecutionError:
         raise
     finally:

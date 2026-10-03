@@ -176,3 +176,25 @@ async def test_me_exposes_is_demo(api, make_user):
 async def test_ttl_index_is_48h(fake_db):
     await demo.ensure_demo_indexes()
     assert fake_db.demo_usage.indexes == [("created_at", {"expireAfterSeconds": 48 * 60 * 60})]
+
+
+@pytest.mark.asyncio
+async def test_conversation_ttl_index_expires_at_the_stored_time(fake_db):
+    await demo.ensure_demo_indexes()
+    assert fake_db.conversations.indexes == [("expires_at", {"expireAfterSeconds": 0})]
+
+
+@pytest.mark.asyncio
+async def test_demo_conversations_expire_after_24h(api, make_user):
+    _, token = await make_user("viewer", is_demo=True)
+    with patch("routers.chat.run_agent", new=AsyncMock(return_value={"response": "hi"})) as run:
+        await _chat(api, token)
+    assert run.await_args.kwargs["expires_at"] == DAY_1 + timedelta(hours=24)
+
+
+@pytest.mark.asyncio
+async def test_regular_conversations_never_expire(api, make_user):
+    _, token = await make_user("procurement_officer")
+    with patch("routers.chat.run_agent", new=AsyncMock(return_value={"response": "hi"})) as run:
+        await _chat(api, token)
+    assert run.await_args.kwargs["expires_at"] is None

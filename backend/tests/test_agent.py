@@ -7,6 +7,7 @@ run without touching Anthropic, MongoDB or the Atlas vector store.
 """
 
 import sys
+from datetime import datetime, timezone
 from typing import Any, List, Optional
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -146,6 +147,19 @@ async def test_no_owner_recorded_without_user_id(executor_db):
     await _run(ScriptedChatModel(responses=[FINAL]), "hi")
 
     assert "$setOnInsert" not in executor_db.conversations.update_one.call_args.args[1]
+
+
+async def test_expires_at_is_stored_when_given(executor_db):
+    expires = datetime(2026, 10, 4, tzinfo=timezone.utc)
+    await _run(ScriptedChatModel(responses=[FINAL]), "hi", expires_at=expires)
+
+    assert executor_db.conversations.update_one.call_args.args[1]["$set"]["expires_at"] == expires
+
+
+async def test_conversations_do_not_expire_by_default(executor_db):
+    await _run(ScriptedChatModel(responses=[FINAL]), "hi")
+
+    assert "expires_at" not in executor_db.conversations.update_one.call_args.args[1]["$set"]
 
 
 async def test_trace_lists_tool_calls_in_order(executor_db):

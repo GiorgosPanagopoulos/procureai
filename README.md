@@ -39,6 +39,8 @@ The live demo has a shared, read-only demo login. Credentials are shared separat
 - **Nothing can be changed:** uploading, deleting documents and creating users return `403`, whatever
   the account's role. The upload box is hidden.
 - Supplier, bid and stats views are not counted.
+- Demo conversations are deleted 24 hours after their last message (TTL on `conversations.expires_at`),
+  and their traces can't be read back through the API, since every visitor shares the same login.
 
 Create one with `python scripts/create_user.py --email demo@example.com --demo`. It makes a `viewer`
 with `is_demo: true`. Daily counters live in the `demo_usage` collection and expire after 48 hours
@@ -46,7 +48,7 @@ through a TTL index that the backend creates on startup.
 
 ---
 
-ProcureAI is an AI-powered procurement assistant built for Greek public sector organizations. It answers natural language queries about public contracts, processes documents published on **ΚΗΜΔΗΣ** and **ΕΣΗΔΗΣ**, and applies **N.4412/2016** (Public Contracts for Works, Supplies and Services) as the authoritative legal basis for every response. The system includes production-grade RBAC (3 roles), audit logging, and prompt versioning — backed by 245 tests across all modules.
+ProcureAI is an AI-powered procurement assistant built for Greek public sector organizations. It answers natural language queries about public contracts, processes documents published on **ΚΗΜΔΗΣ** and **ΕΣΗΔΗΣ**, and applies **N.4412/2016** (Public Contracts for Works, Supplies and Services) as the authoritative legal basis for every response. The system includes production-grade RBAC (3 roles), audit logging, and prompt versioning — backed by 262 tests across all modules.
 
 ---
 
@@ -549,7 +551,7 @@ procureai/
 │   ├── crud/                   # DB operations
 │   ├── api/routes/             # Auth router
 │   ├── utils/                  # Lazy-loading helpers
-│   ├── tests/                  # 245 pytest tests across all modules
+│   ├── tests/                  # 262 pytest tests across all modules
 │   ├── data/
 │   │   ├── pdfs/               # Sample procurement contracts & N.4412/2016 excerpts
 │   │   └── seed.py             # MongoDB seed script (--force wipes and re-seeds)
