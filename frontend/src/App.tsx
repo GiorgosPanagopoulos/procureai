@@ -53,8 +53,6 @@ function AppContent() {
           language={language}
           t={t}
           suggestions={suggestions}
-          suppliersCount={catalog.suppliers.length}
-          bidsCount={catalog.bids.length}
         />
         <DataInspector
           messages={chat.messages}

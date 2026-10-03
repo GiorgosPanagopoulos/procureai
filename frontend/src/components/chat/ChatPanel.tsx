@@ -11,18 +11,14 @@ interface ChatPanelProps {
   language: Language;
   t: Translations;
   suggestions: Suggestion[];
-  suppliersCount: number;
-  bidsCount: number;
 }
 
-export default function ChatPanel({ chat, language, t, suggestions, suppliersCount, bidsCount }: ChatPanelProps) {
+export default function ChatPanel({ chat, language, t, suggestions }: ChatPanelProps) {
   return (
     <div className="chat-panel">
       <MessageList
         messages={chat.messages}
         isLoading={chat.isLoading}
-        suppliersCount={suppliersCount}
-        bidsCount={bidsCount}
         chatRef={chat.chatRef}
         language={language}
         t={t}
