@@ -12,6 +12,7 @@ class User(BaseModel):
     full_name: str = ""
     is_active: bool = True
     is_superuser: bool = False
+    is_demo: bool = False
     role: Literal["admin", "procurement_officer", "viewer"] = "viewer"
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 

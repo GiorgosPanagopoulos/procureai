@@ -68,6 +68,19 @@ def test_user_read_all_fields():
     assert user.created_at == now
 
 
+def test_user_read_is_demo_defaults_false_for_legacy_docs():
+    data = {
+        "_id": "abc123",
+        "email": "a@b.com",
+        "full_name": "Name",
+        "is_active": True,
+        "is_superuser": False,
+        "created_at": datetime.utcnow(),
+    }
+    assert UserRead.model_validate(data).is_demo is False
+    assert UserRead.model_validate({**data, "is_demo": True}).is_demo is True
+
+
 def test_user_update_partial():
     u = UserUpdate(full_name="New Name")
     assert u.full_name == "New Name"

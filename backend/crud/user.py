@@ -22,6 +22,7 @@ async def create_user(db: AsyncIOMotorDatabase, user_in: UserCreate) -> Optional
         "full_name": user_in.full_name,
         "is_active": True,
         "is_superuser": False,
+        "is_demo": False,
         "role": getattr(user_in, "role", "viewer"),
         "created_at": datetime.now(timezone.utc),
     }

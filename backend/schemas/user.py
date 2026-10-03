@@ -17,6 +17,8 @@ class UserRead(BaseModel):
     full_name: str
     is_active: bool
     is_superuser: bool
+    # Missing on users created before demo accounts existed.
+    is_demo: bool = False
     role: str = "viewer"
     created_at: datetime
 
