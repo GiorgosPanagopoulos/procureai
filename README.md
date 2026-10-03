@@ -59,7 +59,7 @@ Full technical documentation (architecture, sequence, deployment, RAG & auth flo
 | 🌐 **Bilingual UI** | Greek/English toggle with automatic locale switching |
 | 🌗 **Dark/Light Mode** | Full theme support via Tailwind CSS v4 |
 | 🔐 **RBAC** | Role-based access control: Admin / Procurement Officer / Viewer, JWT-embedded, enforced via FastAPI Depends() |
-| 🏢 **Multi-tenancy** | ChromaDB per-user document isolation via where={user_id} metadata filter + ContextVar threading |
+| 🏢 **Multi-tenancy** | Per-user document isolation in Atlas Vector Search via a `user_id` `$vectorSearch` pre-filter + ContextVar threading |
 | 🗒️ **Audit Log** | Every query logged to MongoDB (user, query, AI response summary, sources, timestamp) — exposed at /admin/audit-logs |
 | 📝 **Prompt Versioning** | File-based versioned prompts per use case under /prompts/use_case/v1.txt, loaded via PromptLoader singleton |
 | 🧩 **Structured Outputs** | Claude returns bid rankings as a validated Pydantic v2 model, so the ReAct agent observes stable JSON instead of prose |
@@ -119,7 +119,7 @@ graph TD
 
     subgraph Data["🗄️ Data Layer"]
         MONGO["MongoDB Atlas\nSuppliers · Bids · Usage · Conversations"]
-        CHROMA["ChromaDB\nVector Store"]
+        VECTOR["MongoDB Atlas Vector Search\ndocument_chunks"]
         RERANK["CrossEncoder Reranker\nms-marco-MiniLM (optional)"]
     end
 
@@ -134,8 +134,8 @@ graph TD
     EXEC --> T1 & T2 & T4
     EXEC --> T3
     T1 & T2 & T4 --> MONGO
-    T3 --> EMBED --> CHROMA
-    CHROMA -->|top-N chunks| RERANK -->|top-5 reranked| T3
+    T3 --> EMBED --> VECTOR
+    VECTOR -->|top-N chunks| RERANK -->|top-5 reranked| T3
     T3 -->|cached context| CLAUDE
     EXEC <-->|ReAct reasoning| CLAUDE
     API -->|persist trace + usage| MONGO
@@ -166,7 +166,7 @@ tool-selection prompt):
 
 | Tool | Selected when | Backing store |
 |------|----------------|---------------|
-| `document_qa` | The query concerns prices, budgets, contract terms, or content inside an uploaded PDF — the tool's docstring tells the agent to prefer it first for anything price- or document-related | ChromaDB (RAG) + Claude |
+| `document_qa` | The query concerns prices, budgets, contract terms, or content inside an uploaded PDF — the tool's docstring tells the agent to prefer it first for anything price- or document-related | Atlas Vector Search (RAG) + Claude |
 | `bid_comparison` | The user wants bids ranked by price and delivery time | MongoDB (`bids`) |
 | `supplier_lookup` | The user wants suppliers filtered by category or minimum rating | MongoDB (`suppliers`) |
 | `report_generation` | The user wants a summary report (supplier/bid aggregates) | MongoDB (`suppliers`, `bids`) |
@@ -175,11 +175,12 @@ tool-selection prompt):
 
 `document_qa` runs: **chunk** (`rag/chunking.py` splits ingested PDF text into ~500-char,
 paragraph-aware chunks) → **embed** (OpenAI `text-embedding-3-small`, `rag/embeddings.py`) →
-**store/query** (ChromaDB, per-user isolated via a `user_id` metadata filter) → **optional
+**store/query** (MongoDB Atlas Vector Search over the `document_chunks` collection, per-user
+isolated via a `user_id` `$vectorSearch` pre-filter) → **optional
 rerank** (`rag/reranker.py`, a lazy-loaded CrossEncoder `ms-marco-MiniLM-L-6-v2`) → **top-5 into
 context**. Retrieval count depends on whether the reranker is on: with `USE_RERANKER=true`,
-ChromaDB retrieves the top 20 chunks and the CrossEncoder reranks them down to the top 5; with
-reranking off, ChromaDB retrieves only the top 4 directly, since there's no second-stage ranking
+Atlas retrieves the top 20 chunks and the CrossEncoder reranks them down to the top 5; with
+reranking off, Atlas retrieves only the top 4 directly, since there's no second-stage ranking
 to narrow a wider candidate set. The resulting chunks are joined into a context block and passed
 to Claude alongside the question.
 
@@ -220,9 +221,8 @@ metadata.
 | ![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white) | UI styling, dark/light mode, responsive layout |
 | ![LangChain](https://img.shields.io/badge/LangChain-1C3C3C?style=for-the-badge&logo=chainlink&logoColor=white) | `AgentExecutor` + `create_react_agent` + `@tool` decorator |
 | ![Anthropic](https://img.shields.io/badge/Anthropic-CC785C?style=for-the-badge&logo=anthropic&logoColor=white) | `ChatAnthropic` (`claude-sonnet-4-6`) for LLM reasoning |
-| ![OpenAI](https://img.shields.io/badge/OpenAI-412991?style=for-the-badge&logo=openai&logoColor=white) | `text-embedding-3-small` for ChromaDB vector search |
-| ![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=for-the-badge&logo=mongodb&logoColor=white) | Atlas cloud store for supplier and bid records |
-| ![ChromaDB](https://img.shields.io/badge/ChromaDB-FF6B35?style=for-the-badge&logo=databricks&logoColor=white) | Local vector store for RAG document retrieval |
+| ![OpenAI](https://img.shields.io/badge/OpenAI-412991?style=for-the-badge&logo=openai&logoColor=white) | `text-embedding-3-small` for Atlas Vector Search |
+| ![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=for-the-badge&logo=mongodb&logoColor=white) | Atlas cloud store for supplier and bid records, and Atlas Vector Search (`langchain-mongodb`) for RAG document retrieval |
 
 ---
 
@@ -325,12 +325,41 @@ python scripts/ingest_pdfs.py --force            # re-embed everything, replacin
 python scripts/ingest_pdfs.py N4412_genika_kriteria.pdf   # just the named files
 ```
 
-Chunks are stored as `user_id="system"`, so every user can retrieve them. The script resolves
-`CHROMA_PATH` from `backend/`, exactly like `uvicorn` does, so it fills the same store the app
+Chunks are stored as `user_id="system"`, so every user can retrieve them. The script reads
+`MONGODB_URI` from `backend/.env`, so it fills the same `document_chunks` collection the app
 reads. Each chunk is one OpenAI embedding call, which is why files already in the store are
-skipped unless `--force` is given. Under Docker the store lives in the `chroma_data` volume,
-which starts empty, so the first `docker compose up` ingests the folder on its own; the script
-is not part of the image.
+skipped unless `--force` is given. The store lives in Atlas, so it survives restarts and
+container cold starts; the startup ingest only runs against an empty collection. The script is
+not part of the image.
+
+### 7. Create the Atlas Vector Search index
+
+RAG chunks live in the `document_chunks` collection of the `procureai` database, next to the
+app data. `document_qa` queries it with `$vectorSearch`, which needs a vector index named
+`vector_index`. M0 clusters can't create it from the driver, so create it once in the Atlas UI
+(**Atlas Search → Create Search Index → Atlas Vector Search → JSON Editor**) from
+[`backend/rag/atlas_vector_index.json`](backend/rag/atlas_vector_index.json), or with the CLI:
+
+```bash
+atlas clusters search indexes create --clusterName <cluster> --file backend/rag/atlas_vector_index.json
+```
+
+The index covers `embedding` (1536 dims, cosine, matching `text-embedding-3-small`) plus
+`user_id`, `source` and `category` as filter fields. Until it is built, `document_qa` returns
+"Error searching documents". `$vectorSearch` only runs on Atlas (or the
+`mongodb/mongodb-atlas-local` image), not on the plain `mongo:7` container in
+`docker-compose.yml`, so point `MONGODB_URI` at Atlas to use document Q&A under Docker.
+
+Upgrading from the ChromaDB store? Copy the existing chunks (no re-embedding) with:
+
+```bash
+pip install chromadb                                     # one-off; no longer a backend dependency
+python scripts/migrate_chroma_to_atlas.py --dry-run      # read and validate backend/chroma_db
+python scripts/migrate_chroma_to_atlas.py                # upsert into document_chunks, verify counts
+```
+
+The script is idempotent: chunks keep their `{user_id}_{source}_chunk_{i}` ids as `_id`, so
+re-runs change nothing.
 
 ---
 
@@ -348,7 +377,8 @@ Copy `backend/.env.example` to `backend/.env` and fill in the values below:
 | `FIRST_SUPERUSER_EMAIL` | Email for the admin account seeded on first startup | ➖ | `admin@procureai.local` |
 | `FIRST_SUPERUSER_PASSWORD` | Password for the seeded admin account | ➖ | `changethis` |
 | `ALLOWED_ORIGINS` | Comma-separated CORS origins | ➖ | `http://localhost:3000,http://localhost:5173` |
-| `CHROMA_PATH` | Path to ChromaDB persistence directory | ➖ | `./chroma_db` |
+| `VECTOR_COLLECTION` | Atlas collection holding RAG chunks | ➖ | `document_chunks` |
+| `VECTOR_INDEX_NAME` | Atlas Vector Search index on that collection | ➖ | `vector_index` |
 | `USE_RERANKER` | Enable CrossEncoder reranker for RAG | ➖ | `false` |
 | `INSTALL_RERANK` | Docker build arg — bakes `sentence-transformers` into the backend image | ➖ | `false` |
 | `SENTRY_DSN` | Sentry DSN for error tracking (unset disables Sentry) | ➖ | — |
@@ -428,7 +458,7 @@ procureai/
 │   │   ├── callbacks.py        # LangChain usage callback handler
 │   │   └── clients.py          # Anthropic + OpenAI client instances
 │   ├── rag/
-│   │   ├── vectorstore.py      # ChromaDB client + collection
+│   │   ├── vectorstore.py      # MongoDBAtlasVectorSearch over document_chunks
 │   │   ├── embeddings.py       # OpenAI text-embedding-3-small
 │   │   ├── chunking.py         # Text splitting logic
 │   │   ├── ingest.py           # PDF extraction + document ingestion pipeline
@@ -503,12 +533,12 @@ Key technical decisions:
 | Decision | Rationale |
 |----------|-----------|
 | **ReAct agent over fixed chains** | Dynamic tool selection lets the agent handle diverse, multi-step queries without hardcoded routing logic |
-| **Hybrid data layer** | MongoDB for structured supplier/bid records (fast filtering, aggregation); ChromaDB for document embeddings (semantic similarity) |
+| **Hybrid data layer** | MongoDB for structured supplier/bid records (fast filtering, aggregation); Atlas Vector Search in the same cluster for document embeddings (semantic similarity) |
 | **Decoupled embedding & LLM providers** | OpenAI embeddings + Anthropic Claude — avoids vendor lock-in, allows independent cost optimisation of each layer |
 | **N.4412/2016 RAG knowledge base** | Ingested full law text enables article-level citations for ΚΗΜΔΗΣ/ΕΣΗΔΗΣ queries and direct-award threshold questions |
 | **Bilingual design (Greek/English)** | Built for real-world institutional deployment in Greek public-sector procurement contexts |
 | **RBAC via JWT claims** | Role embedded at token issue time — no extra DB lookup per request, enforced declaratively via Depends() |
-| **ChromaDB multi-tenancy** | ContextVar-based user isolation ensures zero cross-user data leakage without a separate collection per user |
+| **Vector store multi-tenancy** | ContextVar-based user isolation ensures zero cross-user data leakage without a separate collection per user |
 | **Fire-and-forget audit log** | asyncio.create_task() writes to MongoDB without blocking the request path — zero latency cost |
 | **File-based prompt versioning** | Prompts are code artifacts, not DB rows — version-controlled, diff-able, rollback via git |
 
@@ -563,7 +593,7 @@ reading the stored answers, not by the harness.
 ### ✅ Phase 2 — Domain Intelligence (Complete · 199 tests)
 - Structured outputs — bid_comparison returns a validated Pydantic v2 model as the agent's observation
 - RBAC — Admin / Procurement Officer / Viewer roles, JWT-embedded, enforced via FastAPI Depends()
-- ChromaDB multi-tenancy — per-user document isolation via where={user_id} + ContextVar threading
+- Multi-tenancy — per-user document isolation via a user_id metadata filter + ContextVar threading (ChromaDB `where` then, Atlas `$vectorSearch` pre-filter now)
 - Audit log — MongoDB collection, fire-and-forget async writes, /admin/audit-logs endpoint
 - Prompt versioning — file-based /prompts/use_case/v1.txt system, PromptLoader singleton
 - Security: admin self-assignment gap closed on /register — UserCreate schema enforces Literal["viewer"], HTTP 422 on violation, admin seeding via lifespan only
@@ -578,7 +608,7 @@ reading the stored answers, not by the harness.
 
 ### 🔜 Phase 5 — Pre-Award Legal Audit Module 🛡️
 - Deterministic legal-validation endpoint (`POST /api/tenders/audit`) that accepts a draft tender notice and returns a structured risk report
-- Dedicated ChromaDB collection for the audit: full Ν.4412/2016 articles + ΕΑΔΗΣΥ case law (Hellenic Single Public Procurement Authority) — today's law excerpts share the `system` documents that `document_qa` reads
+- Dedicated Atlas vector collection for the audit: full Ν.4412/2016 articles + ΕΑΔΗΣΥ case law (Hellenic Single Public Procurement Authority) — today's law excerpts share the `system` documents that `document_qa` reads
 - Gap analysis: legal risks, missing mandatory clauses, technical gaps (ISO/EN), unjustified exclusions
 - Structured output with mandatory citations per risk (`article_ref` + source decision)
 - Business value: reduced award lead time, avoidance of pre-contractual appeals (ΕΑΔΗΣΥ) and litigation costs (Council of State)

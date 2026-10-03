@@ -183,7 +183,7 @@ li { margin-bottom:3pt; }
   <h2>1.2 Σκοπός</h2>
   <p>Ο στόχος είναι απλός: ο χρήστης διατυπώνει το ερώτημά του με δικά του λόγια, και ο agent αποφασίζει μόνος του ποιο εργαλείο ταιριάζει. Δεν υπάρχει μενού με κουμπιά «τρέξε αυτή τη λειτουργία», η δρομολόγηση γίνεται από το μοντέλο. Τα τέσσερα εργαλεία είναι:</p>
   <ul>
-    <li><code>document_qa</code>, ερωτήσεις επί μεταφορτωμένων PDF, με vector search στο ChromaDB και απαντήσεις που φέρουν τις πηγές τους.</li>
+    <li><code>document_qa</code>, ερωτήσεις επί μεταφορτωμένων PDF, με vector search στο MongoDB Atlas Vector Search και απαντήσεις που φέρουν τις πηγές τους.</li>
     <li><code>bid_comparison</code>, κατάταξη προσφορών με κριτήρια τιμής, χρόνου παράδοσης και όρων πληρωμής· τα δεδομένα έρχονται από τη MongoDB (με προαιρετικό φίλτρο κατηγορίας) και η κατάταξη επιστρέφει από την Claude ως επικυρωμένο Pydantic σχήμα, που δηλώνει και πόσες προσφορές ταίριαξαν συνολικά όταν η λίστα είναι κομμένη.</li>
     <li><code>supplier_lookup</code>, εύρεση και αξιολόγηση προμηθευτών, με φιλτράρισμα ανά κατηγορία ή βαθμολογία.</li>
     <li><code>report_generation</code>, συγκεντρωτική εικόνα των προμηθειών: προμηθευτές, προσφορές, αξία, κατάσταση. Διαβάζει κάθε προσφορά, οπότε εκεί δρομολογούνται τα σύνολα, οι μέσοι όροι και τα πλήθη.</li>
@@ -192,7 +192,7 @@ li { margin-bottom:3pt; }
 
   <h2>1.3 Πλαίσιο ανάπτυξης</h2>
   <p>Η εφαρμογή γράφτηκε ως τελική εργασία του προγράμματος ΚΕΔΙΒΙΜ/ΟΠΑ «AI for Developers» (6 ECTS) και καλύπτει σχεδόν όλη την ύλη του: Python και FastAPI από την πρώτη ενότητα, prompt engineering από τη δεύτερη, αρχιτεκτονική AI συστημάτων από την τρίτη, RAG από την τέταρτη και agents με το ReAct pattern από την πέμπτη, με μερικά στοιχεία open-source μοντέλων από την έκτη. Η αναλυτική αντιστοίχιση ενοτήτων και τεχνικών βρίσκεται στον πίνακα του §7.10.</p>
-  <p>Η ανάπτυξη έγινε σε φάσεις. Η Phase 1 έθεσε τον πυρήνα (agent, RAG, βασικό UI). Η Phase 2, που ολοκληρώθηκε τον Αύγουστο του 2026, πρόσθεσε το στρώμα διακυβέρνησης: RBAC με JWT, multi-tenancy στο ChromaDB, audit log, versioning των prompts και structured outputs στο <code>bid_comparison</code>, μαζί με εκτενές refactoring σε backend και frontend.</p>
+  <p>Η ανάπτυξη έγινε σε φάσεις. Η Phase 1 έθεσε τον πυρήνα (agent, RAG, βασικό UI). Η Phase 2, που ολοκληρώθηκε τον Αύγουστο του 2026, πρόσθεσε το στρώμα διακυβέρνησης: RBAC με JWT, multi-tenancy στο vector store, audit log, versioning των prompts και structured outputs στο <code>bid_comparison</code>, μαζί με εκτενές refactoring σε backend και frontend.</p>
 </div>
 
 <!-- ============================ CH 2 ============================ -->
@@ -211,7 +211,7 @@ li { margin-bottom:3pt; }
   </table>
 
   <h2>2.2 Τέσσερα σενάρια</h2>
-  <p><strong>Document Q&amp;A.</strong> Ένας procurement officer μεταφορτώνει το PDF του Ν.4412/2016 και θέτει το ερώτημα «ποια είναι τα βασικά άρθρα για τις δημόσιες συμβάσεις;». Ο agent επιλέγει μόνος του το <code>document_qa</code>, εκτελεί vector search στο ChromaDB και επιστρέφει απάντηση με τις πηγές. Όλο το σκεπτικό του (Thought, Action, Observation) φαίνεται στο UI αν ο χρήστης το ζητήσει.</p>
+  <p><strong>Document Q&amp;A.</strong> Ένας procurement officer μεταφορτώνει το PDF του Ν.4412/2016 και θέτει το ερώτημα «ποια είναι τα βασικά άρθρα για τις δημόσιες συμβάσεις;». Ο agent επιλέγει μόνος του το <code>document_qa</code>, εκτελεί vector search στο MongoDB Atlas και επιστρέφει απάντηση με τις πηγές. Όλο το σκεπτικό του (Thought, Action, Observation) φαίνεται στο UI αν ο χρήστης το ζητήσει.</p>
   <p><strong>Σύγκριση προσφορών.</strong> Στο «σύγκρινε τις διαθέσιμες προσφορές» ο agent περνά στο <code>bid_comparison</code>, που ανακτά τις προσφορές από τη MongoDB, τις δίνει στην Claude με <code>with_structured_output(BidComparisonResult)</code> και επιστρέφει κατάταξη κατά τιμή και χρόνο παράδοσης μαζί με σύσταση, ως JSON.</p>
   <p><strong>Αναζήτηση προμηθευτών.</strong> Στο «βρες προμηθευτές IT» καλείται το <code>supplier_lookup</code>, που φιλτράρει με regex στην κατηγορία και επιστρέφει αποτελέσματα ταξινομημένα κατά βαθμολογία.</p>
   <p><strong>Αναφορά.</strong> Στο «φτιάξε μου αναφορά προμηθειών» το <code>report_generation</code> συγκεντρώνει προμηθευτές και προσφορές και παράγει μια δομημένη σύνοψη.</p>
@@ -220,13 +220,13 @@ li { margin-bottom:3pt; }
   <p>Τι κάνει η εφαρμογή και πόσο κρίσιμο είναι το καθένα:</p>
   <table class="tight">
     <tr><th style="width:22%">Λειτουργία</th><th>Τι κάνει</th><th style="width:12%">Προτεραιότητα</th></tr>
-    <tr><td>Ανέβασμα εγγράφων</td><td>Ο χρήστης μεταφορτώνει ένα PDF με μεταφορά (drag-and-drop)· το κείμενο εξάγεται με pypdf, διασπάται σε chunks των 500 χαρακτήρων με 50 overlap ώστε να μη χάνεται το νόημα στα όρια, και κάθε chunk λαμβάνει embedding και αποθηκεύεται στο ChromaDB ως vector.</td><td>Υψηλή</td></tr>
+    <tr><td>Ανέβασμα εγγράφων</td><td>Ο χρήστης μεταφορτώνει ένα PDF με μεταφορά (drag-and-drop)· το κείμενο εξάγεται με pypdf, διασπάται σε chunks των 500 χαρακτήρων με 50 overlap ώστε να μη χάνεται το νόημα στα όρια, και κάθε chunk λαμβάνει embedding και αποθηκεύεται ως vector στη συλλογή <code>document_chunks</code> του MongoDB Atlas.</td><td>Υψηλή</td></tr>
     <tr><td>Δρομολόγηση μέσω agent</td><td>Δεν υπάρχει σταθερό μενού με κουμπιά. Ο ReAct agent διαβάζει το ερώτημα και αποφασίζει μόνος του ποιο από τα τέσσερα tools ταιριάζει, μέσα σε βρόχο Thought → Action → Observation και μέχρι πέντε επαναλήψεις. Όλο το σκεπτικό παραμένει ορατό.</td><td>Υψηλή</td></tr>
-    <tr><td>Document Q&amp;A (RAG)</td><td>Το ερώτημα γίνεται vector, το ChromaDB ανακτά τα πιο σχετικά chunks, κι αυτά προωθούνται στην Claude μαζί με την ερώτηση. Η απάντηση επιστρέφεται πάντα με τις πηγές της (ποιο έγγραφο και ποιο σημείο) ώστε να ελέγχεται.</td><td>Υψηλή</td></tr>
+    <tr><td>Document Q&amp;A (RAG)</td><td>Το ερώτημα γίνεται vector, το Atlas Vector Search ανακτά τα πιο σχετικά chunks, κι αυτά προωθούνται στην Claude μαζί με την ερώτηση. Η απάντηση επιστρέφεται πάντα με τις πηγές της (ποιο έγγραφο και ποιο σημείο) ώστε να ελέγχεται.</td><td>Υψηλή</td></tr>
     <tr><td>Σύγκριση προσφορών</td><td>Τραβάει τις προσφορές από τη MongoDB και τις βάζει σε σειρά κατά τιμή και χρόνο παράδοσης. Δίπλα σε κάθε μία φαίνονται οι όροι πληρωμής, η κατάσταση και η τιμή σε EUR· η κατάταξη και η σύσταση επιστρέφουν από την Claude ως δομημένο JSON (<code>BidComparisonResult</code>). Το tool βλέπει σελίδα δέκα προσφορών αλλά μετρά πόσες ταίριαξαν συνολικά, ώστε η απάντηση να λέει «10 από 16» και όχι «16»· αν το φίλτρο κατηγορίας δεν ταιριάξει σε τίποτα, επιστρέφει τις πραγματικές ετικέτες κατηγοριών για να ξαναδοκιμάσει ο agent.</td><td>Υψηλή</td></tr>
     <tr><td>Αναζήτηση προμηθευτών</td><td>Φιλτράρει με regex στην κατηγορία (π.χ. «Εξοπλισμός IT») και επιστρέφει τους προμηθευτές ταξινομημένους κατά βαθμολογία, με κατηγορία, rating και στοιχεία επικοινωνίας, και προτείνει επόμενα ερωτήματα. Οι κατηγορίες είναι αποθηκευμένες με ελληνικές ετικέτες, οπότε ένα αγγλικό φίλτρο που δεν ταιριάζει παίρνει πίσω τη λίστα των υπαρκτών ετικετών αντί για ένα σκέτο «δεν βρέθηκε».</td><td>Υψηλή</td></tr>
     <tr><td>Έλεγχος πρόσβασης</td><td>Login με JWT αποθηκευμένο σε httpOnly cookie. Κάθε endpoint ξέρει ποιοι ρόλοι το αγγίζουν· ένας viewer που επιχειρεί chat ή upload λαμβάνει 403, και η εγγραφή δέχεται μόνο ρόλο viewer.</td><td>Υψηλή</td></tr>
-    <tr><td>Απομόνωση δεδομένων ανά χρήστη</td><td>Κάθε request μεταφέρει το user_id μέσω ContextVar. Το where filter στο ChromaDB επιτρέπει στον χρήστη να βλέπει μόνο τα δικά του έγγραφα συν τα system, τον Ν.4412/2016 που έχει ανέβει κεντρικά. Οι διαγραφές κλειδώνουν ανά χρήστη και ανά source.</td><td>Υψηλή</td></tr>
+    <tr><td>Απομόνωση δεδομένων ανά χρήστη</td><td>Κάθε request μεταφέρει το user_id μέσω ContextVar. Το pre-filter του <code>$vectorSearch</code> επιτρέπει στον χρήστη να βλέπει μόνο τα δικά του έγγραφα συν τα system, τον Ν.4412/2016 που έχει ανέβει κεντρικά. Οι διαγραφές κλειδώνουν ανά χρήστη και ανά source.</td><td>Υψηλή</td></tr>
     <tr><td>Καταγραφή ενεργειών</td><td>Κάθε κλήση γράφεται στη MongoDB: ποιος, τι ρώτησε, πότε, με ποιες πηγές, από ποια IP. Γίνεται σε fire-and-forget task που δεν περιμένει, οπότε δεν προσθέτει καθυστέρηση στην απόκριση.</td><td>Μεσαία</td></tr>
     <tr><td>Απόκρυψη προσωπικών δεδομένων</td><td>Πριν σταλεί οτιδήποτε προς το μοντέλο, ΑΦΜ, ΑΜΚΑ, email και ελληνικά τηλέφωνα εντοπίζονται με regex και αντικαθίστανται με placeholders όπως <code>[AFM_REDACTED]</code>. Στα logs μένει μόνο το πλήθος, ποτέ το περιεχόμενο.</td><td>Μεσαία</td></tr>
     <tr><td>Δίγλωσσο περιβάλλον</td><td>Όλο το UI αλλάζει ανάμεσα σε Ελληνικά και Αγγλικά με ένα toggle, υπάρχει dark και light θέμα, και έξι έτοιμα ερωτήματα ανά γλώσσα που με ένα κλικ τροφοδοτούν κατευθείαν τον agent.</td><td>Μεσαία</td></tr>
@@ -249,7 +249,7 @@ li { margin-bottom:3pt; }
     <tr><td>LangChain</td><td>Agent + RAG</td><td><code>create_react_agent</code>, AgentExecutor, PromptTemplate, text splitting</td></tr>
     <tr><td>Anthropic Claude</td><td>LLM</td><td>claude-sonnet-4-6, reasoning, function calling, prompt caching</td></tr>
     <tr><td>OpenAI Embeddings</td><td>Vectorization</td><td>text-embedding-3-small (1536 διαστάσεις)</td></tr>
-    <tr><td>ChromaDB</td><td>Vector store</td><td>Ελαφρύ, persistent, metadata filtering, multi-tenancy</td></tr>
+    <tr><td>MongoDB Atlas Vector Search</td><td>Vector store</td><td>Συλλογή <code>document_chunks</code> στο ίδιο cluster, langchain-mongodb, filter fields για multi-tenancy, επιβιώνει των cold starts</td></tr>
     <tr><td>MongoDB Atlas</td><td>Document DB</td><td>Προμηθευτές, προσφορές, χρήστες, audit logs, usage, συνομιλίες</td></tr>
     <tr><td>Pydantic v2</td><td>Validation</td><td>Type-safe μοντέλα, settings, JSON schema, structured outputs</td></tr>
     <tr><td>Motor</td><td>Async Mongo driver</td><td>Μη μπλοκάρων I/O προς τη MongoDB, singleton client με lazy init</td></tr>
@@ -285,7 +285,7 @@ li { margin-bottom:3pt; }
     <tr><td>Docker + docker compose</td><td>backend + frontend + MongoDB σε containers</td></tr>
   </table>
   <div class="note">
-    <p><strong>Χρόνος εκκίνησης.</strong> Οι lazy-loaded clients (Mongo, Chroma, LLM) και η μεταφορά των προαιρετικών εξαρτήσεων του reranker σε ξεχωριστό <code>requirements-rerank.txt</code> μείωσαν τον χρόνο import από 7.00s σε 1.59s, δηλαδή κατά 77%.</p>
+    <p><strong>Χρόνος εκκίνησης.</strong> Οι lazy-loaded clients (Mongo, vector store, LLM) και η μεταφορά των προαιρετικών εξαρτήσεων του reranker σε ξεχωριστό <code>requirements-rerank.txt</code> μείωσαν τον χρόνο import από 7.00s σε 1.59s, δηλαδή κατά 77%.</p>
   </div>
 </div>
 
@@ -302,17 +302,17 @@ li { margin-bottom:3pt; }
     <tr><td><code>agent/</code></td><td>executor.py · prompt.py · tools.py</td><td>Ο ReAct agent: AgentExecutor, τα 4 tools, φόρτωση prompt</td></tr>
     <tr><td><code>api/routes/</code></td><td>auth.py</td><td>Auth router (login, register, logout, me)</td></tr>
     <tr><td><code>auth/</code></td><td>security.py · dependencies.py</td><td>JWT, password hashing, get_current_user</td></tr>
-    <tr><td><code>core/</code></td><td>audit · chroma_tenant · prompt_loader · rbac · sentry</td><td>Audit, multi-tenancy, PromptLoader singleton, RBAC, Sentry init</td></tr>
+    <tr><td><code>core/</code></td><td>audit · tenant · prompt_loader · rbac · sentry</td><td>Audit, multi-tenancy, PromptLoader singleton, RBAC, Sentry init</td></tr>
     <tr><td><code>crud/</code></td><td>user.py</td><td>MongoDB CRUD: create, authenticate, update</td></tr>
     <tr><td><code>data/</code></td><td>seed.py · pdfs/</td><td>Idempotent seeding: 12 προμηθευτές, 16 προσφορές· <code>--force</code> αδειάζει τις δύο συλλογές πριν ξαναγεμίσουν, ώστε μια αλλαγή σχήματος (π.χ. το πεδίο <code>category</code>) να μην αφήνει παλιά έγγραφα πίσω. Στο <code>pdfs/</code> τα δείγματα συμβάσεων, τιμοκαταλόγων και τα αποσπάσματα του Ν.4412/2016</td></tr>
     <tr><td><code>llm/</code></td><td>clients · pricing · callbacks</td><td>Lazy LLM clients, υπολογισμός κόστους, LangChain callback</td></tr>
     <tr><td><code>middleware/</code></td><td>cors · correlation · rate_limit · audit_middleware</td><td>CORS, X-Correlation-ID, SlowAPI, fire-and-forget audit</td></tr>
     <tr><td><code>models/</code></td><td>supplier · bid · user</td><td>Pydantic v2 μοντέλα Supplier, Bid (με πεδίο <code>category</code> για φιλτράρισμα ανά κατηγορία) και User</td></tr>
-    <tr><td><code>rag/</code></td><td>vectorstore · embeddings · chunking · ingest · reranker</td><td>ChromaDB, OpenAI embeddings, text splitting, ingestion PDF, CrossEncoder</td></tr>
+    <tr><td><code>rag/</code></td><td>vectorstore · embeddings · chunking · ingest · reranker</td><td>MongoDBAtlasVectorSearch, OpenAI embeddings, text splitting, ingestion PDF, CrossEncoder</td></tr>
     <tr><td><code>routers/</code></td><td>chat · suppliers · reports · health · admin</td><td>REST endpoints, κλήση agent, file upload</td></tr>
     <tr><td><code>schemas/</code></td><td>auth · bid_comparison · chat · user</td><td>Pydantic request/response μοντέλα και το σχήμα structured output του bid_comparison</td></tr>
     <tr><td><code>security/</code></td><td>pii.py</td><td>Απόκρυψη ΑΦΜ, ΑΜΚΑ, email, τηλεφώνων</td></tr>
-    <tr><td><code>utils/</code></td><td>lazy.py</td><td>LazyProxy: αναβολή αρχικοποίησης Mongo/Chroma/LLM clients μέχρι την πρώτη χρήση</td></tr>
+    <tr><td><code>utils/</code></td><td>lazy.py</td><td>LazyProxy: αναβολή αρχικοποίησης Mongo/vector store/LLM clients μέχρι την πρώτη χρήση</td></tr>
     <tr><td><code>tests/</code></td><td>test_auth · test_rbac · test_agent · test_tools · test_seed · test_chunking · test_ingest · test_env_isolation κ.ά.</td><td>199 tests, unit και integration, με in-memory fake MongoDB fixture· το test_agent.py (15 tests, mocked LLM) καλύπτει τον βρόχο run_agent, το trace, το max_iterations, τα σφάλματα tools, το PII redaction, τις διαδρομές του document_qa και τους κανόνες του chat prompt (γλώσσα, νόμισμα ανά πηγή, δρομολόγηση των aggregates) μαζί με τα docstrings των tools που τους συνοδεύουν· το test_tools.py (18 tests) ελέγχει το clamp του document_qa, τις ετικέτες «10 από 16», τα hints κατηγορίας και ότι ο μέσος όρος του report_generation καλύπτει και τις 16 προσφορές</td></tr>
     <tr><td><code>prompts/</code></td><td>chat/v1.txt · doc_qa/v1.txt</td><td>2 versioned αρχεία prompt (YAML header + κείμενο)· το chat βρίσκεται στην έκδοση v1.6, με changelog v1.1–v1.6 μέσα στο header</td></tr>
   </table>
@@ -386,8 +386,8 @@ li { margin-bottom:3pt; }
     <!-- DATA -->
     <text x="24" y="434" fill="#c9a84c" font-size="9" font-weight="800" letter-spacing="2.5">DATA &amp; KNOWLEDGE</text>
     <rect x="24" y="444" width="350" height="56" rx="8" fill="#161b2c" stroke="#1f2740"/>
-    <text x="199" y="466" fill="#ffffff" font-size="11" font-weight="700" text-anchor="middle">ChromaDB</text>
-    <text x="199" y="482" fill="#8ea8d8" font-size="8" text-anchor="middle">vectors · multi-tenant (where + ContextVar)</text>
+    <text x="199" y="466" fill="#ffffff" font-size="11" font-weight="700" text-anchor="middle">Atlas Vector Search</text>
+    <text x="199" y="482" fill="#8ea8d8" font-size="8" text-anchor="middle">document_chunks · multi-tenant ($vectorSearch filter + ContextVar)</text>
     <rect x="386" y="444" width="350" height="56" rx="8" fill="#161b2c" stroke="#1f2740"/>
     <text x="561" y="464" fill="#ffffff" font-size="11" font-weight="700" text-anchor="middle">MongoDB Atlas</text>
     <text x="561" y="478" fill="#8ea8d8" font-size="8" text-anchor="middle">suppliers · bids · users</text>
@@ -426,8 +426,8 @@ li { margin-bottom:3pt; }
   </div>
 
   <h2>4.4 Το RAG pipeline</h2>
-  <p>Στο ανέβασμα, το PDF περνά από εξαγωγή κειμένου με pypdf, διασπάται σε chunks των 500 χαρακτήρων με overlap 50 χαρακτήρων (οι τελευταίοι 50 χαρακτήρες κάθε chunk επαναλαμβάνονται στην αρχή του επόμενου, με ανώτατο όριο το μισό του chunk_size, και η διάσπαση σέβεται τα όρια παραγράφων και γραμμών), κάθε chunk λαμβάνει embedding από το OpenAI και αποθηκεύεται στο ChromaDB μαζί με metadata (user_id, source, chunk).</p>
-  <p>Στην ανάκτηση, το ερώτημα γίνεται κι αυτό vector, το ChromaDB ανακτά τα πιο κοντινά chunks (top-4 κανονικά, top-20 αν είναι ενεργός ο reranker, με το αίτημα να περιορίζεται στο πλήθος των αποθηκευμένων chunks, γιατί το Chroma ρίχνει σφάλμα όταν του ζητηθούν περισσότερα από όσα έχει και μια μικρή συλλογή φαινόταν κενή) και ένας CrossEncoder (ms-marco-MiniLM) διατηρεί τα 5 καλύτερα. Αυτά μαζί με την ερώτηση προωθούνται στην Claude μέσω του messages API, με prompt caching, και επιστρέφεται η απάντηση με τις πηγές της.</p>
+  <p>Στο ανέβασμα, το PDF περνά από εξαγωγή κειμένου με pypdf, διασπάται σε chunks των 500 χαρακτήρων με overlap 50 χαρακτήρων (οι τελευταίοι 50 χαρακτήρες κάθε chunk επαναλαμβάνονται στην αρχή του επόμενου, με ανώτατο όριο το μισό του chunk_size, και η διάσπαση σέβεται τα όρια παραγράφων και γραμμών), κάθε chunk λαμβάνει embedding από το OpenAI και αποθηκεύεται στη συλλογή <code>document_chunks</code> του MongoDB Atlas μαζί με metadata (user_id, source, chunk), με upsert ανά <code>_id</code> ώστε το ξανανέβασμα ενός αρχείου να αντικαθιστά τα chunks του.</p>
+  <p>Στην ανάκτηση, το ερώτημα γίνεται κι αυτό vector, το Atlas Vector Search (<code>$vectorSearch</code> με cosine similarity) ανακτά τα πιο κοντινά chunks (top-4 κανονικά, top-20 αν είναι ενεργός ο reranker· αν ταιριάζουν λιγότερα chunks, επιστρέφονται απλώς λιγότερα) και ένας CrossEncoder (ms-marco-MiniLM) διατηρεί τα 5 καλύτερα. Αυτά μαζί με την ερώτηση προωθούνται στην Claude μέσω του messages API, με prompt caching, και επιστρέφεται η απάντηση με τις πηγές της.</p>
 
   <h2>4.5 RBAC &amp; audit</h2>
   <p>Η διαδρομή κάθε request είναι σταθερή: HTTP → CORS → rate limit → correlation ID → έλεγχος JWT (<code>get_current_user</code>) → έλεγχος ρόλου (<code>require_admin</code> / <code>require_procurement_officer</code> / <code>require_viewer</code>) → handler → fire-and-forget <code>audit_interaction()</code> → απόκριση.</p>
@@ -457,7 +457,7 @@ li { margin-bottom:3pt; }
       <rect x="140" y="16" width="104" height="26" rx="6" fill="#161b2c" stroke="#1f2740"/><text x="192" y="33">FastAPI</text>
       <rect x="264" y="16" width="150" height="26" rx="6" fill="#161b2c" stroke="#1f2740"/><text x="339" y="33">ReAct Agent · Claude</text>
       <rect x="434" y="16" width="86" height="26" rx="6" fill="#161b2c" stroke="#1f2740"/><text x="477" y="33">Tools</text>
-      <rect x="540" y="16" width="96" height="26" rx="6" fill="#161b2c" stroke="#1f2740"/><text x="588" y="33">ChromaDB</text>
+      <rect x="540" y="16" width="96" height="26" rx="6" fill="#161b2c" stroke="#1f2740"/><text x="588" y="33">Vector Search</text>
       <rect x="652" y="16" width="94" height="26" rx="6" fill="#161b2c" stroke="#1f2740"/><text x="699" y="33">MongoDB</text>
     </g>
     <g stroke="#1f2740" stroke-width="1" stroke-dasharray="3 4">
@@ -594,7 +594,7 @@ li { margin-bottom:3pt; }
   <table class="tight">
     <tr><th style="width:11%">Method</th><th style="width:28%">Endpoint</th><th>Περιγραφή</th><th style="width:16%">Auth / Rate</th></tr>
     <tr><td>POST</td><td><code>/chat</code></td><td>Ερώτημα στον agent → απάντηση, tool, trace, usage</td><td>officer+ · 10/min</td></tr>
-    <tr><td>POST</td><td><code>/upload</code></td><td>PDF → chunking → ChromaDB</td><td>officer+ · 30/min</td></tr>
+    <tr><td>POST</td><td><code>/upload</code></td><td>PDF → chunking → Atlas <code>document_chunks</code></td><td>officer+ · 30/min</td></tr>
     <tr><td>POST</td><td><code>/doc_qa</code></td><td>Απευθείας document_qa, παρακάμπτει τον agent</td><td>officer+ · 30/min</td></tr>
     <tr><td>DELETE</td><td><code>/documents?source=X</code></td><td>Διαγραφή των chunks ενός εγγράφου του χρήστη</td><td>officer+ · 30/min</td></tr>
     <tr><td>GET</td><td><code>/conversations/{id}/trace</code></td><td>Το reasoning trace μιας συνομιλίας</td><td>viewer+</td></tr>
@@ -674,11 +674,11 @@ li { margin-bottom:3pt; }
   <p>Εδώ συγκεντρώνονται οι τεχνικές από τις ενότητες 2 έως 5 του προγράμματος: prompt engineering, αρχιτεκτονική, RAG και agents. Ο συγκεντρωτικός πίνακας αντιστοίχισης βρίσκεται στο §7.10.</p>
 
   <h2>7.1 ReAct agent pattern</h2>
-  <p>Ο agent τρέχει με <code>create_react_agent</code> + AgentExecutor και <code>return_intermediate_steps=True</code>. Τα τέσσερα tools είναι decorated με <code>@tool</code>: το <code>document_qa</code> (sync, ChromaDB + Claude), το <code>bid_comparison</code> (async, MongoDB + Claude με structured output, §7.4) και τα <code>supplier_lookup</code>, <code>report_generation</code> (async, μόνο MongoDB, χωρίς κλήση LLM). Όριο πέντε επαναλήψεων, με <code>handle_parsing_errors=True</code>.</p>
+  <p>Ο agent τρέχει με <code>create_react_agent</code> + AgentExecutor και <code>return_intermediate_steps=True</code>. Τα τέσσερα tools είναι decorated με <code>@tool</code>: το <code>document_qa</code> (async, Atlas Vector Search + Claude), το <code>bid_comparison</code> (async, MongoDB + Claude με structured output, §7.4) και τα <code>supplier_lookup</code>, <code>report_generation</code> (async, μόνο MongoDB, χωρίς κλήση LLM). Όριο πέντε επαναλήψεων, με <code>handle_parsing_errors=True</code>.</p>
   <p>Το trace (Thought → Action → Action Input → Observation) καταγράφεται, αποθηκεύεται στη MongoDB και εμφανίζεται στο frontend σε αναδιπλούμενο panel. Κάθε κλήση μετράει tokens και κόστος μέσω ενός custom <code>UsageCallback</code> και ενός <code>_UsageAccum</code> ContextVar.</p>
 
   <h2>7.2 RAG pipeline</h2>
-  <p>Το splitting γίνεται με custom <code>split_text_chunks</code>: chunks των 500 χαρακτήρων που σέβονται τα όρια παραγράφων και γραμμών, με πραγματικό overlap 50 χαρακτήρων (η ουρά του προηγούμενου chunk μπαίνει στην αρχή του επόμενου· το overlap περιορίζεται σε <code>chunk_size // 2</code> ώστε τουλάχιστον το μισό κάθε chunk να είναι νέο περιεχόμενο). Τα embeddings είναι OpenAI text-embedding-3-small (1536 διαστάσεις), με lazy-loaded client (LazyProxy). Το vector store είναι persistent ChromaDB, collection <code>procureai_documents</code>, με metadata user_id, source και chunk index.</p>
+  <p>Το splitting γίνεται με custom <code>split_text_chunks</code>: chunks των 500 χαρακτήρων που σέβονται τα όρια παραγράφων και γραμμών, με πραγματικό overlap 50 χαρακτήρων (η ουρά του προηγούμενου chunk μπαίνει στην αρχή του επόμενου· το overlap περιορίζεται σε <code>chunk_size // 2</code> ώστε τουλάχιστον το μισό κάθε chunk να είναι νέο περιεχόμενο). Τα embeddings είναι OpenAI text-embedding-3-small (1536 διαστάσεις), με lazy-loaded client (LazyProxy). Το vector store είναι το MongoDB Atlas Vector Search (<code>MongoDBAtlasVectorSearch</code> του langchain-mongodb) πάνω στη συλλογή <code>document_chunks</code>, με index <code>vector_index</code> (cosine, 1536 διαστάσεις) και metadata user_id, source και chunk index ως πεδία κάθε εγγράφου.</p>
   <p>Στην ανάκτηση: similarity search (top-4 κανονικά, top-20 με reranker, ποτέ περισσότερα από τα chunks που υπάρχουν στη συλλογή) και where filter <code>{$or: [{user_id}, {user_id: 'system'}]}</code>. Ο προαιρετικός CrossEncoder (ms-marco-MiniLM-L-6-v2) ξανακατατάσσει στα top-5 αν το <code>USE_RERANKER</code> είναι true. Η generation γίνεται με το raw messages API της Anthropic και prompt caching (ephemeral) στο system prompt και το context.</p>
 
   <div class="diagram">
@@ -701,8 +701,8 @@ li { margin-bottom:3pt; }
       <line x1="254" y1="55" x2="272" y2="55" stroke="#c9a84c" marker-end="url(#ar5)"/>
 
       <rect x="276" y="32" width="120" height="46" rx="7" fill="#161b2c" stroke="#1f2740"/>
-      <text x="336" y="49" fill="#ffffff" font-size="9.5" font-weight="700">ChromaDB</text>
-      <text x="336" y="61" fill="#8ea8d8" font-size="7.5">where filter · multi-tenant</text>
+      <text x="336" y="49" fill="#ffffff" font-size="9.5" font-weight="700">Vector Search</text>
+      <text x="336" y="61" fill="#8ea8d8" font-size="7.5">Atlas · pre-filter</text>
       <text x="336" y="71" fill="#8ea8d8" font-size="7.5">top-k similarity</text>
       <line x1="398" y1="55" x2="416" y2="55" stroke="#c9a84c" marker-end="url(#ar5)"/>
 
@@ -746,8 +746,8 @@ li { margin-bottom:3pt; }
     <tr><td>BidComparisonResult</td><td>bids (List[RankedBid]), recommendation, total_matched, truncated</td><td>Η κατάταξη best-value first, η σύσταση ανάθεσης σε δύο-τρεις προτάσεις, πόσες προσφορές ταίριαξαν συνολικά στη βάση και αν η λίστα είναι δείγμα τους</td></tr>
   </table>
 
-  <h2>7.5 Multi-tenant ChromaDB</h2>
-  <p>Η απομόνωση γίνεται με ένα ContextVar στο <code>core/chroma_tenant.py</code>: κάθε request θέτει το <code>_current_user_id</code>. Το <code>document_qa</code> εφαρμόζει <code>where={$or: [get_user_filter(user_id), {user_id: 'system'}]}</code>, ώστε ο χρήστης να βλέπει και τα δικά του έγγραφα και τα system έγγραφα (τον Ν.4412/2016 που έχει ανέβει κεντρικά). Οι διαγραφές φιλτράρουν αυστηρά ανά χρήστη και ανά source.</p>
+  <h2>7.5 Multi-tenant vector search</h2>
+  <p>Η απομόνωση γίνεται με ένα ContextVar στο <code>core/tenant.py</code>: κάθε request θέτει το <code>_current_user_id</code>. Το <code>document_qa</code> περνά στο <code>$vectorSearch</code> το pre-filter <code>get_search_filter(user_id)</code> = <code>{user_id: {$in: [user_id, 'system']}}</code>, ώστε ο χρήστης να βλέπει και τα δικά του έγγραφα και τα system έγγραφα (τον Ν.4412/2016 που έχει ανέβει κεντρικά). Το φιλτράρισμα γίνεται μέσα στο Atlas πριν από την ανάκτηση, οπότε chunks άλλου χρήστη δεν φτάνουν ποτέ στο backend. Το <code>user_id</code> είναι δηλωμένο ως filter field στο index (<code>rag/atlas_vector_index.json</code>). Οι διαγραφές φιλτράρουν αυστηρά ανά χρήστη και ανά source.</p>
 
   <h2>7.6 Audit logging</h2>
   <p>Το pattern είναι fire-and-forget: το <code>audit_interaction()</code> εκκινεί ένα <code>asyncio.create_task(log_audit(...))</code> χωρίς να αναμένει. Μηδενικό κόστος στη διαδρομή της απόκρισης, και το <code>log_audit</code> καταπίνει τυχόν exceptions ώστε να μην προκαλεί ποτέ σφάλμα στον caller. Όλα αποθηκεύονται σε MongoDB collection με compound index [user_id, timestamp DESC].</p>
@@ -785,7 +785,7 @@ li { margin-bottom:3pt; }
     <tr><td>3</td><td><strong>Structured outputs</strong></td><td><code>agent/tools.py:bid_comparison</code>, <code>schemas/bid_comparison.py</code></td><td><code>claude_llm.with_structured_output(BidComparisonResult)</code>, Pydantic v2 σχήμα (λίστα RankedBid + recommendation + total_matched/truncated από τη MongoDB), JSON ως ReAct observation, plain-text fallback σε αποτυχία</td></tr>
     <tr><td>3</td><td>Observability &amp; cost tracking</td><td><code>llm/callbacks.py</code>, <code>llm/pricing.py</code>, structlog, Sentry</td><td>Tokens και κόστος ανά κλήση, correlation IDs</td></tr>
     <tr><td>4</td><td>Chunking &amp; embeddings</td><td><code>rag/chunking.py</code>, <code>rag/embeddings.py</code></td><td>500 χαρακτήρες, overlap 50 (≤ chunk_size // 2), με σεβασμό παραγράφων και γραμμών· text-embedding-3-small</td></tr>
-    <tr><td>4</td><td>Vector search &amp; metadata filtering</td><td><code>rag/vectorstore.py</code>, <code>core/chroma_tenant.py</code></td><td>ChromaDB, where filter, multi-tenancy με ContextVar</td></tr>
+    <tr><td>4</td><td>Vector search &amp; metadata filtering</td><td><code>rag/vectorstore.py</code>, <code>core/tenant.py</code></td><td>MongoDB Atlas Vector Search, <code>$vectorSearch</code> pre-filter, multi-tenancy με ContextVar</td></tr>
     <tr><td>4</td><td>Reranking</td><td><code>rag/reranker.py</code></td><td>CrossEncoder ms-marco, top-20 → top-5, προαιρετικό</td></tr>
     <tr><td>4</td><td>Grounded generation με citations</td><td><code>agent/tools.py:document_qa</code></td><td>Κάθε απάντηση φέρει source και chunk index</td></tr>
     <tr><td>5</td><td>ReAct agent</td><td><code>agent/executor.py</code>, <code>agent/tools.py</code></td><td>4 tools, max 5 iterations, ορατό trace</td></tr>
@@ -824,7 +824,7 @@ cp backend/.env.example backend/.env      # συμπληρώστε API keys κα
 python3.12 -m venv .venv &amp;&amp; source .venv/bin/activate
 pip install -r backend/requirements.txt
 python backend/data/seed.py               # seed MongoDB (idempotent· --force αδειάζει και ξαναγεμίζει)
-python scripts/ingest_pdfs.py             # PDF του backend/data/pdfs/ → ChromaDB ως user_id="system"
+python scripts/ingest_pdfs.py             # PDF του backend/data/pdfs/ → Atlas document_chunks ως user_id="system"
 cd backend
 PYTHONPATH=./ uvicorn main:app --reload --host 0.0.0.0 --port 8000
 
@@ -840,7 +840,7 @@ docker compose up --build
 # frontend → http://localhost:3000 · backend → http://localhost:8000</code></pre>
 
   <h3>Στοιχεία πρόσβασης</h3>
-  <p>Το <code>seed.py</code> γεμίζει προμηθευτές και προσφορές μόνο όταν η συλλογή είναι άδεια· μετά από αλλαγή μοντέλου, το <code>--force</code> αδειάζει τις δύο συλλογές και τις ξαναγεμίζει, αλλιώς τα tools διαβάζουν παλιά έγγραφα. Το backend εισάγει τα PDF του <code>backend/data/pdfs/</code> στο ChromaDB στην εκκίνηση μόνο όταν το vector store είναι άδειο, οπότε αρχεία που προστέθηκαν αργότερα (όπως τα αποσπάσματα <code>N4412_*.pdf</code>) δεν εμβαπτίζονταν ποτέ και το <code>document_qa</code> απαντούσε από τη μνήμη του μοντέλου· το <code>scripts/ingest_pdfs.py</code> τα εισάγει ως <code>user_id="system"</code>, παραλείπει όσα υπάρχουν ήδη (κάθε chunk είναι μία κλήση embedding) και με <code>--force</code> αντικαθιστά τα chunks τους. Το lifespan του FastAPI δημιουργεί έναν λογαριασμό διαχειριστή με atomic upsert, ώστε η επανεκκίνηση να μη διπλασιάζει εγγραφές. Τα στοιχεία ορίζονται στο <code>backend/.env</code>:</p>
+  <p>Το <code>seed.py</code> γεμίζει προμηθευτές και προσφορές μόνο όταν η συλλογή είναι άδεια· μετά από αλλαγή μοντέλου, το <code>--force</code> αδειάζει τις δύο συλλογές και τις ξαναγεμίζει, αλλιώς τα tools διαβάζουν παλιά έγγραφα. Το backend εισάγει τα PDF του <code>backend/data/pdfs/</code> στο Atlas στην εκκίνηση μόνο όταν το vector store είναι άδειο, οπότε αρχεία που προστέθηκαν αργότερα (όπως τα αποσπάσματα <code>N4412_*.pdf</code>) δεν εμβαπτίζονταν ποτέ και το <code>document_qa</code> απαντούσε από τη μνήμη του μοντέλου· το <code>scripts/ingest_pdfs.py</code> τα εισάγει ως <code>user_id="system"</code>, παραλείπει όσα υπάρχουν ήδη (κάθε chunk είναι μία κλήση embedding) και με <code>--force</code> αντικαθιστά τα chunks τους. Το lifespan του FastAPI δημιουργεί έναν λογαριασμό διαχειριστή με atomic upsert, ώστε η επανεκκίνηση να μη διπλασιάζει εγγραφές. Τα στοιχεία ορίζονται στο <code>backend/.env</code>:</p>
   <table>
     <tr><th style="width:34%">Μεταβλητή</th><th style="width:33%">Προεπιλογή</th><th>Ρόλος</th></tr>
     <tr><td><code>FIRST_SUPERUSER_EMAIL</code></td><td>admin@procureai.local</td><td>admin</td></tr>
@@ -869,7 +869,7 @@ make test</code></pre>
   <p>Τα tests δεν απαιτούν ζωντανή MongoDB: ένα in-memory fake fixture αντικαθιστά τον client, ενώ το <code>test_env_isolation.py</code> επιβεβαιώνει ότι καμία δοκιμή δεν διαρρέει προς πραγματική βάση. Ούτε LLM απαιτείται: το <code>tests/test_agent.py</code> (15 tests) τρέχει τον ReAct βρόχο με mocked Claude και ελέγχει το <code>run_agent</code>, τη δομή του trace, τον σεβασμό του <code>max_iterations</code>, ότι ένα σφάλμα tool επιστρέφει ως observation αντί να ρίξει τον agent, ότι το PII αφαιρείται πριν φτάσει στο μοντέλο, και τις διαδρομές του <code>document_qa</code> με και χωρίς reranker. Τα ίδια tests κατοχυρώνουν και τους κανόνες του chat prompt όπως τους φορτώνει ο executor (γλώσσα απάντησης, νόμισμα ανά πηγή, aggregates στο <code>report_generation</code>) και ότι τα docstrings των tools συμφωνούν μαζί τους, ώστε μια επόμενη αλλαγή στο κείμενο του prompt να μην ξαναφέρει σιωπηλά μια αποτυχία που έχει ήδη διορθωθεί. Το <code>test_tools.py</code> (18 tests) καλύπτει το clamp του <code>document_qa</code> στο μέγεθος της συλλογής, τις ετικέτες «showing 10 of 16» και στα δύο lookup tools και στο plain-text fallback, τα hints κατηγορίας και ότι ο μέσος όρος του <code>report_generation</code> υπολογίζεται πάνω σε όλες τις 16 προσφορές· το <code>test_seed.py</code> (5 tests) τα <code>seed_if_empty</code>, <code>seed(force=True)</code> και το μήνυμα παράλειψης.</p>
 
   <h2>8.5 Deployment (Docker)</h2>
-  <p>Το <code>docker compose</code> εκκινεί τρία containers στον ίδιο host: frontend, backend και MongoDB. Το backend επικοινωνεί με δύο εξωτερικά APIs μέσω HTTPS, της Anthropic για τον agent και της OpenAI για τα embeddings, ενώ το ChromaDB βρίσκεται σε persistent volume προσαρτημένο στο backend.</p>
+  <p>Το <code>docker compose</code> εκκινεί τρία containers στον ίδιο host: frontend, backend και MongoDB. Το backend επικοινωνεί με δύο εξωτερικά APIs μέσω HTTPS, της Anthropic για τον agent και της OpenAI για τα embeddings, ενώ τα embeddings βρίσκονται στη συλλογή <code>document_chunks</code> του MongoDB Atlas, οπότε δεν ξαναχτίζονται σε κάθε cold start του container. Το <code>$vectorSearch</code> τρέχει μόνο σε Atlas (ή στο image <code>mongodb/mongodb-atlas-local</code>), όχι στο απλό <code>mongo:7</code> container· για document Q&amp;A τοπικά το <code>MONGODB_URI</code> πρέπει να δείχνει σε Atlas.</p>
 
   <div class="diagram">
   <svg viewBox="0 0 760 330" xmlns="http://www.w3.org/2000/svg" font-family="Inter, sans-serif">
@@ -918,11 +918,11 @@ make test</code></pre>
     <text x="500" y="74" fill="#8ea8d8" font-size="7.5" text-anchor="middle">HTTPS</text>
 
     <rect x="40" y="156" width="180" height="58" rx="8" fill="#0f1117" stroke="#1f2740" stroke-dasharray="4 3"/>
-    <text x="130" y="178" fill="#8ea8d8" font-size="9.5" font-weight="700" text-anchor="middle">ChromaDB</text>
-    <text x="130" y="193" fill="#8ea8d8" font-size="7.5" text-anchor="middle">persistent volume</text>
+    <text x="130" y="178" fill="#8ea8d8" font-size="9.5" font-weight="700" text-anchor="middle">Atlas Vector Search</text>
+    <text x="130" y="193" fill="#8ea8d8" font-size="7.5" text-anchor="middle">document_chunks · MongoDB Atlas</text>
     <line x1="222" y1="185" x2="276" y2="185" stroke="#c9a84c" stroke-dasharray="4 3" marker-end="url(#ar6)"/>
 
-    <text x="380" y="262" fill="#8ea8d8" font-size="8.5" text-anchor="middle">Το volume του ChromaDB προσαρτάται στο backend container και επιβιώνει των επανεκκινήσεων.</text>
+    <text x="380" y="262" fill="#8ea8d8" font-size="8.5" text-anchor="middle">Τα vectors ζουν στο Atlas και επιβιώνουν των επανεκκινήσεων και των cold starts του backend.</text>
     <text x="380" y="284" fill="#8ea8d8" font-size="8.5" text-anchor="middle">Σε παραγωγή η MongoDB αντικαθίσταται από MongoDB Atlas μέσω του MONGODB_URI.</text>
   </svg>
   </div>
@@ -993,7 +993,7 @@ make test</code></pre>
   <div class="rule-sm"></div>
 
   <h2>10.1 Πού βρίσκεται η ανάπτυξη</h2>
-  <p>Η Phase 2 ολοκληρώθηκε τον Αύγουστο του 2026 και περιλαμβάνει: structured outputs στο <code>bid_comparison</code> (Pydantic v2), RBAC με JWT και τρεις ρόλους, multi-tenancy στο ChromaDB με ContextVar και where filter, audit log σε MongoDB με fire-and-forget εγγραφή, versioning των prompts με hot-reload, singleton Mongo client με lazy initialisation, και ασύγχρονο <code>document_qa</code>. Οι διορθώσεις του Σεπτεμβρίου 2026 πρόσθεσαν τις ετικέτες «10 από 16» και τα hints κατηγορίας στα tools, το <code>seed.py --force</code>, το <code>scripts/ingest_pdfs.py</code> και τρεις εκδόσεις του chat prompt (v1.4–v1.6) που προέκυψαν από τους γύρους αξιολόγησης. Το CI είναι πράσινο με 199 tests.</p>
+  <p>Η Phase 2 ολοκληρώθηκε τον Αύγουστο του 2026 και περιλαμβάνει: structured outputs στο <code>bid_comparison</code> (Pydantic v2), RBAC με JWT και τρεις ρόλους, multi-tenancy στο τότε ChromaDB με ContextVar και where filter, audit log σε MongoDB με fire-and-forget εγγραφή, versioning των prompts με hot-reload, singleton Mongo client με lazy initialisation, και ασύγχρονο <code>document_qa</code>. Οι διορθώσεις του Σεπτεμβρίου 2026 πρόσθεσαν τις ετικέτες «10 από 16» και τα hints κατηγορίας στα tools, το <code>seed.py --force</code>, το <code>scripts/ingest_pdfs.py</code> και τρεις εκδόσεις του chat prompt (v1.4–v1.6) που προέκυψαν από τους γύρους αξιολόγησης. Τον Οκτώβριο του 2026 το vector store μεταφέρθηκε από το τοπικό ChromaDB στο MongoDB Atlas Vector Search (<code>scripts/migrate_chroma_to_atlas.py</code>), ώστε τα embeddings να μην ξαναχτίζονται σε κάθε cold start. Το CI είναι πράσινο με 199 tests.</p>
 
   <h2>10.2 Τι δεν κάνει ακόμη</h2>
   <p>Το κόστος του LLM είναι το πιο χειροπιαστό όριο: η Claude χρεώνει περίπου $3/MTok στο input και $15/MTok στο output. Το prompt caching το μειώνει, δεν το εξαφανίζει· σε production θα ήθελε ένα Redis caching layer από πάνω.</p>
@@ -1013,7 +1013,7 @@ make test</code></pre>
   <p>Αυτόματο πλαίσιο αξιολόγησης (ragas/deepeval) για faithfulness, answer relevancy και context recall, πάνω στο υπάρχον golden set (<code>evals/golden_set.json</code>: 18 ερωτήματα, εκ των οποίων 3 injection tests), που σήμερα ελέγχει μόνο keywords και routing (§7.9). Παράλληλα, ουρές με Redis και OCR (Tesseract) για να μπαίνουν στο pipeline και τα σκαναρισμένα PDF.</p>
 
   <h3>Phase 5, Pre-Award Legal Audit Module</h3>
-  <p>Deterministic validation endpoint (<code>POST /api/tenders/audit</code>) που δέχεται προσχέδιο διακήρυξης και επιστρέφει structured risk report: νομικοί κίνδυνοι, ελλείπουσες υποχρεωτικές ρήτρες, τεχνικά κενά (ISO/EN), αναιτιολόγητοι αποκλεισμοί οικονομικών φορέων. Ξεχωριστό ChromaDB collection με Ν.4412/2016 και νομολογία ΕΑΔΗΣΥ (Ενιαία Αρχή Δημόσιων Συμβάσεων). Κάθε εντοπισμένος κίνδυνος φέρει υποχρεωτικό citation (article_ref + απόφαση ΕΑΔΗΣΥ). Σκοπός: μείωση lead time ανάθεσης και αποτροπή προδικαστικών προσφυγών. Decision-support only. Απαιτείται human-in-the-loop.</p>
+  <p>Deterministic validation endpoint (<code>POST /api/tenders/audit</code>) που δέχεται προσχέδιο διακήρυξης και επιστρέφει structured risk report: νομικοί κίνδυνοι, ελλείπουσες υποχρεωτικές ρήτρες, τεχνικά κενά (ISO/EN), αναιτιολόγητοι αποκλεισμοί οικονομικών φορέων. Ξεχωριστή vector συλλογή στο Atlas με Ν.4412/2016 και νομολογία ΕΑΔΗΣΥ (Ενιαία Αρχή Δημόσιων Συμβάσεων). Κάθε εντοπισμένος κίνδυνος φέρει υποχρεωτικό citation (article_ref + απόφαση ΕΑΔΗΣΥ). Σκοπός: μείωση lead time ανάθεσης και αποτροπή προδικαστικών προσφυγών. Decision-support only. Απαιτείται human-in-the-loop.</p>
   <p>Πιο μακριά: πραγματική σύνδεση με το ΕΣΗΔΗΣ, μετάβαση σε Kubernetes πέρα από το docker compose, και ένα production tracing pipeline με LangSmith (το οποίο είναι ήδη συνδεδεμένο μέσω env vars).</p>
 </div>
 
@@ -1047,7 +1047,7 @@ make test</code></pre>
     <li>Ν.4412/2016, Δημόσιες Συμβάσεις Έργων, Προμηθειών και Υπηρεσιών (ΦΕΚ Α' 147/8.8.2016)</li>
     <li>LangChain, agents &amp; ReAct: python.langchain.com/docs/modules/agents/</li>
     <li>Anthropic Claude API: docs.anthropic.com</li>
-    <li>ChromaDB: docs.trychroma.com</li>
+    <li>MongoDB Atlas Vector Search: mongodb.com/docs/atlas/atlas-vector-search/ · langchain-mongodb: python.langchain.com/docs/integrations/vectorstores/mongodb_atlas/</li>
     <li>FastAPI: fastapi.tiangolo.com</li>
     <li>React: react.dev · Tailwind CSS v4: tailwindcss.com</li>
     <li>MongoDB Atlas: mongodb.com/atlas · Pydantic v2: docs.pydantic.dev</li>

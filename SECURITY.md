@@ -77,5 +77,5 @@ Allowed origins are sourced from the `ALLOWED_ORIGINS` environment variable (com
 | Risk | Mitigation |
 |------|-----------|
 | No auth on API endpoints | Intended for internal/demo use; add OAuth2/API key middleware before public exposure |
-| ChromaDB stored on local disk | Data at rest not encrypted; use encrypted volumes in production |
+| Document chunks and embeddings stored in MongoDB Atlas (`document_chunks`) | Encrypted at rest by Atlas; tenant isolation depends on the `user_id` `$vectorSearch` pre-filter applied in `document_qa` |
 | OpenAI API key used for embeddings | Rotated per environment; never logged |
