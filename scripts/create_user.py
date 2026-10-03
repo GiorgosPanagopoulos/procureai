@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Create a ProcureAI user directly in MongoDB.
 
-Usage (from the repo root, with the backend venv active and backend/.env filled in):
+Usage (from the repo root, with the backend venv active and backend/.env filled in;
+in the backend container run it as `python scripts/create_user.py ...` from /app):
     python scripts/create_user.py --email user@procureai.local --role viewer
     python scripts/create_user.py --email user@procureai.local --role admin --password 'somepass123'
     python scripts/create_user.py --email demo@procureai.local --demo
@@ -15,7 +16,8 @@ import sys
 from pathlib import Path
 
 _ROOT = Path(__file__).resolve().parent.parent
-_BACKEND = _ROOT / "backend"
+# Repo checkout: <root>/backend. Backend image: the script sits in /app/scripts next to the code.
+_BACKEND = _ROOT / "backend" if (_ROOT / "backend").is_dir() else _ROOT
 os.chdir(_BACKEND)
 sys.path.insert(0, str(_BACKEND))
 
