@@ -233,7 +233,7 @@ metadata.
 ---
 
 
-## 🚀 Quick Start
+## Quick Start
 
 > **Note:** The production deployment runs on Azure — Container Apps for the backend, Static Web Apps for the frontend, and a MongoDB Atlas M0 cluster. The steps below are for running locally.
 
