@@ -66,6 +66,7 @@ function AppContent() {
           onTabChange={setRightTab}
           onClearChat={chat.clearChat}
           t={t}
+          showResults={!user.is_demo}
         />
       </div>
     </div>

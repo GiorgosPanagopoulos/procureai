@@ -18,12 +18,15 @@ interface DataInspectorProps {
   onTabChange: (tab: RightTab) => void;
   onClearChat: () => void;
   t: Translations;
+  // Off for the shared demo login: no list of past responses on screen.
+  showResults?: boolean;
 }
 
 export default function DataInspector({
   messages, suppliers, bids, loadingData, onLoadSuppliers, onLoadBids,
-  rightTab, onTabChange, onClearChat, t,
+  rightTab: requestedTab, onTabChange, onClearChat, t, showResults = true,
 }: DataInspectorProps) {
+  const rightTab: RightTab = showResults ? requestedTab : 'data';
   const {
     agentMessages, avgBidValue, activeBids, visibleSuppliers, visibleBids,
     showMoreSuppliers, toggleShowMoreSuppliers, showMoreBids, toggleShowMoreBids,
@@ -37,6 +40,7 @@ export default function DataInspector({
         dataLabel={t.dataInspector}
         resultsLabel={t.results}
         resultsBadgeCount={agentMessages.length}
+        showResults={showResults}
       />
 
       <div className="tab-content">

@@ -7,17 +7,18 @@ interface DataInspectorTabsProps {
   dataLabel: string;
   resultsLabel: string;
   resultsBadgeCount: number;
+  showResults?: boolean;
 }
 
 export default function DataInspectorTabs({
-  rightTab, onTabChange, dataLabel, resultsLabel, resultsBadgeCount,
+  rightTab, onTabChange, dataLabel, resultsLabel, resultsBadgeCount, showResults = true,
 }: DataInspectorTabsProps) {
   return (
     <div className="tab-bar">
       {([
         { id: 'data',    label: dataLabel,    icon: 'suppliers' },
         { id: 'results', label: resultsLabel, icon: 'chart' },
-      ] as const).map(tab => (
+      ] as const).filter(tab => showResults || tab.id !== 'results').map(tab => (
         <button
           key={tab.id}
           className={`tab-btn ${rightTab === tab.id ? 'active' : ''}`}
