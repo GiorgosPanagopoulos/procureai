@@ -59,5 +59,6 @@ def ingest_pdf_file(path: Path, user_id: str = "system") -> Dict[str, Any]:
 def is_vectorstore_empty() -> bool:
     try:
         return count_chunks() == 0
-    except Exception:
+    except Exception as exc:
+        log.warning("vectorstore_count_failed", error=str(exc), exc_info=True)
         return True
