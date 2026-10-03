@@ -1,3 +1,5 @@
+from typing import Optional
+
 import sentry_sdk
 from crud.user import get_user_by_email
 from db import db
@@ -6,8 +8,15 @@ from fastapi import HTTPException, Request
 from auth.security import decode_access_token
 
 
+def _extract_token(request: Request) -> Optional[str]:
+    scheme, _, credentials = request.headers.get("Authorization", "").partition(" ")
+    if scheme.lower() == "bearer" and credentials.strip():
+        return credentials.strip()
+    return request.cookies.get("access_token")
+
+
 async def get_current_user(request: Request) -> dict:
-    token = request.cookies.get("access_token")
+    token = _extract_token(request)
     if not token:
         sentry_sdk.set_user(None)
         raise HTTPException(status_code=401, detail="Not authenticated")
