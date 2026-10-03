@@ -3,19 +3,18 @@ import json
 import re
 from typing import Dict, List
 
-import numpy as np
 import sentry_sdk
 import structlog
 from anthropic.types import TextBlock
 from config import settings
-from core.chroma_tenant import get_active_user_id, get_user_filter
+from core.chroma_tenant import get_active_user_id, get_search_filter
 from db import db
 from langchain_core.tools import tool
 from llm.clients import _raw_anthropic_async, claude_llm
 from llm.pricing import MODEL_NAME, _current_usage
 from rag.embeddings import embed_text
 from rag.reranker import _get_reranker
-from rag.vectorstore import chroma_collection
+from rag.vectorstore import vector_store
 from schemas import BidComparisonResult
 
 from agent.prompt import get_doc_qa_system_prompt
@@ -46,34 +45,22 @@ async def document_qa(question: str) -> str:
 
     sentry_sdk.add_breadcrumb(category="rag", message="RAG retrieval start", level="info")
     try:
-        # Chroma raises when n_results exceeds the number of stored chunks, so a
-        # small collection would otherwise look like "no relevant documents".
-        stored_chunks = await asyncio.to_thread(chroma_collection.count)
-        n_retrieve = max(1, min(n_retrieve, stored_chunks))
-        with sentry_sdk.start_span(op="db.chromadb", description="RAG vector search") as _span:
-            _span.set_data("collection", "procureai_documents")
+        with sentry_sdk.start_span(op="db.vector_search", description="RAG vector search") as _span:
+            _span.set_data("collection", settings.VECTOR_COLLECTION)
             _span.set_data("n_results", n_retrieve)
+            # $vectorSearch returns fewer than k hits when fewer chunks match the
+            # filter, so unlike Chroma there is no need to clamp k to the store size.
             results = await asyncio.to_thread(
-                chroma_collection.query,
-                query_embeddings=np.array([query_embedding]),
-                n_results=n_retrieve,
-                include=["documents", "metadatas"],
-                where={"$or": [get_user_filter(user_id), {"user_id": "system"}]},
+                vector_store.similarity_search_by_vector,
+                query_embedding,
+                k=n_retrieve,
+                pre_filter=get_search_filter(user_id),
             )
     except Exception as exc:
-        exc_str = str(exc)
-        if "Number of requested results" in exc_str or "greater than number of elements" in exc_str:
-            return "No relevant documents found."
         return f"Error searching documents: {exc}"
 
-    all_docs: List[str] = []
-    all_metas: List[Dict] = []
-    if results:
-        for dl in results.get("documents") or []:
-            if dl is not None:
-                all_docs.extend(dl)
-        for ml in results.get("metadatas") or []:
-            all_metas.extend(list(ml) if ml is not None else [])  # type: ignore[arg-type]
+    all_docs: List[str] = [doc.page_content for doc in results]
+    all_metas: List[Dict] = [doc.metadata for doc in results]
 
     if settings.USE_RERANKER and all_docs:
         reranker = _get_reranker()

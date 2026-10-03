@@ -341,14 +341,15 @@ async def test_audit_delete_document_logs_source(officer):
         captured.append(entry)
 
     with (
-        patch("routers.chat.chroma_collection") as mock_col,
+        patch("routers.chat.delete_chunks", return_value=2) as mock_delete,
         patch("routers.chat.audit_interaction", side_effect=fake_audit),
     ):
-        mock_col.delete = MagicMock()
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
             res = await ac.delete("/documents?source=contract.pdf")
 
     assert res.status_code == 200
+    # Only the caller's own copy of the file is deleted.
+    mock_delete.assert_called_once_with({"user_id": officer["_id"], "source": "contract.pdf"})
     assert len(captured) == 1
     entry = captured[0]
     assert entry.action == "delete_document"

@@ -14,6 +14,7 @@ from middleware.correlation import CorrelationIDMiddleware
 from middleware.cors import setup_cors
 from middleware.rate_limit import setup_rate_limit
 from rag.ingest import ingest_pdf_file, is_vectorstore_empty
+from rag.vectorstore import vector_client
 from routers.admin import router as admin_router
 from routers.chat import router as chat_router
 from routers.health import router as health_router
@@ -60,7 +61,7 @@ async def lifespan(app: FastAPI):
     await seed_if_empty(db)
 
     if is_vectorstore_empty():
-        pdf_dir = Path(settings.CHROMA_PATH).parent / "data" / "pdfs"
+        pdf_dir = Path(__file__).resolve().parent / "data" / "pdfs"
         if pdf_dir.exists():
             for pdf_path in pdf_dir.glob("*.pdf"):
                 try:
@@ -97,6 +98,8 @@ async def lifespan(app: FastAPI):
     yield
     if _is_initialized(mongo_client):
         mongo_client.close()
+    if _is_initialized(vector_client):
+        vector_client.close()
 
 
 # ── FastAPI app ───────────────────────────────────────────────────────────────

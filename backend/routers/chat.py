@@ -1,5 +1,5 @@
 import uuid
-from typing import Any, Optional
+from typing import Optional
 
 import sentry_sdk
 import structlog
@@ -14,7 +14,7 @@ from fastapi import APIRouter, Depends, File, Request, UploadFile
 from middleware.audit_middleware import audit_interaction
 from middleware.rate_limit import limiter
 from rag.ingest import ingest_pdf
-from rag.vectorstore import chroma_collection
+from rag.vectorstore import delete_chunks
 from schemas.chat import ChatRequest
 
 log = structlog.get_logger()
@@ -166,10 +166,9 @@ async def delete_documents(
 ):
     user_id = str(current_user["_id"])
     try:
-        where_filter: Any = {"$and": [{"user_id": {"$eq": user_id}}, {"source": {"$eq": source}}]}
-        chroma_collection.delete(where=where_filter)
+        delete_chunks({"user_id": user_id, "source": source})
     except Exception as e:
-        log.error("chroma_delete_failed", error=str(e), user_id=user_id, source=source)
+        log.error("vector_delete_failed", error=str(e), user_id=user_id, source=source)
         raise DocumentIngestionError(detail=f"Failed to delete documents: {e}")
 
     log.info("documents_deleted", user_id=user_id, source=source)

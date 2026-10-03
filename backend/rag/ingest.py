@@ -2,16 +2,14 @@ from io import BytesIO
 from pathlib import Path
 from typing import Any, Dict, List
 
-import numpy as np
 import structlog
-from chromadb.api.types import Metadata as ChromaMetadata
 from core.chroma_tenant import build_metadata
 from exceptions import DocumentIngestionError
 from pypdf import PdfReader
 
 from rag.chunking import split_text_chunks
 from rag.embeddings import embed_text
-from rag.vectorstore import chroma_collection
+from rag.vectorstore import count_chunks, upsert_chunks
 
 log = structlog.get_logger()
 
@@ -33,21 +31,13 @@ def ingest_text(source: str, text: str, user_id: str) -> int:
         return 0
     ids = [f"{user_id}_{source}_chunk_{i}" for i in range(len(chunks))]
     embeddings = [embed_text(c) for c in chunks]
-    raw_metadatas: List[Dict[str, str]] = [
+    metadatas: List[Dict[str, str]] = [
         build_metadata(user_id=user_id, source=source, chunk=str(i)) for i in range(len(chunks))
     ]
-    safe_metadatas: List[ChromaMetadata] = [
-        {str(k): str(v) for k, v in m.items()} for m in raw_metadatas
-    ]
     try:
-        chroma_collection.add(
-            ids=ids,
-            metadatas=safe_metadatas,
-            documents=chunks,
-            embeddings=np.array(embeddings),
-        )  # type: ignore[arg-type]
+        upsert_chunks(ids=ids, texts=chunks, embeddings=embeddings, metadatas=metadatas)
     except Exception as exc:
-        log.error("chroma_add_failed", error=str(exc))
+        log.error("vector_upsert_failed", error=str(exc))
         raise DocumentIngestionError(detail=f"Failed to store chunks: {exc}")
     return len(chunks)
 
@@ -68,6 +58,6 @@ def ingest_pdf_file(path: Path, user_id: str = "system") -> Dict[str, Any]:
 
 def is_vectorstore_empty() -> bool:
     try:
-        return chroma_collection.count() == 0
+        return count_chunks() == 0
     except Exception:
         return True

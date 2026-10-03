@@ -3,7 +3,7 @@
 The LLM is replaced at the import site the executor actually uses
 (agent.executor.claude_llm) with a BaseChatModel that replays canned ReAct
 turns, so the real AgentExecutor, output parser, tools and trace builder all
-run without touching Anthropic, MongoDB or ChromaDB.
+run without touching Anthropic, MongoDB or the Atlas vector store.
 """
 
 import sys
@@ -11,12 +11,13 @@ from typing import Any, List, Optional
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from langchain_core.documents import Document
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage
 from langchain_core.outputs import ChatGeneration, ChatResult
 
 # Stub the LLM/embedding stack BEFORE importing agent.* so no real clients or
-# ChromaDB connections are opened during test collection (same as test_tools.py).
+# vector store connections are opened during test collection (same as test_tools.py).
 sys.modules.setdefault("rag.embeddings", MagicMock())
 sys.modules.setdefault("rag.vectorstore", MagicMock())
 sys.modules.setdefault("llm.clients", MagicMock())
@@ -255,15 +256,14 @@ def _context_sent_to_claude(client: MagicMock) -> str:
 async def test_document_qa_with_no_documents():
     from agent.tools import document_qa
 
-    chroma = MagicMock()
-    chroma.count.return_value = 50
-    chroma.query.return_value = {"documents": [[]], "metadatas": [[]]}
+    store = MagicMock()
+    store.similarity_search_by_vector.return_value = []
     client = _fake_anthropic("The information is not available in the provided documents.")
 
     with (
         patch("agent.tools.get_active_user_id", return_value="user-1"),
         patch("agent.tools.embed_text", return_value=[0.0] * 4),
-        patch("agent.tools.chroma_collection", chroma),
+        patch("agent.tools.vector_store", store),
         patch("agent.tools._raw_anthropic_async", client),
     ):
         answer = await document_qa.ainvoke("What are the warranty terms?")
@@ -277,13 +277,11 @@ async def test_document_qa_reranker_reorders_and_truncates():
     from agent.tools import document_qa
 
     docs = [f"chunk-{i}" for i in range(6)]
-    chroma = MagicMock()
-    chroma.count.return_value = 50
-    chroma.query.return_value = {
-        "documents": [docs],
-        "metadatas": [[{"source": f"doc{i}.pdf"} for i in range(6)]],
-    }
-    # Higher score = more relevant: reverse Chroma's order.
+    store = MagicMock()
+    store.similarity_search_by_vector.return_value = [
+        Document(page_content=d, metadata={"source": f"doc{i}.pdf"}) for i, d in enumerate(docs)
+    ]
+    # Higher score = more relevant: reverse the vector search order.
     reranker = MagicMock()
     reranker.predict.return_value = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]
     client = _fake_anthropic("Reranked answer")
@@ -293,14 +291,13 @@ async def test_document_qa_reranker_reorders_and_truncates():
         patch.object(tools_module.settings, "USE_RERANKER", True),
         patch("agent.tools._get_reranker", return_value=reranker),
         patch("agent.tools.embed_text", return_value=[0.0] * 4),
-        patch("agent.tools.chroma_collection", chroma),
+        patch("agent.tools.vector_store", store),
         patch("agent.tools._raw_anthropic_async", client),
     ):
         answer = await document_qa.ainvoke("Payment terms?")
 
-    # Reranking mode retrieves a wider candidate set (20) before narrowing to 5,
-    # as long as the store holds at least that many chunks.
-    assert chroma.query.call_args.kwargs["n_results"] == 20
+    # Reranking mode retrieves a wider candidate set (20) before narrowing to 5.
+    assert store.similarity_search_by_vector.call_args.kwargs["k"] == 20
     reranker.predict.assert_called_once_with([("Payment terms?", d) for d in docs])
     assert _context_sent_to_claude(client) == "Context:\n" + "\n".join(
         ["chunk-5", "chunk-4", "chunk-3", "chunk-2", "chunk-1"]

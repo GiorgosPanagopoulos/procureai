@@ -6,8 +6,10 @@ from types import SimpleNamespace
 from typing import Optional
 from unittest.mock import AsyncMock, MagicMock, patch
 
+from langchain_core.documents import Document
+
 # Stub the LLM/embedding stack BEFORE importing agent.tools so no real
-# clients or ChromaDB connections are opened during test collection.
+# clients or vector store connections are opened during test collection.
 sys.modules.setdefault("rag.embeddings", MagicMock())
 sys.modules.setdefault("rag.vectorstore", MagicMock())
 sys.modules.setdefault("llm.clients", MagicMock())
@@ -23,7 +25,7 @@ def test_document_qa_is_async_tool():
 
 
 async def test_document_qa_offloads_blocking_calls_to_thread():
-    """Regression: embed_text and chroma_collection.query must go through asyncio.to_thread."""
+    """Regression: embed_text and the vector search must go through asyncio.to_thread."""
     from anthropic.types import TextBlock
 
     fake_usage = SimpleNamespace(
@@ -40,11 +42,12 @@ async def test_document_qa_offloads_blocking_calls_to_thread():
     fake_to_thread = AsyncMock(
         side_effect=[
             [0.0] * 4,  # embedding returned for embed_text call
-            50,  # stored chunk count returned for chroma_collection.count call
-            {  # chroma results returned for chroma_collection.query call
-                "documents": [["procurement contract clause"]],
-                "metadatas": [[{"source": "contract.pdf"}]],
-            },
+            # hits returned for vector_store.similarity_search_by_vector call
+            [
+                Document(
+                    page_content="procurement contract clause", metadata={"source": "contract.pdf"}
+                )
+            ],
         ]
     )
 
@@ -59,20 +62,19 @@ async def test_document_qa_offloads_blocking_calls_to_thread():
     ):
         await document_qa.ainvoke("test question")
 
-    assert fake_to_thread.call_count >= 3, (
-        f"Expected at least 3 asyncio.to_thread calls (embed + count + query), "
+    assert fake_to_thread.call_count >= 2, (
+        f"Expected at least 2 asyncio.to_thread calls (embed + vector search), "
         f"got {fake_to_thread.call_count}"
     )
 
 
-async def test_document_qa_clamps_n_results_to_collection_size():
-    """Regression: with the reranker on, n_retrieve is 20, but Chroma raises when
-    n_results exceeds the stored chunk count and the tool reported that as
-    "No relevant documents found". The request must be clamped instead."""
+async def test_document_qa_searches_with_tenant_pre_filter():
+    """The $vectorSearch pre-filter must limit hits to the caller's own chunks plus
+    the shared system documents (Chroma's where={"$or": [user, system]} before)."""
     from anthropic.types import TextBlock
 
     fake_response = MagicMock()
-    fake_response.content = [TextBlock(text="answer from the three chunks", type="text")]
+    fake_response.content = [TextBlock(text="answer from the chunks", type="text")]
     fake_response.usage = SimpleNamespace(
         input_tokens=10,
         output_tokens=5,
@@ -80,31 +82,20 @@ async def test_document_qa_clamps_n_results_to_collection_size():
         cache_read_input_tokens=0,
     )
 
-    collection = MagicMock()
-    collection.count.return_value = 3
-
-    def _query(*, n_results, **_kwargs):
-        if n_results > collection.count():
-            raise RuntimeError(
-                f"Number of requested results {n_results} is greater than number of "
-                f"elements in index {collection.count()}"
-            )
-        return {
-            "documents": [["chunk a", "chunk b", "chunk c"]],
-            "metadatas": [[{"source": "law.pdf"}] * 3],
-        }
-
-    collection.query.side_effect = _query
-    # Run the offloaded call inline so the fake collection's count/query are exercised.
+    store = MagicMock()
+    store.similarity_search_by_vector.return_value = [
+        Document(page_content="chunk a", metadata={"source": "law.pdf"}),
+        Document(page_content="chunk b", metadata={"source": "law.pdf"}),
+    ]
+    # Run the offloaded call inline so the fake store is exercised.
     passthrough_to_thread = AsyncMock(side_effect=lambda fn, *a, **kw: fn(*a, **kw))
 
     with (
         patch("asyncio.to_thread", new=passthrough_to_thread),
-        patch.object(tools_module.settings, "USE_RERANKER", True),
-        patch("agent.tools._get_reranker", return_value=None),
-        patch("agent.tools.embed_text", return_value=[0.0] * 4),
-        patch("agent.tools.chroma_collection", collection),
-        patch("agent.tools.get_active_user_id", return_value="test_user_id"),
+        patch.object(tools_module.settings, "USE_RERANKER", False),
+        patch("agent.tools.embed_text", return_value=[0.1] * 4),
+        patch("agent.tools.vector_store", store),
+        patch("agent.tools.get_active_user_id", return_value="user-42"),
         patch.object(
             tools_module._raw_anthropic_async.messages,
             "create",
@@ -113,10 +104,29 @@ async def test_document_qa_clamps_n_results_to_collection_size():
     ):
         observation = await document_qa.ainvoke("what does the law say?")
 
-    assert collection.query.call_args.kwargs["n_results"] == 3
-    assert "No relevant documents found" not in observation
-    assert observation.startswith("answer from the three chunks")
+    args, kwargs = store.similarity_search_by_vector.call_args
+    assert args == ([0.1] * 4,)
+    assert kwargs == {"k": 4, "pre_filter": {"user_id": {"$in": ["user-42", "system"]}}}
+    assert observation.startswith("answer from the chunks")
     assert "Sources: law.pdf" in observation
+
+
+async def test_document_qa_reports_vector_search_errors():
+    """A failing $vectorSearch (e.g. the Atlas index is missing) surfaces as an
+    observation instead of raising out of the tool."""
+    store = MagicMock()
+    store.similarity_search_by_vector.side_effect = RuntimeError("index not found")
+    passthrough_to_thread = AsyncMock(side_effect=lambda fn, *a, **kw: fn(*a, **kw))
+
+    with (
+        patch("asyncio.to_thread", new=passthrough_to_thread),
+        patch("agent.tools.embed_text", return_value=[0.1] * 4),
+        patch("agent.tools.vector_store", store),
+        patch("agent.tools.get_active_user_id", return_value="user-42"),
+    ):
+        observation = await document_qa.ainvoke("anything")
+
+    assert observation == "Error searching documents: index not found"
 
 
 def _fake_collection(
