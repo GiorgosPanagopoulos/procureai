@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from typing import Optional
+from typing import Literal, Optional
 
 from config import settings
 from fastapi import Response
@@ -34,17 +34,28 @@ def decode_access_token(token: str) -> Optional[TokenPayload]:
         return None
 
 
+def _cookie_policy() -> tuple[bool, Literal["lax", "none"]]:
+    # Frontend and backend are on different sites outside local dev.
+    if settings.is_local:
+        return False, "lax"
+    return True, "none"
+
+
 def set_auth_cookie(response: Response, token: str) -> None:
+    secure, samesite = _cookie_policy()
     response.set_cookie(
         key="access_token",
         value=token,
         httponly=True,
-        secure=False,
-        samesite="lax",
+        secure=secure,
+        samesite=samesite,
         max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         path="/",
     )
 
 
 def clear_auth_cookie(response: Response) -> None:
-    response.delete_cookie(key="access_token", path="/")
+    secure, samesite = _cookie_policy()
+    response.delete_cookie(
+        key="access_token", path="/", httponly=True, secure=secure, samesite=samesite
+    )

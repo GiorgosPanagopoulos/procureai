@@ -1,14 +1,8 @@
-import uuid
-
-import db as db_module
 import pytest
 from api.routes.auth import router as auth_router
-from auth.security import create_access_token
 from core.rbac import require_procurement_officer, require_viewer
-from crud.user import create_user
 from fastapi import Depends, FastAPI
 from httpx import ASGITransport, AsyncClient
-from schemas.user import UserCreate
 
 # NB: don't `from db import db` here - db.db is a LazyProxy that defines
 # __call__, so pytest's collector (and the anyio plugin's istestfunction
@@ -40,64 +34,39 @@ async def rbac_client():
         yield ac
 
 
-def _extract_token(response) -> str:
-    for header in response.headers.multi_items():
-        if header[0].lower() == "set-cookie" and "access_token=" in header[1]:
-            return header[1].split(";")[0].split("=", 1)[1]
-    return ""
+@pytest.fixture
+def register(make_user):
+    async def _register(role: str = "viewer") -> str:
+        _, token = await make_user(role)
+        return token
 
-
-async def _register(client: AsyncClient, role: str = "viewer") -> str:
-    unique = uuid.uuid4().hex[:8]
-    email = f"rbac_{unique}@procureai.test"
-    if role == "viewer":
-        res = await client.post(
-            "/auth/register",
-            json={
-                "email": email,
-                "password": "TestPass123!",  # pragma: allowlist secret
-                "full_name": "RBAC Test",
-                "role": role,
-            },
-        )
-        assert res.status_code == 200, res.text
-        return _extract_token(res)
-    # Registration endpoint forces viewer; seed elevated-role users directly via crud.
-    user_in = UserCreate.model_construct(
-        email=email,
-        password="TestPass123!",  # pragma: allowlist secret
-        full_name="RBAC Test",
-        role=role,
-    )
-    user = await create_user(db_module.db, user_in)
-    assert user is not None
-    return create_access_token(subject=user["email"], role=user["role"])
+    return _register
 
 
 @pytest.mark.asyncio
-async def test_viewer_can_read(rbac_client: AsyncClient):
-    token = await _register(rbac_client, role="viewer")
+async def test_viewer_can_read(rbac_client: AsyncClient, register):
+    token = await register(role="viewer")
     res = await rbac_client.get("/read-only", headers={"Cookie": f"access_token={token}"})
     assert res.status_code == 200
 
 
 @pytest.mark.asyncio
-async def test_viewer_cannot_post(rbac_client: AsyncClient):
-    token = await _register(rbac_client, role="viewer")
+async def test_viewer_cannot_post(rbac_client: AsyncClient, register):
+    token = await register(role="viewer")
     res = await rbac_client.post("/write-action", headers={"Cookie": f"access_token={token}"})
     assert res.status_code == 403
 
 
 @pytest.mark.asyncio
-async def test_procurement_officer_can_post(rbac_client: AsyncClient):
-    token = await _register(rbac_client, role="procurement_officer")
+async def test_procurement_officer_can_post(rbac_client: AsyncClient, register):
+    token = await register(role="procurement_officer")
     res = await rbac_client.post("/write-action", headers={"Cookie": f"access_token={token}"})
     assert res.status_code == 200
 
 
 @pytest.mark.asyncio
-async def test_procurement_officer_can_read(rbac_client: AsyncClient):
-    token = await _register(rbac_client, role="procurement_officer")
+async def test_procurement_officer_can_read(rbac_client: AsyncClient, register):
+    token = await register(role="procurement_officer")
     res = await rbac_client.get("/read-only", headers={"Cookie": f"access_token={token}"})
     assert res.status_code == 200
 
@@ -109,9 +78,11 @@ async def test_unauthenticated_cannot_post(rbac_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_invalid_role_rejected_at_registration(rbac_client: AsyncClient):
+async def test_invalid_role_rejected_at_registration(rbac_client: AsyncClient, register):
+    admin_token = await register(role="admin")
     res = await rbac_client.post(
         "/auth/register",
+        headers={"Authorization": f"Bearer {admin_token}"},
         json={
             "email": "bad_role@procureai.test",
             "password": "TestPass123!",  # pragma: allowlist secret
@@ -121,13 +92,18 @@ async def test_invalid_role_rejected_at_registration(rbac_client: AsyncClient):
     )
     assert res.status_code == 422
 
+
+@pytest.mark.asyncio
+async def test_viewer_cannot_register_users(rbac_client: AsyncClient, register):
+    token = await register(role="viewer")
     res = await rbac_client.post(
         "/auth/register",
+        headers={"Authorization": f"Bearer {token}"},
         json={
-            "email": "admin_role@procureai.test",
+            "email": "escalate@procureai.test",
             "password": "TestPass123!",  # pragma: allowlist secret
-            "full_name": "Admin Role",
+            "full_name": "Escalation",
             "role": "admin",
         },
     )
-    assert res.status_code == 422
+    assert res.status_code == 403

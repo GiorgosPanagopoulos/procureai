@@ -21,6 +21,8 @@ class Settings(BaseSettings):
     ALLOWED_ORIGINS: str = "http://localhost:3000,http://localhost:5173"
     USE_RERANKER: bool = False
 
+    ENVIRONMENT: str = "local"
+
     SECRET_KEY: str = "changethis"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     FIRST_SUPERUSER_EMAIL: str = "admin@procureai.local"
@@ -49,6 +51,10 @@ class Settings(BaseSettings):
         if not v.strip():
             raise ValueError("must not be empty")
         return v
+
+    @property
+    def is_local(self) -> bool:
+        return self.ENVIRONMENT.strip().lower() in {"local", "dev", "development", "test"}
 
     @property
     def allowed_origins_list(self) -> List[str]:

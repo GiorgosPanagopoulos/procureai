@@ -1,12 +1,13 @@
+from auth.dependencies import get_current_user
 from auth.security import (
     clear_auth_cookie,
     create_access_token,
-    decode_access_token,
     set_auth_cookie,
 )
-from crud.user import authenticate_user, create_user, get_user_by_email
+from core.rbac import require_admin
+from crud.user import authenticate_user, create_user
 from db import db
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from schemas.user import UserCreate, UserRead
@@ -31,21 +32,23 @@ async def login(body: LoginRequest) -> JSONResponse:
         content={
             "message": "Login successful",
             "user": UserRead(**user).model_dump(mode="json", by_alias=True),
+            "access_token": token,
+            "token_type": "bearer",
         }
     )
     set_auth_cookie(response, token)
     return response
 
 
-@router.post("/register")
-async def register(user_in: UserCreate) -> JSONResponse:
+@router.post("/register", status_code=201)
+async def register(user_in: UserCreate, _admin: dict = Depends(require_admin)) -> JSONResponse:
     user = await create_user(db, user_in)
     if user is None:
         raise HTTPException(status_code=400, detail="Email already registered")
-    token = create_access_token(subject=user["email"], role=user.get("role", "viewer"))
-    response = JSONResponse(content=UserRead(**user).model_dump(mode="json", by_alias=True))
-    set_auth_cookie(response, token)
-    return response
+    # No auth cookie here: the caller is the admin, not the new user.
+    return JSONResponse(
+        status_code=201, content=UserRead(**user).model_dump(mode="json", by_alias=True)
+    )
 
 
 @router.post("/logout")
@@ -56,14 +59,5 @@ async def logout() -> JSONResponse:
 
 
 @router.get("/me")
-async def me(request: Request) -> JSONResponse:
-    token = request.cookies.get("access_token")
-    if not token:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    payload = decode_access_token(token)
-    if payload is None:
-        raise HTTPException(status_code=401, detail="Invalid or expired token")
-    user = await get_user_by_email(db, payload.sub)
-    if user is None:
-        raise HTTPException(status_code=401, detail="User not found")
+async def me(user: dict = Depends(get_current_user)) -> JSONResponse:
     return JSONResponse(content=UserRead(**user).model_dump(mode="json", by_alias=True))
