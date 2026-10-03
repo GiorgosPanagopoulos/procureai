@@ -15,6 +15,7 @@ jobs:
         image: mongo:7
         ports:
           - 27017:27017
+
     steps:
       - uses: actions/checkout@v4
 
@@ -45,7 +46,7 @@ jobs:
           MONGODB_URI: mongodb://localhost:27017
 
   frontend:
-    name: Frontend (eslint · tsc · build)
+    name: Frontend (eslint · tsc · test · build)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -64,6 +65,9 @@ jobs:
 
       - name: TypeScript check
         run: cd frontend && npx tsc --noEmit
+
+      - name: Unit tests
+        run: cd frontend && npm test
 
       - name: Vite build
         run: cd frontend && npm run build
