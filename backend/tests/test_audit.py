@@ -158,6 +158,7 @@ def _make_test_app(
 ) -> FastAPI:
     """Build a test app with the chat + admin routers and dependency overrides."""
     from api.routes.auth import router as auth_router
+    from auth.dependencies import get_current_user
     from core.rbac import require_admin, require_procurement_officer
     from routers.admin import router as admin_router
     from routers.chat import router as chat_router
@@ -171,6 +172,8 @@ def _make_test_app(
         app.dependency_overrides[require_admin] = lambda: admin_user
     if officer_user:
         app.dependency_overrides[require_procurement_officer] = lambda: officer_user
+        # Chat access and the demo guards resolve the user themselves.
+        app.dependency_overrides[get_current_user] = lambda: officer_user
     return app
 
 

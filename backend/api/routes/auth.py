@@ -4,6 +4,7 @@ from auth.security import (
     create_access_token,
     set_auth_cookie,
 )
+from core.demo import forbid_demo
 from core.rbac import require_admin
 from crud.user import authenticate_user, create_user
 from db import db
@@ -40,7 +41,7 @@ async def login(body: LoginRequest) -> JSONResponse:
     return response
 
 
-@router.post("/register", status_code=201)
+@router.post("/register", status_code=201, dependencies=[Depends(forbid_demo)])
 async def register(user_in: UserCreate, _admin: dict = Depends(require_admin)) -> JSONResponse:
     user = await create_user(db, user_in)
     if user is None:

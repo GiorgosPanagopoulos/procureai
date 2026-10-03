@@ -26,3 +26,8 @@ class NotFoundError(ProcureAIException):
 class ValidationError(ProcureAIException):
     def __init__(self, detail: str = "Validation failed"):
         super().__init__(status_code=status.HTTP_400_BAD_REQUEST, detail=detail)
+
+
+class DemoQuotaExceededError(ProcureAIException):
+    def __init__(self, detail: str = "Demo limit reached for today, try again tomorrow."):
+        super().__init__(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=detail)

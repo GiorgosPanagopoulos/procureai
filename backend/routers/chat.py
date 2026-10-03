@@ -6,6 +6,7 @@ import structlog
 from agent.executor import run_agent
 from agent.tools import document_qa
 from core.audit import AuditEntry
+from core.demo import enforce_demo_quota, forbid_demo, require_chat_access
 from core.rbac import require_procurement_officer, require_viewer
 from core.tenant import _current_user_id
 from db import db
@@ -40,7 +41,8 @@ def _client_ip(request: Request) -> Optional[str]:
 async def chat(
     request: Request,
     payload: ChatRequest,
-    current_user: dict = Depends(require_procurement_officer),
+    current_user: dict = Depends(require_chat_access),
+    _quota: None = Depends(enforce_demo_quota),
 ):
     if not payload.message.strip():
         raise ValidationError("Message cannot be empty")
@@ -80,7 +82,7 @@ async def chat(
     }
 
 
-@router.post("/upload")
+@router.post("/upload", dependencies=[Depends(forbid_demo)])
 @limiter.limit("30/minute")
 async def upload_file(
     request: Request,
@@ -132,7 +134,10 @@ async def upload_file(
 @router.post("/doc_qa")
 @limiter.limit("30/minute")
 async def qna(
-    request: Request, question: str, current_user: dict = Depends(require_procurement_officer)
+    request: Request,
+    question: str,
+    current_user: dict = Depends(require_chat_access),
+    _quota: None = Depends(enforce_demo_quota),
 ):
     user_id = str(current_user["_id"])
     token = _current_user_id.set(user_id)
@@ -157,7 +162,7 @@ async def qna(
     return {"answer": answer, "question": question}
 
 
-@router.delete("/documents")
+@router.delete("/documents", dependencies=[Depends(forbid_demo)])
 @limiter.limit("30/minute")
 async def delete_documents(
     request: Request,

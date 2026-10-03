@@ -56,6 +56,10 @@ async def lifespan(app: FastAPI):
     await db.audit_logs.create_index([("user_id", 1), ("timestamp", -1)])
     # await db.audit_logs.create_index("timestamp", expireAfterSeconds=90*24*60*60)
 
+    from core.demo import ensure_demo_indexes
+
+    await ensure_demo_indexes()
+
     from data.seed import seed_if_empty
 
     await seed_if_empty(db)

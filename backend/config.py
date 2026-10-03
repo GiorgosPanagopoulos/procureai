@@ -28,6 +28,8 @@ class Settings(BaseSettings):
 
     SECRET_KEY: str = "changethis"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    # LLM-backed requests a demo account may make per UTC day.
+    DEMO_DAILY_LIMIT: int = 10
     FIRST_SUPERUSER_EMAIL: str = "admin@procureai.local"
     FIRST_SUPERUSER_PASSWORD: str = "changethis"
 

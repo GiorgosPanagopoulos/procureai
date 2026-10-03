@@ -26,12 +26,15 @@ class _FakeCollection:
 
     Same hand-rolled style as tests/test_audit.py::_mock_db. Only
     implements what the code under test calls: find_one with an
-    equality filter, insert_one, count_documents, and aggregate with a
-    single ungrouped $group stage ($sum / $avg).
+    equality filter, insert_one, count_documents, find_one_and_update
+    ($inc / $setOnInsert, upsert, returns the updated doc), create_index
+    (recorded, not enforced), and aggregate with a single ungrouped
+    $group stage ($sum / $avg).
     """
 
     def __init__(self):
         self._docs: list[dict] = []
+        self.indexes: list[tuple[Any, dict]] = []
 
     async def find_one(self, filt: dict) -> Optional[dict]:
         for doc in self._docs:
@@ -42,6 +45,23 @@ class _FakeCollection:
     async def insert_one(self, doc: dict):
         self._docs.append(doc)
         return SimpleNamespace(inserted_id=doc.get("_id"))
+
+    async def find_one_and_update(
+        self, filt: dict, update: dict, upsert: bool = False, **_kwargs
+    ) -> Optional[dict]:
+        doc = await self.find_one(filt)
+        if doc is None:
+            if not upsert:
+                return None
+            doc = {**filt, **update.get("$setOnInsert", {})}
+            self._docs.append(doc)
+        for key, amount in update.get("$inc", {}).items():
+            doc[key] = doc.get(key, 0) + amount
+        return dict(doc)
+
+    async def create_index(self, keys: Any, **kwargs) -> str:
+        self.indexes.append((keys, kwargs))
+        return str(keys)
 
     async def count_documents(self, filt: dict) -> int:
         return sum(1 for doc in self._docs if all(doc.get(k) == v for k, v in filt.items()))
@@ -70,6 +90,7 @@ class _FakeCollection:
 
     def reset(self) -> None:
         self._docs.clear()
+        self.indexes.clear()
 
 
 class _FakeCursor:
@@ -85,11 +106,13 @@ class _FakeDB:
         self.users = _FakeCollection()
         self.suppliers = _FakeCollection()
         self.bids = _FakeCollection()
+        self.demo_usage = _FakeCollection()
 
     def reset(self) -> None:
         self.users.reset()
         self.suppliers.reset()
         self.bids.reset()
+        self.demo_usage.reset()
 
 
 class _FakeMongoClient:
@@ -157,7 +180,10 @@ def fake_db() -> _FakeDB:
 
 @pytest.fixture
 def make_user():
-    """Insert a user with the given role straight through crud; returns (user, token)."""
+    """Insert a user with the given role straight through crud; returns (user, token).
+
+    Pass is_demo=True to get a demo account.
+    """
 
     async def _make(role: str = "viewer", **overrides) -> tuple[dict, str]:
         unique = uuid.uuid4().hex[:8]
@@ -169,6 +195,8 @@ def make_user():
         )
         user = await create_user(db_module.db, user_in)
         assert user is not None
+        # Same dict the fake collection stores, so this persists for later lookups.
+        user["is_demo"] = overrides.get("is_demo", False)
         return user, create_access_token(subject=user["email"], role=user["role"])
 
     return _make
