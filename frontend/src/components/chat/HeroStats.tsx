@@ -61,7 +61,7 @@ export default function HeroStats({ language }: { language: Language }) {
   return (
     <div className="empty-pills" data-testid="hero-stats">
       {buildPills(state.stats, language).map(p => (
-        <div key={p.key} className="empty-pill" style={{ color: p.color }}>{p.text}</div>
+        <div key={p.key} className="empty-pill" data-testid={`stat-${p.key}`} style={{ color: p.color }}>{p.text}</div>
       ))}
     </div>
   );
