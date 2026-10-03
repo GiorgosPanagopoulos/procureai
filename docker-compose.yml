@@ -10,14 +10,18 @@ services:
     env_file:
       - backend/.env
     environment:
-      MONGODB_URI: mongodb://mongo:27017
+      # directConnection: atlas-local is a single-node replica set; skip member discovery.
+      MONGODB_URI: mongodb://mongo:27017/?directConnection=true
       ALLOWED_ORIGINS: http://localhost:3000,http://frontend
       USE_RERANKER: ${USE_RERANKER:-false}
       LANGCHAIN_TRACING_V2: ${LANGCHAIN_TRACING_V2:-false}
       LANGCHAIN_API_KEY: ${LANGCHAIN_API_KEY:-}
       LANGCHAIN_PROJECT: ${LANGCHAIN_PROJECT:-procureai}
     depends_on:
-      - mongo
+      mongo:
+        condition: service_healthy
+      mongo-init:
+        condition: service_completed_successfully
     restart: unless-stopped
 
   frontend:
@@ -30,13 +34,45 @@ services:
       - backend
     restart: unless-stopped
 
+  # MongoDB with Atlas Search/Vector Search (mongot), so $vectorSearch works locally.
   mongo:
-    image: mongo:7
+    image: mongodb/mongodb-atlas-local:8.0.32
+    # The replica set config records this hostname; without a fixed one a
+    # recreated container doesn't recognise itself and never becomes primary.
+    hostname: mongo
     ports:
       - "27017:27017"
     volumes:
-      - mongo_data:/data/db
+      - mongo_atlas_data:/data/db
+      - mongo_atlas_config:/data/configdb # replica set keyfile
+      - mongo_atlas_mongot:/data/mongot # search index definitions and data
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/runner", "healthcheck"]
+      interval: 5s
+      timeout: 30s
+      start_period: 60s
+      retries: 12
     restart: unless-stopped
 
+  # One-shot: creates vector_index from backend/rag/atlas_vector_index.json if missing.
+  mongo-init:
+    image: mongodb/mongodb-atlas-local:8.0.32
+    entrypoint:
+      - mongosh
+      - mongodb://mongo:27017/?directConnection=true
+      - --quiet
+      - /init/create_local_vector_index.js
+    volumes:
+      - ./backend/rag/atlas_vector_index.json:/init/atlas_vector_index.json:ro
+      - ./scripts/create_local_vector_index.js:/init/create_local_vector_index.js:ro
+    healthcheck:
+      disable: true
+    depends_on:
+      mongo:
+        condition: service_healthy
+    restart: "no"
+
 volumes:
-  mongo_data:
+  mongo_atlas_data:
+  mongo_atlas_config:
+  mongo_atlas_mongot:

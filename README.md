@@ -260,6 +260,34 @@ docker compose up --build
 > docker compose build backend && docker compose up -d backend
 > ```
 
+The `mongo` service runs [`mongodb/mongodb-atlas-local`](https://hub.docker.com/r/mongodb/mongodb-atlas-local)
+rather than plain `mongo`, so `$vectorSearch` and document Q&A work locally with no Atlas
+account. It is a single-node replica set with no auth; the compose file points the backend at it
+with `mongodb://mongo:27017/?directConnection=true`. From the host (scripts, `mongosh`, Compass)
+use `mongodb://localhost:27017/?directConnection=true`; without `directConnection` the driver
+tries to reach the replica set member by its in-container hostname and times out. On every
+`up`, the one-shot `mongo-init` service creates `vector_index` from
+[`backend/rag/atlas_vector_index.json`](backend/rag/atlas_vector_index.json) if it is missing
+(see [`scripts/create_local_vector_index.js`](scripts/create_local_vector_index.js)), and the
+backend waits for it to finish. Data, the replica set keyfile and the search indexes live in the
+`mongo_atlas_data`, `mongo_atlas_config` and `mongo_atlas_mongot` volumes; all three are needed
+for the container to restart cleanly with its index intact.
+
+> **Coming from the old `mongo:7` container?** atlas-local can't start on its data directory,
+> so the compose file uses new volumes and the old `mongo_data` volume is left untouched. Carry
+> the data over once:
+>
+> ```bash
+> docker run --rm -d --name old-mongo -v procureai_mongo_data:/data/db mongo:7
+> docker exec old-mongo mongodump --quiet --archive --db procureai > procureai.archive
+> docker rm -f old-mongo
+> docker compose up -d mongo mongo-init
+> docker compose exec -T mongo mongorestore --quiet --archive < procureai.archive
+> ```
+>
+> Then populate `document_chunks` (step 6 or the ChromaDB migration in step 7) before starting
+> the backend, so its startup ingest doesn't re-embed every PDF.
+
 **Option B — manual (venv + npm):**
 
 ```bash
@@ -346,9 +374,9 @@ atlas clusters search indexes create --clusterName <cluster> --file backend/rag/
 
 The index covers `embedding` (1536 dims, cosine, matching `text-embedding-3-small`) plus
 `user_id`, `source` and `category` as filter fields. Until it is built, `document_qa` returns
-"Error searching documents". `$vectorSearch` only runs on Atlas (or the
-`mongodb/mongodb-atlas-local` image), not on the plain `mongo:7` container in
-`docker-compose.yml`, so point `MONGODB_URI` at Atlas to use document Q&A under Docker.
+"Error searching documents". `$vectorSearch` only runs on Atlas or the
+`mongodb/mongodb-atlas-local` image. Under Docker you don't need to do anything: the
+`mongo-init` service creates the index on the local atlas-local container (see step 3).
 
 Upgrading from the ChromaDB store? Copy the existing chunks (no re-embedding) with:
 
@@ -356,6 +384,7 @@ Upgrading from the ChromaDB store? Copy the existing chunks (no re-embedding) wi
 pip install chromadb                                     # one-off; no longer a backend dependency
 python scripts/migrate_chroma_to_atlas.py --dry-run      # read and validate backend/chroma_db
 python scripts/migrate_chroma_to_atlas.py                # upsert into document_chunks, verify counts
+python scripts/migrate_chroma_to_atlas.py --uri 'mongodb://localhost:27017/?directConnection=true'   # local atlas-local container
 ```
 
 The script is idempotent: chunks keep their `{user_id}_{source}_chunk_{i}` ids as `_id`, so
@@ -371,7 +400,7 @@ Copy `backend/.env.example` to `backend/.env` and fill in the values below:
 |----------|-------------|----------|---------|
 | `ANTHROPIC_API_KEY` | Claude API key for LLM reasoning | ✅ | — |
 | `OPENAI_API_KEY` | OpenAI API key for document embeddings | ✅ | — |
-| `MONGODB_URI` | MongoDB Atlas connection string | ✅ | `mongodb://localhost:27017` |
+| `MONGODB_URI` | MongoDB Atlas connection string | ✅ | `mongodb://localhost:27017/?directConnection=true` |
 | `SECRET_KEY` | Signing key for JWT access tokens | ✅ | `changethis` |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | JWT access token lifetime, in minutes | ➖ | `30` |
 | `FIRST_SUPERUSER_EMAIL` | Email for the admin account seeded on first startup | ➖ | `admin@procureai.local` |
