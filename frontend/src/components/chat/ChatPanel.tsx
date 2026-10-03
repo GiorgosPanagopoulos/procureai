@@ -11,9 +11,10 @@ interface ChatPanelProps {
   language: Language;
   t: Translations;
   suggestions: Suggestion[];
+  canUpload?: boolean;
 }
 
-export default function ChatPanel({ chat, language, t, suggestions }: ChatPanelProps) {
+export default function ChatPanel({ chat, language, t, suggestions, canUpload = true }: ChatPanelProps) {
   return (
     <div className="chat-panel">
       <MessageList
@@ -26,7 +27,7 @@ export default function ChatPanel({ chat, language, t, suggestions }: ChatPanelP
 
       <SuggestionChips suggestions={suggestions} onSelect={chat.handleSubmit} />
 
-      <UploadZone
+      {canUpload && <UploadZone
         uploadedFile={chat.uploadedFile}
         isDragging={chat.isDragging}
         fileInputRef={chat.fileInputRef}
@@ -36,7 +37,7 @@ export default function ChatPanel({ chat, language, t, suggestions }: ChatPanelP
         onZoneClick={() => chat.fileInputRef.current?.click()}
         onFileChange={chat.handleFileInputChange}
         onClearFile={() => chat.setUploadedFile(null)}
-      />
+      />}
 
       <div className="input-area">
         <div className="input-bar">

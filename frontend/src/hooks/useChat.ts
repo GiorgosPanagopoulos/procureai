@@ -3,7 +3,11 @@ import type { ChangeEvent, DragEvent, RefObject } from 'react';
 import * as Sentry from '@sentry/react';
 import { toast } from 'sonner';
 import { checkHealth, sendChatMessage, uploadDocument } from '../api/chat';
+import { ApiError } from '../api/client';
 import type { Message } from '../types';
+
+export const DEMO_LIMIT_MESSAGE = 'Demo limit reached for today, try again tomorrow.';
+const RATE_LIMIT_MESSAGE = 'Too many requests. Please wait a moment and try again.';
 
 export interface UseChatOptions {
   onMessageReceived?: () => void;
@@ -75,11 +79,15 @@ export function useChat(options: UseChatOptions = {}): UseChatResult {
       }]);
       onMessageReceived?.();
     } catch (err) {
-      Sentry.captureException(err, { tags: { component: 'chat' }, extra: { query: txt } });
+      const rateLimited = err instanceof ApiError && err.status === 429;
+      // Hitting a limit is expected behaviour, not a bug worth reporting.
+      if (!rateLimited) Sentry.captureException(err, { tags: { component: 'chat' }, extra: { query: txt } });
       const raw = err instanceof Error ? err.message : 'Unknown error';
       const isNetwork = raw === 'Load failed' || raw === 'Failed to fetch';
       const isTimeout = raw.includes('abort') || raw.includes('AbortError');
-      const friendly = isNetwork
+      const friendly = rateLimited
+        ? (err.code === 'DemoQuotaExceededError' ? DEMO_LIMIT_MESSAGE : RATE_LIMIT_MESSAGE)
+        : isNetwork
         ? 'Could not reach the backend. Make sure the server is running on port 8000.'
         : isTimeout
         ? 'The request timed out. The agent is taking too long — try a simpler query.'

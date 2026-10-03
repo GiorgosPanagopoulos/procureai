@@ -63,6 +63,8 @@ export interface AuthUser {
   full_name: string;
   is_active: boolean;
   is_superuser: boolean;
+  // Absent on older backends; true for the public demo account.
+  is_demo?: boolean;
   role: UserRole;
   created_at: string;
 }

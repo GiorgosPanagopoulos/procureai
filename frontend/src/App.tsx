@@ -53,6 +53,7 @@ function AppContent() {
           language={language}
           t={t}
           suggestions={suggestions}
+          canUpload={!user.is_demo}
         />
         <DataInspector
           messages={chat.messages}

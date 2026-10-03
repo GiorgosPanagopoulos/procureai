@@ -3,7 +3,8 @@ import { clearToken, getToken } from './token';
 export const API_BASE: string = import.meta.env.VITE_API_BASE ?? 'http://localhost:8000';
 
 export class ApiError extends Error {
-  constructor(public readonly status: number, message: string) {
+  // `code` is the backend's exception type, e.g. 'DemoQuotaExceededError'.
+  constructor(public readonly status: number, message: string, public readonly code?: string) {
     super(message);
     this.name = 'ApiError';
   }
@@ -68,14 +69,15 @@ export async function apiFetch(path: string, init: ApiRequestInit = {}): Promise
   return res;
 }
 
-async function errorDetail(res: Response, fallback: string): Promise<string> {
+async function errorFromResponse(res: Response, fallback: string): Promise<ApiError> {
   const body = await res.json().catch(() => null);
   const detail = body?.detail;
-  return typeof detail === 'string' && detail ? detail : res.statusText || fallback;
+  const message = typeof detail === 'string' && detail ? detail : res.statusText || fallback;
+  return new ApiError(res.status, message, typeof body?.type === 'string' ? body.type : undefined);
 }
 
 export async function apiJson<T>(path: string, init: ApiRequestInit = {}, fallbackError = 'Request failed'): Promise<T> {
   const res = await apiFetch(path, init);
-  if (!res.ok) throw new ApiError(res.status, await errorDetail(res, fallbackError));
+  if (!res.ok) throw await errorFromResponse(res, fallbackError);
   return res.json() as Promise<T>;
 }

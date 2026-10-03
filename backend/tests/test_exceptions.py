@@ -1,5 +1,6 @@
 from exceptions import (
     AgentExecutionError,
+    DemoQuotaExceededError,
     DocumentIngestionError,
     NotFoundError,
     ProcureAIException,
@@ -78,3 +79,11 @@ def test_validation_error_custom_detail():
     exc = ValidationError(detail="Message cannot be empty")
     assert exc.status_code == 400
     assert exc.detail == "Message cannot be empty"
+
+
+def test_demo_quota_exceeded_is_429():
+    e = DemoQuotaExceededError()
+    assert e.status_code == 429
+    assert e.detail == "Demo limit reached for today, try again tomorrow."
+    # main.py's handler sends the class name as "type"; the frontend keys off it.
+    assert type(e).__name__ == "DemoQuotaExceededError"
