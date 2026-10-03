@@ -70,7 +70,7 @@ async def test_document_qa_offloads_blocking_calls_to_thread():
 
 async def test_document_qa_searches_with_tenant_pre_filter():
     """The $vectorSearch pre-filter must limit hits to the caller's own chunks plus
-    the shared system documents (Chroma's where={"$or": [user, system]} before)."""
+    the shared system documents."""
     from anthropic.types import TextBlock
 
     fake_response = MagicMock()
