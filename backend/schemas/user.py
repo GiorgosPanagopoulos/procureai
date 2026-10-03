@@ -8,7 +8,7 @@ class UserCreate(BaseModel):
     email: str
     password: str
     full_name: str = ""
-    role: Literal["viewer"] = "viewer"
+    role: Literal["admin", "procurement_officer", "viewer"] = "viewer"
 
 
 class UserRead(BaseModel):
