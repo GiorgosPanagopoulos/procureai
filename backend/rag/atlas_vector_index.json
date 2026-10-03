@@ -1,0 +1,28 @@
+{
+  "name": "vector_index",
+  "type": "vectorSearch",
+  "database": "procureai",
+  "collectionName": "document_chunks",
+  "definition": {
+    "fields": [
+      {
+        "type": "vector",
+        "path": "embedding",
+        "numDimensions": 1536,
+        "similarity": "cosine"
+      },
+      {
+        "type": "filter",
+        "path": "user_id"
+      },
+      {
+        "type": "filter",
+        "path": "category"
+      },
+      {
+        "type": "filter",
+        "path": "source"
+      }
+    ]
+  }
+}

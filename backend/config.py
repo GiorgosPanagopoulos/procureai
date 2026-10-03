@@ -18,6 +18,10 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str = ""
     MONGODB_URI: str = "mongodb://localhost:27017"
     CHROMA_PATH: str = str(_BACKEND_DIR / "chroma_db")
+    # RAG chunks live in this collection of the procureai database; the index is
+    # defined in rag/atlas_vector_index.json and must be created in Atlas.
+    VECTOR_COLLECTION: str = "document_chunks"
+    VECTOR_INDEX_NAME: str = "vector_index"
     ALLOWED_ORIGINS: str = "http://localhost:3000,http://localhost:5173"
     USE_RERANKER: bool = False
 
