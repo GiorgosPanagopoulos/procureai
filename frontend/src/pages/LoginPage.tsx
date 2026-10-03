@@ -64,28 +64,6 @@ const S = {
     marginBottom: 28,
     lineHeight: 1.5,
   },
-  tabs: {
-    display: 'flex',
-    background: 'rgba(255,255,255,0.04)',
-    border: '1px solid var(--border)',
-    borderRadius: 10,
-    padding: 3,
-    marginBottom: 24,
-    gap: 3,
-  },
-  tabBtn: (active: boolean) => ({
-    flex: 1,
-    padding: '8px 0',
-    border: 'none',
-    borderRadius: 8,
-    cursor: 'pointer',
-    fontSize: 13,
-    fontFamily: 'var(--font-head)',
-    fontWeight: 600,
-    transition: 'all 0.15s',
-    background: active ? 'var(--accent)' : 'transparent',
-    color: active ? '#fff' : 'var(--text2)',
-  }),
   label: {
     display: 'block',
     fontSize: 12,
@@ -124,6 +102,22 @@ const S = {
     transition: 'opacity 0.15s',
     letterSpacing: '0.01em',
   },
+  notice: {
+    marginBottom: 18,
+    padding: '10px 14px',
+    background: 'rgba(59,123,255,0.08)',
+    border: '1px solid rgba(59,123,255,0.25)',
+    borderRadius: 8,
+    fontSize: 13,
+    color: 'var(--text2)',
+    lineHeight: 1.5,
+  },
+  footnote: {
+    marginTop: 18,
+    textAlign: 'center' as const,
+    fontSize: 12,
+    color: 'var(--text3)',
+  },
   error: {
     marginTop: 14,
     padding: '10px 14px',
@@ -146,11 +140,9 @@ const LogoIcon = () => (
 );
 
 export default function LoginPage() {
-  const { login, register } = useAuth();
-  const [tab, setTab] = useState<'login' | 'register'>('login');
+  const { login, sessionExpired } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [fullName, setFullName] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -159,11 +151,7 @@ export default function LoginPage() {
     setError('');
     setSubmitting(true);
     try {
-      if (tab === 'login') {
-        await login(email, password);
-      } else {
-        await register(email, password, fullName);
-      }
+      await login(email, password);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
@@ -179,36 +167,16 @@ export default function LoginPage() {
           <div style={S.logoBox}><LogoIcon /></div>
           <span style={S.logoText}>ProcureAI</span>
         </div>
-        <p style={S.subtitle}>
-          {tab === 'login' ? 'Sign in to your workspace' : 'Create a new account'}
-        </p>
+        <p style={S.subtitle}>Sign in to your workspace</p>
 
-        <div style={S.tabs}>
-          <button style={S.tabBtn(tab === 'login')} onClick={() => { setTab('login'); setError(''); }}>
-            Sign in
-          </button>
-          <button style={S.tabBtn(tab === 'register')} onClick={() => { setTab('register'); setError(''); }}>
-            Register
-          </button>
-        </div>
+        {sessionExpired && (
+          <div style={S.notice} role="status">Your session has expired. Please sign in again.</div>
+        )}
 
         <form onSubmit={handleSubmit}>
-          {tab === 'register' && (
-            <>
-              <label style={S.label}>Full name</label>
-              <input
-                style={S.input}
-                type="text"
-                placeholder="Jane Smith"
-                value={fullName}
-                onChange={e => setFullName(e.target.value)}
-                required
-                autoComplete="name"
-              />
-            </>
-          )}
-          <label style={S.label}>Email</label>
+          <label style={S.label} htmlFor="login-email">Email</label>
           <input
+            id="login-email"
             style={S.input}
             type="email"
             placeholder="you@example.com"
@@ -217,22 +185,24 @@ export default function LoginPage() {
             required
             autoComplete="email"
           />
-          <label style={S.label}>Password</label>
+          <label style={S.label} htmlFor="login-password">Password</label>
           <input
+            id="login-password"
             style={S.input}
             type="password"
             placeholder="••••••••"
             value={password}
             onChange={e => setPassword(e.target.value)}
             required
-            autoComplete={tab === 'login' ? 'current-password' : 'new-password'}
+            autoComplete="current-password"
           />
           <button style={{ ...S.submit, opacity: submitting ? 0.6 : 1 }} type="submit" disabled={submitting}>
-            {submitting ? 'Please wait…' : tab === 'login' ? 'Sign in' : 'Create account'}
+            {submitting ? 'Please wait…' : 'Sign in'}
           </button>
         </form>
 
-        {error && <div style={S.error}>{error}</div>}
+        {error && <div style={S.error} role="alert">{error}</div>}
+        <p style={S.footnote}>Accounts are created by an administrator.</p>
       </div>
     </div>
   );

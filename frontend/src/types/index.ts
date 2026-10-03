@@ -54,3 +54,29 @@ export interface Bid {
   terms: string;
   status: string;
 }
+
+export type UserRole = 'admin' | 'procurement_officer' | 'viewer';
+
+export interface AuthUser {
+  _id: string;
+  email: string;
+  full_name: string;
+  is_active: boolean;
+  is_superuser: boolean;
+  role: UserRole;
+  created_at: string;
+}
+
+export interface LoginResponse {
+  message: string;
+  user: AuthUser;
+  access_token: string;
+  token_type: 'bearer';
+}
+
+export interface Stats {
+  suppliers: number;
+  bids: number;
+  total_value_eur: number;
+  avg_delivery_days: number | null;
+}
