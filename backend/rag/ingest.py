@@ -23,10 +23,17 @@ def extract_text_from_pdf(pdf_bytes: bytes) -> str:
         raise DocumentIngestionError(detail=f"Failed to extract text: {exc}")
 
 
+def _doc_header(text: str) -> str:
+    """First meaningful lines of the document, used to tag every chunk."""
+    lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
+    return " · ".join(lines[:3])[:160]
+
+
 def ingest_text(source: str, text: str, user_id: str) -> int:
     if not text.strip():
         return 0
-    chunks = split_text_chunks(text)
+    header = _doc_header(text)
+    chunks = [f"[{header}]\n{c}" for c in split_text_chunks(text)]
     if not chunks:
         return 0
     ids = [f"{user_id}_{source}_chunk_{i}" for i in range(len(chunks))]

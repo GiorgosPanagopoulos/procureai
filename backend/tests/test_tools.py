@@ -106,7 +106,7 @@ async def test_document_qa_searches_with_tenant_pre_filter():
 
     args, kwargs = store.similarity_search_by_vector.call_args
     assert args == ([0.1] * 4,)
-    assert kwargs == {"k": 4, "pre_filter": {"user_id": {"$in": ["user-42", "system"]}}}
+    assert kwargs == {"k": 12, "pre_filter": {"user_id": {"$in": ["user-42", "system"]}}}
     assert observation.startswith("answer from the chunks")
     assert "Sources: law.pdf" in observation
 

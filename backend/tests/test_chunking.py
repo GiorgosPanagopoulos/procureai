@@ -26,7 +26,7 @@ def test_custom_chunk_size_produces_more_chunks():
     line = "word " * 10  # ~50 chars per line
     text = "\n".join([line] * 20)
     small_chunks = split_text_chunks(text, chunk_size=100)
-    default_chunks = split_text_chunks(text, chunk_size=500)
+    default_chunks = split_text_chunks(text, chunk_size=1200)
     assert len(small_chunks) >= len(default_chunks)
 
 

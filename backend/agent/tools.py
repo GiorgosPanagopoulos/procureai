@@ -41,7 +41,7 @@ async def document_qa(question: str) -> str:
         return "Authentication required to query documents."
 
     query_embedding = await asyncio.to_thread(embed_text, question)
-    n_retrieve = 20 if settings.USE_RERANKER else 4
+    n_retrieve = 20 if settings.USE_RERANKER else 12
 
     sentry_sdk.add_breadcrumb(category="rag", message="RAG retrieval start", level="info")
     try:

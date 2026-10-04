@@ -340,6 +340,36 @@ async def test_document_qa_reranker_reorders_and_truncates():
     assert set(sources) == {"doc5.pdf", "doc4.pdf", "doc3.pdf", "doc2.pdf", "doc1.pdf"}
 
 
+async def test_document_qa_without_reranker_retrieves_twelve_chunks():
+    from agent.tools import document_qa
+
+    docs = [f"chunk-{i}" for i in range(12)]
+    store = MagicMock()
+    store.similarity_search_by_vector.return_value = [
+        Document(page_content=d, metadata={"source": f"doc{i}.pdf"}) for i, d in enumerate(docs)
+    ]
+    reranker = MagicMock()
+    client = _fake_anthropic("Plain answer")
+
+    with (
+        patch("agent.tools.get_active_user_id", return_value="user-1"),
+        patch.object(tools_module.settings, "USE_RERANKER", False),
+        patch("agent.tools._get_reranker", return_value=reranker) as get_reranker,
+        patch("agent.tools.embed_text", return_value=[0.0] * 4),
+        patch("agent.tools.vector_store", store),
+        patch("agent.tools._raw_anthropic_async", client),
+    ):
+        answer = await document_qa.ainvoke("Article 7 penalties?")
+
+    # Without a reranker every retrieved chunk goes to Claude, so k must be wide enough
+    # to reach the article the question asks about.
+    assert store.similarity_search_by_vector.call_args.kwargs["k"] == 12
+    get_reranker.assert_not_called()
+    reranker.predict.assert_not_called()
+    assert _context_sent_to_claude(client) == "Context:\n" + "\n".join(docs)
+    assert answer.startswith("Plain answer")
+
+
 # ── chat prompt ──────────────────────────────────────────────────────────────
 
 

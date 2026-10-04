@@ -1,7 +1,7 @@
 from typing import List
 
 
-def split_text_chunks(text: str, chunk_size: int = 500, overlap: int = 50) -> List[str]:
+def split_text_chunks(text: str, chunk_size: int = 1200, overlap: int = 200) -> List[str]:
     """Split text into chunks of roughly `chunk_size` characters, respecting
     paragraph and line boundaries, with the last `overlap` characters of each
     chunk repeated at the start of the next one so context is not cut mid-idea.
