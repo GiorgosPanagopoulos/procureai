@@ -620,7 +620,10 @@ the login and rate-limit handling). Raw per-case output is committed under
 [`evals/results/`](evals/results/). All five runs below used `claude-sonnet-4-6` and local MongoDB
 with the seeded sample data (12 suppliers, 16 bids). Runs 1–2 ran against a local ChromaDB holding
 8 chunks; runs 3–5 against the 24 chunks ingested from the 7 sample PDFs in `backend/data/pdfs/`
-by `python scripts/ingest_pdfs.py`.
+by `python scripts/ingest_pdfs.py`. Since these runs the two sample contracts were replaced with
+Greek contracts in EUR (117/2026, IT supply, 86.685,00 € and 203/2026, works, 148.500,00 €, both
+excluding VAT) and the chunker was widened, so the same PDFs now ingest as 21 chunks; the runs
+below predate both changes.
 
 | Run | Date | Prompt | Pass rate | Tool routing | Injection refusals | Avg latency | Avg cost / query |
 |-----|------|--------|-----------|--------------|--------------------|-------------|------------------|
