@@ -446,3 +446,43 @@ async def test_report_generation_averages_delivery_over_every_bid():
     fake_db.bids.find.return_value.to_list.assert_awaited_once_with(length=None)
     assert "- Total Bids: 16" in result
     assert "- Average Delivery Time: 8.5 days" in result
+
+
+async def test_document_qa_strips_article_citations_missing_from_the_chunks():
+    """Articles the retrieved chunks never cite are removed from the answer."""
+    from anthropic.types import TextBlock
+
+    fake_response = MagicMock()
+    fake_response.content = [
+        TextBlock(
+            text="Η εγγύηση ορίζεται στο άρθρο 72. Δείτε τον νόμο (π.χ. άρθρα 360-366 περί ΑΕΠΠ).",
+            type="text",
+        )
+    ]
+    fake_response.usage = SimpleNamespace(
+        input_tokens=10,
+        output_tokens=5,
+        cache_creation_input_tokens=0,
+        cache_read_input_tokens=0,
+    )
+    store = MagicMock()
+    store.similarity_search_by_vector.return_value = [
+        Document(page_content="Άρθρο 72 – Εγγυήσεις.", metadata={"source": "law.pdf"}),
+    ]
+    passthrough_to_thread = AsyncMock(side_effect=lambda fn, *a, **kw: fn(*a, **kw))
+
+    with (
+        patch("asyncio.to_thread", new=passthrough_to_thread),
+        patch.object(tools_module.settings, "USE_RERANKER", False),
+        patch("agent.tools.embed_text", return_value=[0.1] * 4),
+        patch("agent.tools.vector_store", store),
+        patch("agent.tools.get_active_user_id", return_value="user-42"),
+        patch.object(
+            tools_module._raw_anthropic_async.messages,
+            "create",
+            new=AsyncMock(return_value=fake_response),
+        ),
+    ):
+        observation = await document_qa.ainvoke("ποια είναι η εγγύηση;")
+
+    assert observation == ("Η εγγύηση ορίζεται στο άρθρο 72. Δείτε τον νόμο.\n\nSources: law.pdf")

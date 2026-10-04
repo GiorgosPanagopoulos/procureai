@@ -17,6 +17,7 @@ from rag.reranker import _get_reranker
 from rag.vectorstore import vector_store
 from schemas import BidComparisonResult
 
+from agent.citation_guard import strip_unsupported_citations
 from agent.prompt import get_doc_qa_system_prompt
 
 log = structlog.get_logger()
@@ -111,6 +112,7 @@ async def document_qa(question: str) -> str:
             accum.add_anthropic(response.usage)
         first_block = response.content[0]
         answer: str = first_block.text if isinstance(first_block, TextBlock) else str(first_block)
+        answer = strip_unsupported_citations(answer, context)
     except Exception as exc:
         answer = f"Error generating answer: {exc}"
 
