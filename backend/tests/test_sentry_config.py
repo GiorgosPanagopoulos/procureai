@@ -1,4 +1,7 @@
-from core.sentry import _before_send_transaction, _scrub_dict
+from unittest.mock import patch
+
+import pytest
+from core.sentry import _before_send_transaction, _scrub_dict, init_sentry
 
 
 def test_scrub_dict_password_key():
@@ -42,3 +45,21 @@ def test_before_send_transaction_normal_returns_event():
     event = {"transaction": "/api/suppliers", "request": {"url": "http://test/api/suppliers"}}
     result = _before_send_transaction(event, {})
     assert result is event
+
+
+@pytest.mark.parametrize("dsn", [None, "", "   ", "\n\t"])
+def test_init_sentry_skips_missing_dsn(dsn):
+    with patch("core.sentry.sentry_sdk.init") as mock_init:
+        init_sentry(dsn, "production", "procureai@test")
+    mock_init.assert_not_called()
+
+
+def test_init_sentry_calls_init_with_stripped_dsn():
+    dsn = "https://abc123@o0.ingest.sentry.io/1"
+    with patch("core.sentry.sentry_sdk.init") as mock_init:
+        init_sentry(f"  {dsn}\n", "production", "procureai@test")
+    mock_init.assert_called_once()
+    kwargs = mock_init.call_args.kwargs
+    assert kwargs["dsn"] == dsn
+    assert kwargs["environment"] == "production"
+    assert kwargs["release"] == "procureai@test"

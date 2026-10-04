@@ -1,9 +1,12 @@
 from typing import Any
 
 import sentry_sdk
+import structlog
 from sentry_sdk.integrations.fastapi import FastApiIntegration
 from sentry_sdk.integrations.starlette import StarletteIntegration
 from sentry_sdk.types import Event, Hint
+
+log = structlog.get_logger()
 
 _SENSITIVE_KEYS = frozenset(
     {
@@ -52,7 +55,11 @@ def _before_send_transaction(event: Event, hint: Hint) -> Event | None:
 
 
 def init_sentry(dsn: str | None, environment: str, release: str) -> None:
+    # An empty or whitespace-only DSN (e.g. `SENTRY_DSN=` in the deploy env) makes
+    # sentry_sdk.init raise BadDsn and take the app down at import time.
+    dsn = dsn.strip() if dsn else ""
     if not dsn:
+        log.info("sentry_disabled", reason="SENTRY_DSN not set")
         return
     is_prod = environment == "production"
     sentry_sdk.init(

@@ -22,7 +22,11 @@ from routers.stats import router as stats_router
 from routers.suppliers import router as suppliers_router
 from utils.lazy import _is_initialized
 
-init_sentry(settings.SENTRY_DSN, settings.SENTRY_ENVIRONMENT, settings.APP_VERSION)
+init_sentry(
+    settings.SENTRY_DSN,
+    settings.SENTRY_ENVIRONMENT or settings.ENVIRONMENT,
+    settings.APP_VERSION,
+)
 
 # ── Logging ──────────────────────────────────────────────────────────────────
 
