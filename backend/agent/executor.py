@@ -9,7 +9,14 @@ from llm.clients import claude_llm
 from llm.pricing import MODEL_NAME, _current_usage, _UsageAccum
 from security.pii import redact_pii
 
-from agent.tools import bid_comparison, document_qa, report_generation, supplier_lookup
+from agent.citation_guard import strip_unsupported_citations
+from agent.tools import (
+    _turn_rag_context,
+    bid_comparison,
+    document_qa,
+    report_generation,
+    supplier_lookup,
+)
 
 if TYPE_CHECKING:
     from langchain_classic.agents import AgentExecutor
@@ -76,6 +83,8 @@ async def run_agent(
 
     accum = _UsageAccum()
     token = _current_usage.set(accum)
+    rag_context: List[str] = []
+    rag_token = _turn_rag_context.set(rag_context)
     sentry_sdk.add_breadcrumb(category="agent", message="Agent invocation start", level="info")
     try:
         with sentry_sdk.start_span(op="llm.invoke", description="Claude API call") as _span:
@@ -106,6 +115,12 @@ async def run_agent(
         raise AgentExecutionError(detail=f"Agent failed: {exc}")
     finally:
         _current_usage.reset(token)
+        _turn_rag_context.reset(rag_token)
+
+    # The Final Answer is a fresh model call that can cite articles from general
+    # knowledge, so it gets the same check as the document_qa observation, against
+    # everything retrieved this turn. With no retrieval every article citation goes.
+    output = strip_unsupported_citations(result["output"], "\n".join(rag_context))
 
     steps = result.get("intermediate_steps", [])
     tool_used = steps[0][0].tool if steps else "unknown"
@@ -151,7 +166,7 @@ async def run_agent(
         cost=usage["cost_usd"],
     )
     return {
-        "response": result["output"],
+        "response": output,
         "tool_used": tool_used,
         "conversation_id": conversation_id,
         "trace": trace,

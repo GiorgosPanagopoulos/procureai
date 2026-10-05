@@ -266,6 +266,114 @@ async def test_empty_input_short_circuits_without_llm(executor_db):
     executor_db.usage.insert_one.assert_not_awaited()
 
 
+# ── Final Answer citation guard ──────────────────────────────────────────────
+
+_CONTRACT_CHUNK = (
+    "Άρθρο 4 της Σύμβασης: Ποινικές ρήτρες. Σύμφωνα με το άρθρο 72 του ν. 4412/2016 "
+    "ο ανάδοχος καταθέτει εγγύηση καλής εκτέλεσης."
+)
+
+
+def _final(answer: str) -> str:
+    return f"Thought: I now know the final answer\nFinal Answer: {answer}"
+
+
+async def _run_with_documents(llm: ScriptedChatModel, chunks: List[str], tool_answer: str):
+    store = MagicMock()
+    store.similarity_search_by_vector.return_value = [
+        Document(page_content=c, metadata={"source": "contract.pdf"}) for c in chunks
+    ]
+    with (
+        patch("agent.tools.get_active_user_id", return_value="user-1"),
+        patch.object(tools_module.settings, "USE_RERANKER", False),
+        patch("agent.tools.embed_text", return_value=[0.0] * 4),
+        patch("agent.tools.vector_store", store),
+        patch("agent.tools._raw_anthropic_async", _fake_anthropic(tool_answer)),
+    ):
+        return await _run(llm, "Ποιες είναι οι ποινικές ρήτρες;")
+
+
+async def test_final_answer_citation_missing_from_context_is_removed(executor_db):
+    llm = ScriptedChatModel(
+        responses=[
+            _action("document_qa", "ποινικές ρήτρες"),
+            _final(
+                "Οι ρήτρες ορίζονται στο Άρθρο 4 της Σύμβασης "
+                "(π.χ. άρθρα 360-366 περί ΑΕΠΠ). Δείτε και το άρθρο 207."
+            ),
+        ]
+    )
+
+    result = await _run_with_documents(llm, [_CONTRACT_CHUNK], "Βλ. Άρθρο 4.")
+
+    assert result["response"] == (
+        "Οι ρήτρες ορίζονται στο Άρθρο 4 της Σύμβασης. Δείτε και το σχετικό άρθρο."
+    )
+
+
+async def test_final_answer_citation_found_in_context_is_kept(executor_db):
+    answer = (
+        "Σύμφωνα με το Άρθρο 4 της Σύμβασης και το άρθρο 72 του ν. 4412/2016, "
+        "απαιτείται εγγύηση καλής εκτέλεσης."
+    )
+    llm = ScriptedChatModel(responses=[_action("document_qa", "εγγύηση"), _final(answer)])
+
+    result = await _run_with_documents(llm, [_CONTRACT_CHUNK], "Βλ. άρθρο 72.")
+
+    assert result["response"] == answer
+
+
+async def test_context_accumulates_across_document_qa_calls(executor_db):
+    answer = "Ισχύουν το Άρθρο 4 της Σύμβασης και το άρθρο 72."
+    llm = ScriptedChatModel(
+        responses=[
+            _action("document_qa", "ποινικές ρήτρες"),
+            _action("document_qa", "εγγύηση"),
+            _final(answer),
+        ]
+    )
+    store = MagicMock()
+    store.similarity_search_by_vector.side_effect = [
+        [Document(page_content="Άρθρο 4 της Σύμβασης: Ποινικές ρήτρες.", metadata={})],
+        [Document(page_content="Κατά το άρθρο 72 απαιτείται εγγύηση.", metadata={})],
+    ]
+    with (
+        patch("agent.tools.get_active_user_id", return_value="user-1"),
+        patch.object(tools_module.settings, "USE_RERANKER", False),
+        patch("agent.tools.embed_text", return_value=[0.0] * 4),
+        patch("agent.tools.vector_store", store),
+        patch("agent.tools._raw_anthropic_async", _fake_anthropic("ok")),
+    ):
+        result = await _run(llm, "Ρήτρες και εγγύηση;")
+
+    assert result["response"] == answer
+
+
+async def test_turn_without_retrieval_drops_every_article_citation(executor_db):
+    llm = ScriptedChatModel(
+        responses=[
+            _action("supplier_lookup", "IT Hardware"),
+            _final("Βρέθηκε ο Acme IT (βλ. άρθρο 72). Ισχύει και το Άρθρο 4 της Σύμβασης."),
+        ]
+    )
+
+    result = await _run(llm, "Προμηθευτές IT", _fake_tools_db(suppliers=[SUPPLIER]))
+
+    assert result["response"] == "Βρέθηκε ο Acme IT. Ισχύει και το σχετικό Άρθρο της Σύμβασης."
+
+
+async def test_retrieved_context_does_not_leak_into_the_next_turn(executor_db):
+    cited = "Ισχύει το άρθρο 72."
+    first = ScriptedChatModel(responses=[_action("document_qa", "εγγύηση"), _final(cited)])
+    assert (await _run_with_documents(first, [_CONTRACT_CHUNK], "ok"))["response"] == cited
+    assert tools_module._turn_rag_context.get() is None
+
+    second = ScriptedChatModel(responses=[_final(cited)])
+    result = await _run(second, "Και πάλι;")
+
+    assert "72" not in result["response"]
+
+
 # ── document_qa ──────────────────────────────────────────────────────────────
 
 

@@ -1,7 +1,8 @@
 import asyncio
 import json
 import re
-from typing import Dict, List
+from contextvars import ContextVar
+from typing import Dict, List, Optional
 
 import sentry_sdk
 import structlog
@@ -26,6 +27,12 @@ log = structlog.get_logger()
 # well, so a capped result is reported as "showing N of M" rather than as M.
 _BID_LIMIT = 10
 _SUPPLIER_LIMIT = 10
+
+# Retrieved context of every document_qa call in the current agent turn. The
+# executor sets a fresh list per turn and checks the Final Answer against it:
+# the model composing that answer adds citations of its own, past the guard
+# that runs on the tool observation.
+_turn_rag_context: ContextVar[Optional[List[str]]] = ContextVar("turn_rag_context", default=None)
 
 
 @tool
@@ -73,6 +80,9 @@ async def document_qa(question: str) -> str:
 
     context = "\n".join(all_docs) if all_docs else "No relevant documents found."
     source_refs = list({m.get("source", "unknown") for m in all_metas})
+    turn_context = _turn_rag_context.get()
+    if turn_context is not None:
+        turn_context.append(context)
 
     sentry_sdk.add_breadcrumb(category="llm", message="LLM call start", level="info")
     try:
