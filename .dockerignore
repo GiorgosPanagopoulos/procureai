@@ -28,5 +28,7 @@ evals
 
 **/.env
 **/.env.*
-!**/.env.example
+**/*.pem
+**/*.key
+**/credentials*
 .DS_Store

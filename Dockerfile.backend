@@ -9,6 +9,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
     fi
 
 FROM python:3.12-slim
+LABEL org.opencontainers.image.source=https://github.com/GiorgosPanagopoulos/procureai
 WORKDIR /app
 COPY --from=builder /build/packages /usr/local/lib/python3.12/site-packages
 COPY backend/ .
