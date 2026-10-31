@@ -27,8 +27,8 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install -r backend/requirements.txt
-          pip install ruff mypy pytest
+          pip install -r backend/requirements.txt -c backend/constraints.txt
+          pip install ruff mypy pytest -c backend/constraints.txt
 
       - name: Ruff lint
         run: ruff check backend/ --ignore E501

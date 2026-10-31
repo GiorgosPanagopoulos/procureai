@@ -319,7 +319,7 @@ for the container to restart cleanly with its index intact.
 # Backend — create and activate virtual environment (from project root)
 python3.12 -m venv .venv
 source .venv/bin/activate
-pip install -r backend/requirements.txt
+pip install -r backend/requirements.txt -c backend/constraints.txt
 cd backend
 PYTHONPATH=./ uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
@@ -465,7 +465,7 @@ Copy `backend/.env.example` to `backend/.env` and fill in the values below:
 default install — they're only needed if you enable the CrossEncoder reranker:
 
 ```bash
-pip install -r backend/requirements-rerank.txt
+pip install -r backend/requirements-rerank.txt -c backend/constraints.txt
 ```
 
 Set `USE_RERANKER=true` after installing. If it's enabled without the package installed,
