@@ -32,3 +32,9 @@ evals
 **/*.key
 **/credentials*
 .DS_Store
+backend/ca.yaml
+**/.DS_Store
+**/__pycache__
+**/.mypy_cache
+**/.pytest_cache
+**/.ruff_cache
