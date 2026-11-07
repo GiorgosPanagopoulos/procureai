@@ -25,6 +25,9 @@ log = structlog.get_logger()
 
 lc_tools = [document_qa, bid_comparison, supplier_lookup, report_generation]
 
+HISTORY_MESSAGES = 6  # 3 exchanges
+HISTORY_CHARS = 1500
+
 
 def _build_agent_executor() -> "AgentExecutor":
     # Lazy import: langchain_classic.agents eagerly loads every legacy agent
@@ -62,6 +65,15 @@ def _build_trace(steps: List) -> List[Dict]:
     return trace
 
 
+async def _load_history(conversation_id: str) -> str:
+    doc = await db.conversations.find_one({"conversation_id": conversation_id}, {"history": 1})
+    history = doc.get("history") if doc else None
+    if not history:
+        return "(none)"
+    labels = {"user": "User", "assistant": "Assistant"}
+    return "\n".join(f"{labels[m['role']]}: {m['content'][:HISTORY_CHARS]}" for m in history)
+
+
 async def run_agent(
     user_input: str,
     conversation_id: str,
@@ -81,6 +93,8 @@ async def run_agent(
     if redaction_count:
         log.info("pii_redacted", count=redaction_count, conversation_id=conversation_id)
 
+    chat_history = await _load_history(conversation_id)
+
     accum = _UsageAccum()
     token = _current_usage.set(accum)
     rag_context: List[str] = []
@@ -92,7 +106,7 @@ async def run_agent(
             _span.set_data("tool", "agent_executor")
             agent_executor = _build_agent_executor()
             result = await agent_executor.ainvoke(
-                {"input": clean_input},
+                {"input": clean_input, "chat_history": chat_history},
                 config={
                     "metadata": {
                         "conversation_id": conversation_id,
@@ -148,7 +162,16 @@ async def run_agent(
             "trace": trace,
             "query": clean_input,
             "updated_at": datetime.now(timezone.utc),
-        }
+        },
+        "$push": {
+            "history": {
+                "$each": [
+                    {"role": "user", "content": clean_input},
+                    {"role": "assistant", "content": output},
+                ],
+                "$slice": -HISTORY_MESSAGES,
+            }
+        },
     }
     if user_id:
         # Owner is fixed at creation; /conversations/{id}/trace checks it.

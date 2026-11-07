@@ -24,7 +24,7 @@ sys.modules.setdefault("rag.vectorstore", MagicMock())
 sys.modules.setdefault("llm.clients", MagicMock())
 
 import agent.tools as tools_module  # noqa: E402
-from agent.executor import run_agent  # noqa: E402
+from agent.executor import HISTORY_CHARS, HISTORY_MESSAGES, run_agent  # noqa: E402
 from exceptions import AgentExecutionError  # noqa: E402
 from llm.pricing import _current_usage  # noqa: E402
 
@@ -64,7 +64,7 @@ def _fake_executor_db() -> MagicMock:
     """Stand-in for the `db` used by run_agent to persist usage and the trace."""
     return MagicMock(
         usage=MagicMock(insert_one=AsyncMock()),
-        conversations=MagicMock(update_one=AsyncMock()),
+        conversations=MagicMock(update_one=AsyncMock(), find_one=AsyncMock(return_value=None)),
     )
 
 
@@ -228,6 +228,106 @@ async def test_pii_is_redacted_before_reaching_the_agent(executor_db):
     assert (
         persisted["query"] == "Supplier AFM [AFM_REDACTED], contact [EMAIL_REDACTED], please check"
     )
+
+
+def _fake_agent_executor(output: str = "Answer") -> MagicMock:
+    return MagicMock(ainvoke=AsyncMock(return_value={"output": output, "intermediate_steps": []}))
+
+
+async def _run_with_fake_executor(fake: MagicMock, user_input: str = "Next question"):
+    with patch("agent.executor._build_agent_executor", return_value=fake):
+        return await run_agent(user_input, "conv-test")
+
+
+async def test_existing_history_is_passed_to_the_agent(executor_db):
+    executor_db.conversations.find_one.return_value = {
+        "history": [
+            {"role": "user", "content": "Compare the IT bids"},
+            {"role": "assistant", "content": "Acme €18,000.00, Beta €21,000.00"},
+        ]
+    }
+    fake = _fake_agent_executor()
+
+    await _run_with_fake_executor(fake, "και ποια είναι φθηνότερη;")
+
+    assert executor_db.conversations.find_one.call_args.args == (
+        {"conversation_id": "conv-test"},
+        {"history": 1},
+    )
+    assert fake.ainvoke.call_args.args[0] == {
+        "input": "και ποια είναι φθηνότερη;",
+        "chat_history": "User: Compare the IT bids\nAssistant: Acme €18,000.00, Beta €21,000.00",
+    }
+
+
+async def test_new_conversation_has_no_history(executor_db):
+    fake = _fake_agent_executor()
+
+    await _run_with_fake_executor(fake)
+
+    assert fake.ainvoke.call_args.args[0]["chat_history"] == "(none)"
+
+
+async def test_conversation_without_history_field_has_no_history(executor_db):
+    # Conversations written before this field existed.
+    executor_db.conversations.find_one.return_value = {"_id": "x"}
+    fake = _fake_agent_executor()
+
+    await _run_with_fake_executor(fake)
+
+    assert fake.ainvoke.call_args.args[0]["chat_history"] == "(none)"
+
+
+async def test_turn_is_pushed_to_history_and_capped(executor_db):
+    await _run_with_fake_executor(_fake_agent_executor("The answer"), "The question")
+
+    push = executor_db.conversations.update_one.call_args.args[1]["$push"]["history"]
+    assert push["$each"] == [
+        {"role": "user", "content": "The question"},
+        {"role": "assistant", "content": "The answer"},
+    ]
+    assert push["$slice"] == -HISTORY_MESSAGES
+
+
+async def test_history_stores_redacted_input_and_guarded_output(executor_db):
+    fake = _fake_agent_executor("Δες το άρθρο 118 του Ν.4412/2016.")
+
+    await _run_with_fake_executor(fake, "Contact maria@example.gr")
+
+    user, assistant = executor_db.conversations.update_one.call_args.args[1]["$push"]["history"][
+        "$each"
+    ]
+    assert user["content"] == "Contact [EMAIL_REDACTED]"
+    assert "118" not in assistant["content"]
+
+
+async def test_history_content_is_truncated(executor_db):
+    executor_db.conversations.find_one.return_value = {
+        "history": [
+            {"role": "user", "content": "u" * (HISTORY_CHARS + 50)},
+            {"role": "assistant", "content": "a" * (HISTORY_CHARS + 50)},
+        ]
+    }
+    fake = _fake_agent_executor()
+
+    await _run_with_fake_executor(fake)
+
+    assert fake.ainvoke.call_args.args[0]["chat_history"] == (
+        f"User: {'u' * HISTORY_CHARS}\nAssistant: {'a' * HISTORY_CHARS}"
+    )
+
+
+async def test_history_reaches_the_prompt_before_the_question(executor_db):
+    # Through the real template; braces in stored text must not be read as variables.
+    executor_db.conversations.find_one.return_value = {
+        "history": [{"role": "user", "content": "Earlier {question}"}]
+    }
+    llm = ScriptedChatModel(responses=[FINAL])
+
+    await _run(llm, "New question")
+
+    prompt = llm.prompts[0]
+    assert prompt.index("User: Earlier {question}") < prompt.index("Question: New question")
 
 
 async def test_malformed_llm_output_is_recovered(executor_db):
@@ -558,7 +658,7 @@ def test_chat_prompt_separates_aggregates_from_bid_comparisons():
     assert "Never use it" not in comparison_rule
     assert "specific subset" not in comparison_rule
 
-    assert prompt_loader.get_with_metadata("chat").metadata.version == "v1.6"
+    assert prompt_loader.get_with_metadata("chat").metadata.version == "v1.7"
 
 
 def test_bid_comparison_description_matches_routing_rules():
