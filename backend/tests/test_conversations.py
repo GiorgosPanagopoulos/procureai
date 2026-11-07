@@ -8,6 +8,7 @@ from httpx import ASGITransport, AsyncClient
 from middleware.rate_limit import limiter
 from routers.chat import router as chat_router
 
+CID = "6f1c2a3b-4d5e-4f60-8a7b-9c0d1e2f3a4b"
 TRACE = [{"type": "tool_call", "tool": "supplier_lookup", "input": "IT"}]
 
 
@@ -133,10 +134,21 @@ async def test_chat_passes_owner_to_agent(api, make_user, agent):
 @pytest.mark.asyncio
 async def test_owner_continues_own_conversation(api, make_user, add_conversation, agent):
     user, token = await make_user("procurement_officer")
-    await add_conversation("c1", user)
+    await add_conversation(CID, user)
+
+    res = await _chat(api, token, CID)
+    assert res.json()["conversation_id"] == CID
+    assert agent.await_args.args[1] == CID
+
+
+@pytest.mark.asyncio
+async def test_non_uuid_conversation_id_is_422(api, make_user, agent):
+    _, token = await make_user("procurement_officer")
 
     res = await _chat(api, token, "c1")
-    assert res.json()["conversation_id"] == "c1"
+
+    assert res.status_code == 422
+    agent.assert_not_awaited()
 
 
 @pytest.mark.asyncio
@@ -145,10 +157,10 @@ async def test_someone_elses_conversation_id_starts_a_new_one(
 ):
     owner, _ = await make_user("procurement_officer")
     _, intruder = await make_user("procurement_officer")
-    await add_conversation("c1", owner)
+    await add_conversation(CID, owner)
 
-    res = await _chat(api, intruder, "c1")
+    res = await _chat(api, intruder, CID)
 
     new_cid = res.json()["conversation_id"]
-    assert new_cid != "c1"
+    assert new_cid != CID
     assert agent.await_args.args[1] == new_cid

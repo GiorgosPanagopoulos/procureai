@@ -65,9 +65,10 @@ async def chat(
     if not payload.message.strip():
         raise ValidationError("Message cannot be empty")
     user_id = str(current_user["_id"])
-    cid = payload.conversation_id or str(uuid.uuid4())
+    requested = str(payload.conversation_id) if payload.conversation_id else None
+    cid = requested or str(uuid.uuid4())
     # Someone else's id would overwrite their trace; start a fresh conversation instead.
-    if payload.conversation_id and not await _owns_or_new(cid, user_id):
+    if requested and not await _owns_or_new(cid, user_id):
         cid = str(uuid.uuid4())
     token = _current_user_id.set(user_id)
     try:

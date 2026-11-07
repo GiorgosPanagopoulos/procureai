@@ -224,9 +224,11 @@ every prompt into an in-memory cache when the process starts and exposes `get(us
 the agent calls `prompt_loader.reload()` before building the ReAct prompt on each chat request and
 before each `document_qa` call, so an edited prompt file takes effect on the next request without a
 restart (hot-reload). Prompts are version-controlled and diff-able like code, with no DB round-trip
-to fetch them. The chat prompt is currently at **v1.6** — every version from v1.3 on came out of a
+to fetch them. The chat prompt is currently at **v1.7** — v1.3 to v1.6 each came out of a
 specific golden-set failure, with the header keeping one changelog line per version (see
-[Evaluation](#-evaluation)).
+[Evaluation](#-evaluation)). v1.7 adds server-side conversation history: the last 6 messages are
+kept in `conversations.history` and passed to the prompt only to resolve references in follow-up
+questions, never as a source of facts.
 `GET /admin/prompts` (Admin-only) lists all loaded versions and their metadata for inspection, and
 `GET /admin/prompts/{use_case}/{version}` (Admin-only) fetches a single version's full text and
 metadata.
@@ -544,7 +546,7 @@ procureai/
 │   ├── auth/                   # JWT auth, role enforcement, RBAC Depends() decorators
 │   ├── audit/                  # Fire-and-forget audit log writer + MongoDB collection
 │   ├── prompts/                # Versioned prompt files, one subdir per use case
-│   │   ├── chat/                    # v1.txt — ReAct agent system prompt (v1.6)
+│   │   ├── chat/                    # v1.txt — ReAct agent system prompt (v1.7)
 │   │   └── doc_qa/                  # v1.txt — document Q&A system prompt
 │   ├── security/               # PII redaction
 │   ├── core/                   # RBAC, audit, prompt loader, Sentry init

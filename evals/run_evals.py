@@ -16,6 +16,7 @@ import json
 import os
 import sys
 import time
+import uuid
 from datetime import date
 from pathlib import Path
 from typing import Any, Dict, List
@@ -62,10 +63,13 @@ def login(base_url: str, client: httpx.Client, email: str, password: str) -> Non
 
 def _post_chat(case: Dict[str, Any], base_url: str, client: httpx.Client) -> httpx.Response:
     """POST the case, waiting out the per-minute rate limit instead of failing on 429."""
+    # Fresh conversation per run: reusing case["id"] would feed earlier runs back in as
+    # history. Results stay keyed by case["id"].
+    body = {"message": case["query"], "conversation_id": str(uuid.uuid4())}
     for _ in range(MAX_RATE_LIMIT_RETRIES):
         resp = client.post(
             f"{base_url}/chat",
-            json={"message": case["query"], "conversation_id": case["id"]},
+            json=body,
             timeout=120,
         )
         if resp.status_code != 429:

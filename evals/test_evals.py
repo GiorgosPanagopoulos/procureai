@@ -7,6 +7,7 @@ Skip in CI unless secrets are present.
 import json
 import os
 import sys
+import uuid
 from pathlib import Path
 from typing import Any, Dict
 
@@ -54,7 +55,8 @@ def test_golden_case(case: Dict[str, Any]):
 
     from agent.executor import run_agent  # type: ignore[import]
 
-    result = asyncio.run(run_agent(case["query"], conversation_id=case["id"]))
+    # Fresh conversation per run so earlier runs never show up as history.
+    result = asyncio.run(run_agent(case["query"], conversation_id=str(uuid.uuid4())))
     response_text: str = result.get("response", "")
     tool_used: str = result.get("tool_used", "unknown")
 

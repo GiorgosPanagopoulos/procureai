@@ -17,8 +17,14 @@ def test_chat_request_valid():
 
 
 def test_chat_request_with_conversation_id():
-    req = ChatRequest(message="Hello", conversation_id="abc-123")
-    assert req.conversation_id == "abc-123"
+    cid = "6f1c2a3b-4d5e-4f60-8a7b-9c0d1e2f3a4b"
+    req = ChatRequest(message="Hello", conversation_id=cid)
+    assert str(req.conversation_id) == cid
+
+
+def test_chat_request_rejects_non_uuid_conversation_id():
+    with pytest.raises(ValidationError):
+        ChatRequest(message="Hello", conversation_id="abc-123")
 
 
 def test_chat_request_empty_message():
