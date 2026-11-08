@@ -26,7 +26,8 @@ _NUMBERS = rf"{_ITEM}(?:{_LIST_SEP}{_ITEM})*"
 
 _CITATION = re.compile(
     r"(?P<prefix>(?:π\.\s?χ\.|βλ\.)\s*)?"
-    r"(?P<det>\bσ?τ(?:ου|ων|ο|α)\s+)?"
+    # The article may sit outside emphasis: "το **Άρθρο 999**".
+    r"(?:(?P<det>\bσ?τ(?:ου|ων|ο|α)\s+)(?P<emph>\*{1,3}|_{1,3})?)?"
     rf"(?P<kw>\b{_KEYWORD})\s*(?P<nums>{_NUMBERS})(?![\d/])"
     rf"(?P<par>\s*παρ\.\s*\d+(?:{_LIST_SEP}\d+)*)?",
     re.IGNORECASE,
@@ -38,6 +39,19 @@ _ADJECTIVE = {"ου": "σχετικού", "ων": "σχετικών", "ο": "σ�
 
 # Ranges wider than this are checked by their endpoints only.
 _MAX_RANGE = 500
+
+# A markdown emphasis run ("*", "**", "***", "_"...) directly touching a removed
+# citation. Flanking as in CommonMark: an opener is preceded by whitespace, the start
+# of the text or an opening bracket/quote; a closer is followed by whitespace, the end
+# or punctuation. So "**a** Άρθρο 999 **b**" is not an empty pair, and a "* " list
+# bullet is not an opener.
+_EMPHASIS_BEFORE = re.compile(r"(?:^|(?<=[\s(\[«\"']))(?P<m>\*{1,3}|_{1,3})$")
+_EMPHASIS_AFTER = re.compile(r"^(?P<m>\*{1,3}|_{1,3})(?=$|[\s.,;:!?)\]»\"'])")
+# A list item marker with nothing after it yet: "- ", "* ", "1. ".
+_LIST_ITEM = re.compile(r"(?:^|\n)[ \t]*(?:[-*+]|\d+[.)])[ \t]*$")
+# Separators left dangling inside the emphasis once the citation next to them is gone.
+_LEADING_JOINER = re.compile(r"^(?:[,.;:]|και\b|&)[ \t]*")
+_TRAILING_JOINER = re.compile(r"[ \t]*(?:[,;:]|(?<!\S)(?:και|&))$")
 
 
 def _article_numbers(nums: str) -> List[int]:
@@ -58,7 +72,7 @@ def _context_articles(context: str) -> Set[int]:
 
 def _enclosing_parenthetical(text: str, start: int, end: int) -> Optional[Tuple[int, int]]:
     """Span of "(...)" when the citation opens it, e.g. "(π.χ. άρθρα 360-366 περί ΑΕΠΠ)"."""
-    opening = re.search(r"\s*\(\s*$", text[:start])
+    opening = re.search(r"\s*\(\s*(?:\*{1,3}|_{1,3})?\s*$", text[:start])
     if not opening:
         return None
     close = text.find(")", end)
@@ -69,6 +83,11 @@ def _enclosing_parenthetical(text: str, start: int, end: int) -> Optional[Tuple[
 
 def _join(left: str, right: str) -> str:
     """Glue the text around a removed citation without stray spaces or commas."""
+    if _LIST_ITEM.search(left):
+        # "* Άρθρο 999: text" -> "* text", not "*: text".
+        left = left.rstrip(" \t")
+        right = re.sub(r"^[ \t]*[,.;:]?[ \t]*", "", right, count=1)
+        return f"{left} {right}" if right and right[0] != "\n" else left + right
     left, right = left.rstrip(" \t"), right.lstrip(" \t")
     if left.endswith(",") and right[:1] in tuple(",.;:!?)"):
         left = left[:-1]
@@ -79,11 +98,31 @@ def _join(left: str, right: str) -> str:
     return f"{left} {right}"
 
 
+def _cut(left: str, right: str) -> str:
+    """Join around a removed citation without leaving empty or broken emphasis."""
+    before = _EMPHASIS_BEFORE.search(left)
+    after = _EMPHASIS_AFTER.match(right)
+    if before and after and before["m"] == after["m"]:
+        # "**Άρθρο 999**": the citation was all of the emphasis, drop the pair.
+        return _join(left[: before.start()], right[after.end() :])
+    if before:
+        # "**Άρθρο 999 του Ν. 4412/2016**": keep the opener glued to what remains.
+        inner = _LEADING_JOINER.sub("", right.lstrip(" \t"), count=1).lstrip(" \t")
+        return _join(left[: before.start()], before["m"] + inner)
+    if after:
+        # "**ο κανόνας, Άρθρο 999**": keep the closer glued to what precedes it.
+        inner = _TRAILING_JOINER.sub("", left.rstrip(" \t"), count=1)
+        return _join(inner + after["m"], right[after.end() :])
+    return _join(left, right)
+
+
 def strip_unsupported_citations(answer: str, context: str) -> str:
     """Remove article citations whose numbers are not all cited in the context."""
     supported = _context_articles(context)
-    # (start, end, replacement); a replacement of None removes the span.
-    edits: List[Tuple[int, int, Optional[str]]] = []
+    # (start, end, replacement, opener); a replacement of None removes the span but
+    # keeps an emphasis opener it swallowed ("το **Άρθρο 999**" -> "**"), so that
+    # _cut sees the marker and drops the emphasis pair as a whole.
+    edits: List[Tuple[int, int, Optional[str], str]] = []
     for m in _CITATION.finditer(answer):
         numbers = _article_numbers(m["nums"])
         missing = sorted(set(numbers) - supported)
@@ -100,15 +139,15 @@ def strip_unsupported_citations(answer: str, context: str) -> str:
         span = _enclosing_parenthetical(answer, m.start(), m.end())
         ending = next((e for e in _ADJECTIVE if m["kw"].lower().endswith(e)), None)
         if span:
-            edits.append((span[0], span[1], None))
+            edits.append((span[0], span[1], None, ""))
         elif m["det"] and not m["prefix"] and ending in _ADJECTIVE:
-            edits.append((m.start("kw"), m.end(), f"{_ADJECTIVE[ending]} {m['kw']}"))
+            edits.append((m.start("kw"), m.end(), f"{_ADJECTIVE[ending]} {m['kw']}", ""))
         else:
-            edits.append((m.start(), m.end(), None))
+            edits.append((m.start(), m.end(), None, m["emph"] or ""))
 
-    for start, end, replacement in reversed(edits):
+    for start, end, replacement, opener in reversed(edits):
         if replacement is None:
-            answer = _join(answer[:start], answer[end:])
+            answer = _cut(answer[:start] + opener, answer[end:])
         else:
             answer = answer[:start] + replacement + answer[end:]
     return answer

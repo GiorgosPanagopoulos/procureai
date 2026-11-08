@@ -106,3 +106,100 @@ def test_supported_citation_is_not_logged():
     with capture_logs() as logs:
         strip_unsupported_citations("Βλ. άρθρο 72.", LAW_CONTEXT)
     assert logs == []
+
+
+# ── Emphasis around removed citations ────────────────────────────────────────
+
+
+def _no_orphan_markers(text: str) -> bool:
+    return not any(m in text for m in ("****", "** **", "__ __", "* *", "  ", " .", " ,"))
+
+
+def test_citation_alone_in_bold_drops_the_pair():
+    answer = "Η προθεσμία είναι 10 ημέρες **Άρθρο 999**. Ισχύει για όλους."
+    result = strip_unsupported_citations(answer, LAW_CONTEXT)
+    assert result == "Η προθεσμία είναι 10 ημέρες. Ισχύει για όλους."
+    assert _no_orphan_markers(result)
+
+
+def test_citation_in_bold_after_article_keeps_grammar_and_bold():
+    answer = "Ισχύει σύμφωνα με το **Άρθρο 999**."
+    assert strip_unsupported_citations(answer, LAW_CONTEXT) == (
+        "Ισχύει σύμφωνα με το **σχετικό Άρθρο**."
+    )
+
+
+def test_prefixed_citation_in_bold_is_removed_like_plain_text():
+    answer = "Δείτε π.χ. το **άρθρο 999**."
+    plain = "Δείτε π.χ. το άρθρο 999."
+    assert strip_unsupported_citations(answer, LAW_CONTEXT) == "Δείτε."
+    assert strip_unsupported_citations(plain, LAW_CONTEXT) == "Δείτε."
+
+
+def test_citation_at_start_of_bold_phrase():
+    answer = "**Άρθρο 999 του Ν.4412/2016**: η προθεσμία είναι 10 ημέρες."
+    assert strip_unsupported_citations(answer, LAW_CONTEXT) == (
+        "**του Ν.4412/2016**: η προθεσμία είναι 10 ημέρες."
+    )
+    answer = "**Άρθρο 999: η εγγύηση είναι 4%** σε κάθε σύμβαση."
+    assert strip_unsupported_citations(answer, LAW_CONTEXT) == (
+        "**η εγγύηση είναι 4%** σε κάθε σύμβαση."
+    )
+
+
+def test_citation_at_end_of_bold_phrase():
+    answer = "**Η εγγύηση ορίζεται σε 4%, Άρθρο 999**. Επόμενη πρόταση."
+    assert strip_unsupported_citations(answer, LAW_CONTEXT) == (
+        "**Η εγγύηση ορίζεται σε 4%**. Επόμενη πρόταση."
+    )
+
+
+def test_two_citations_in_one_bold_span_keep_the_supported_one():
+    for answer in (
+        "Δείτε **Άρθρο 72 και Άρθρο 999** για λεπτομέρειες.",
+        "Δείτε **Άρθρο 999 και Άρθρο 72** για λεπτομέρειες.",
+        "Δείτε **Άρθρο 72, Άρθρο 999** για λεπτομέρειες.",
+    ):
+        assert strip_unsupported_citations(answer, LAW_CONTEXT) == (
+            "Δείτε **Άρθρο 72** για λεπτομέρειες."
+        ), answer
+
+
+def test_italic_and_bold_italic_citations():
+    assert (
+        strip_unsupported_citations("Δείτε *Άρθρο 999* για λεπτομέρειες.", LAW_CONTEXT)
+        == "Δείτε για λεπτομέρειες."
+    )
+    assert strip_unsupported_citations("Δείτε ***Άρθρο 999*** τώρα.", LAW_CONTEXT) == "Δείτε τώρα."
+    assert strip_unsupported_citations(
+        "Η εφαρμογή του *άρθρου 999* απαιτεί προσοχή.", LAW_CONTEXT
+    ) == ("Η εφαρμογή του *σχετικού άρθρου* απαιτεί προσοχή.")
+
+
+def test_bold_citation_inside_parentheses_drops_the_parenthetical():
+    answer = "Η εγγύηση είναι 4% (**Άρθρο 999**) για 12 μήνες."
+    assert strip_unsupported_citations(answer, LAW_CONTEXT) == "Η εγγύηση είναι 4% για 12 μήνες."
+
+
+def test_neighbouring_emphasis_that_still_wraps_text_is_untouched():
+    answer = "**Προσοχή** Άρθρο 999 **σημαντικό**."
+    assert strip_unsupported_citations(answer, LAW_CONTEXT) == "**Προσοχή** **σημαντικό**."
+
+
+def test_bold_citation_as_list_item_label():
+    answer = "* **Άρθρο 999**: Η εγγύηση είναι 4%.\n- Άρθρο 999, η προθεσμία.\n1. Τέλος."
+    assert strip_unsupported_citations(answer, LAW_CONTEXT) == (
+        "* Η εγγύηση είναι 4%.\n- η προθεσμία.\n1. Τέλος."
+    )
+
+
+def test_lines_without_removals_come_back_byte_identical():
+    untouched = [
+        "Σύμφωνα με το **Άρθρο 72** του Ν. 4412/2016,  η εγγύηση είναι 4% .",
+        "* **Σημείωση**: *ισχύει*  ** ** όπως __ήδη__ αναφέρθηκε.",
+    ]
+    answer = "\n".join([untouched[0], "Δείτε **Άρθρο 999** για λεπτομέρειες.", untouched[1]])
+    lines = strip_unsupported_citations(answer, LAW_CONTEXT).split("\n")
+    assert lines == [untouched[0], "Δείτε για λεπτομέρειες.", untouched[1]]
+    for line in untouched:
+        assert strip_unsupported_citations(line, LAW_CONTEXT) == line

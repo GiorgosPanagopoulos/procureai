@@ -55,27 +55,32 @@ def _before_send_transaction(event: Event, hint: Hint) -> Event | None:
 
 
 def init_sentry(dsn: str | None, environment: str, release: str) -> None:
-    # An empty or whitespace-only DSN (e.g. `SENTRY_DSN=` in the deploy env) makes
-    # sentry_sdk.init raise BadDsn and take the app down at import time.
-    dsn = dsn.strip() if dsn else ""
+    # Observability must never stop the app from starting. An empty or whitespace-only
+    # DSN (an empty Container App secret took prod down with BadDsn on 3 Oct) skips
+    # init; a malformed one is caught below. The DSN value itself is never logged.
+    dsn = dsn.strip() if isinstance(dsn, str) else ""
     if not dsn:
-        log.info("sentry_disabled", reason="SENTRY_DSN not set")
+        log.warning("sentry_disabled", reason="empty_dsn")
         return
     is_prod = environment == "production"
-    sentry_sdk.init(
-        dsn=dsn,
-        environment=environment,
-        release=release,
-        # keep error reporting everywhere, sample traces only in production
-        traces_sample_rate=0.3 if is_prod else 0.05,
-        profiles_sample_rate=0.1 if is_prod else 0.0,
-        send_default_pii=False,
-        enable_tracing=True,
-        integrations=[
-            StarletteIntegration(),
-            FastApiIntegration(),
-        ],
-        auto_enabling_integrations=False,
-        before_send=_before_send,
-        before_send_transaction=_before_send_transaction,
-    )
+    try:
+        sentry_sdk.init(
+            dsn=dsn,
+            environment=environment,
+            release=release,
+            # keep error reporting everywhere, sample traces only in production
+            traces_sample_rate=0.3 if is_prod else 0.05,
+            profiles_sample_rate=0.1 if is_prod else 0.0,
+            send_default_pii=False,
+            enable_tracing=True,
+            integrations=[
+                StarletteIntegration(),
+                FastApiIntegration(),
+            ],
+            auto_enabling_integrations=False,
+            before_send=_before_send,
+            before_send_transaction=_before_send_transaction,
+        )
+    except Exception as exc:
+        # Type only: BadDsn's message can echo the DSN.
+        log.warning("sentry_init_failed", error_type=type(exc).__name__)
