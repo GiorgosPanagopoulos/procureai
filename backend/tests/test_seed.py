@@ -89,3 +89,24 @@ async def test_seed_database_skip_message_names_the_force_flag(monkeypatch, caps
     out = capsys.readouterr().out.strip()
     assert out == SKIP_MESSAGE
     assert "--force" in out
+
+
+def test_multi_bid_categories_have_distinct_suppliers_and_totals_are_unchanged():
+    # A category with 2+ bids must not compare a supplier against itself.
+    by_category: dict[str, list[str]] = {}
+    for bid in mock_bids:
+        by_category.setdefault(bid.category, []).append(bid.supplier_id)
+    for category, supplier_ids in by_category.items():
+        if len(supplier_ids) >= 2:
+            assert len(set(supplier_ids)) == len(supplier_ids), (category, supplier_ids)
+
+    # Docs, golden-set evals and the report tool depend on these figures.
+    assert len(mock_suppliers) == 12
+    assert len(mock_bids) == 16
+    assert round(sum(s.rating for s in mock_suppliers) / len(mock_suppliers), 2) == 4.29
+    assert sum(b.total_price for b in mock_bids) == 199_200.0
+    assert round(sum(b.delivery_days for b in mock_bids) / len(mock_bids), 1) == 14.9
+    statuses = [b.status.value for b in mock_bids]
+    assert statuses.count("pending") == 10
+    assert statuses.count("accepted") == 4
+    assert statuses.count("rejected") == 2

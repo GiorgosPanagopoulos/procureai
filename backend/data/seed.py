@@ -106,7 +106,7 @@ mock_bids = [
         status=BidStatus.ACCEPTED,
     ),
     Bid(
-        supplier_id="3",
+        supplier_id="4",
         category="Κατασκευές & Συντήρηση",
         items=[
             BidItem(name="Τσιμέντο (σάκος)", quantity=100, unit_price=9.0),
@@ -118,7 +118,7 @@ mock_bids = [
         status=BidStatus.PENDING,
     ),
     Bid(
-        supplier_id="4",
+        supplier_id="3",
         category="Ενεργειακός Εξοπλισμός",
         items=[BidItem(name="Φωτοβολταϊκά πάνελ", quantity=100, unit_price=180.0)],
         total_price=18000.0,
@@ -202,7 +202,7 @@ mock_bids = [
         status=BidStatus.REJECTED,
     ),
     Bid(
-        supplier_id="1",
+        supplier_id="2",
         category="Εξοπλισμός IT",
         items=[BidItem(name="Εκτυπωτής laser", quantity=5, unit_price=380.0)],
         total_price=1900.0,
@@ -211,7 +211,7 @@ mock_bids = [
         status=BidStatus.ACCEPTED,
     ),
     Bid(
-        supplier_id="2",
+        supplier_id="11",
         category="Γραφική Ύλη & Αναλώσιμα",
         items=[BidItem(name="Μπλοκ σημειώσεων Α4", quantity=100, unit_price=2.50)],
         total_price=250.0,
