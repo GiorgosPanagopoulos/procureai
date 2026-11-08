@@ -1,0 +1,68 @@
+import type { Language } from '../../types';
+
+export const LOGIN_TEXT = {
+  en: {
+    tagline: 'PUBLIC PROCUREMENT · Ν.4412/2016',
+    headlineLead: 'Procurement answers with',
+    headlineAccent: 'traceable sources',
+    description:
+      'Ask about suppliers, bids and Greek procurement law in plain language. Every legal answer cites the article and the document it came from.',
+    chipsLabel: 'Platform features',
+    title: 'Sign in',
+    subtitle: 'Use the account provided by your administrator.',
+    email: 'Email',
+    password: 'Password',
+    showPassword: 'Show password',
+    hidePassword: 'Hide password',
+    capsLock: 'Caps Lock is on',
+    submit: 'Sign in',
+    required: 'Enter your email and password.',
+    failed: 'Wrong email or password.',
+    unavailable: 'Sign-in is not available right now. Please try again in a moment.',
+    sessionExpired: 'Your session has expired. Please sign in again.',
+    demoTitle: 'Just looking around?',
+    demoText: 'Read-only demo account, limited daily questions.',
+    demoButton: 'Try the demo',
+    notice: 'Authorized users only. Every sign-in and query is logged.',
+    statusChecking: 'Checking backend…',
+    statusWaking: 'Backend waking up…',
+    statusReady: 'Backend online',
+    statusDegraded: 'Backend degraded',
+    statusOffline: 'Backend unreachable',
+    languageToggle: 'Ελληνικά',
+  },
+  gr: {
+    tagline: 'ΔΗΜΟΣΙΕΣ ΣΥΜΒΑΣΕΙΣ · Ν.4412/2016',
+    headlineLead: 'Απαντήσεις προμηθειών με',
+    headlineAccent: 'ιχνηλάσιμες πηγές',
+    description:
+      'Ρωτήστε για προμηθευτές, προσφορές και νομοθεσία προμηθειών σε απλή γλώσσα. Κάθε νομική απάντηση παραπέμπει σε άρθρο και έγγραφο.',
+    chipsLabel: 'Χαρακτηριστικά πλατφόρμας',
+    title: 'Είσοδος',
+    subtitle: 'Συνδεθείτε με τον λογαριασμό που σας δόθηκε.',
+    email: 'Email',
+    password: 'Κωδικός',
+    showPassword: 'Εμφάνιση κωδικού',
+    hidePassword: 'Απόκρυψη κωδικού',
+    capsLock: 'Το Caps Lock είναι ενεργό',
+    submit: 'Είσοδος',
+    required: 'Συμπληρώστε email και κωδικό.',
+    failed: 'Λάθος email ή κωδικός.',
+    unavailable: 'Η σύνδεση δεν είναι δυνατή αυτή τη στιγμή. Δοκιμάστε ξανά σε λίγο.',
+    sessionExpired: 'Η συνεδρία έληξε. Συνδεθείτε ξανά.',
+    demoTitle: 'Θέλετε απλώς να το δοκιμάσετε;',
+    demoText: 'Demo λογαριασμός μόνο ανάγνωσης, με ημερήσιο όριο ερωτήσεων.',
+    demoButton: 'Δοκιμή demo',
+    notice: 'Πρόσβαση μόνο για εξουσιοδοτημένους χρήστες. Κάθε σύνδεση και ερώτημα καταγράφεται.',
+    statusChecking: 'Έλεγχος backend…',
+    statusWaking: 'Το backend ξεκινά…',
+    statusReady: 'Backend online',
+    statusDegraded: 'Backend με προβλήματα',
+    statusOffline: 'Backend μη διαθέσιμο',
+    languageToggle: 'English',
+  },
+} satisfies Record<Language, Record<string, string>>;
+
+export type LoginText = (typeof LOGIN_TEXT)['en'];
+
+export const BRAND_CHIPS = ['RAG · CITATIONS', 'REACT AGENT', 'RBAC · AUDIT LOG'];

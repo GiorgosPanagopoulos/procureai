@@ -29,7 +29,7 @@ function AppContent() {
       </div>
     );
   }
-  if (!user) return <LoginPage />;
+  if (!user) return <LoginPage language={language} onToggleLanguage={toggleLanguage} />;
 
   return (
     <div className={`app-root${isDark ? '' : ' light'}`}>
