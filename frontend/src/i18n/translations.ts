@@ -52,6 +52,8 @@ export const TRANSLATIONS = {
     dataSynced: 'Data loaded · Last sync: just now',
     databaseRecords: 'Database Records',
     quickStats: 'Quick Stats',
+    toolHistory: 'from history',
+    toolDirect: 'direct answer',
   },
   gr: {
     connected: 'Συνδεδεμένο', disconnected: 'Αποσυνδεδεμένο',
@@ -74,7 +76,26 @@ export const TRANSLATIONS = {
     dataSynced: 'Δεδομένα συγχρονίστηκα',
     databaseRecords: 'Εγγραφές Βάσης Δεδομένων',
     quickStats: 'Γρήγορες Στατιστικές',
+    toolHistory: 'από ιστορικό',
+    toolDirect: 'απευθείας απάντηση',
   },
 };
 
 export type Translations = typeof TRANSLATIONS['en'];
+
+/** Pseudo-tools the backend reports when the agent answered without calling a tool. */
+const NO_TOOL_LABELS: Record<string, keyof Translations> = {
+  history: 'toolHistory',
+  direct: 'toolDirect',
+};
+
+export interface ToolBadge {
+  label: string;
+  /** True for tool-less answers ("history"/"direct"): rendered in the neutral badge style. */
+  neutral: boolean;
+}
+
+export function toolBadge(tool: string, t: Translations): ToolBadge {
+  const key = NO_TOOL_LABELS[tool];
+  return key ? { label: t[key], neutral: true } : { label: tool, neutral: false };
+}

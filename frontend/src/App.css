@@ -483,6 +483,12 @@ body {
   margin-top: 6px;
 }
 
+/* Tool-less answers (from history / direct): same shape, neutral colours. */
+.tool-badge.neutral {
+  border-color: var(--border2);
+  color: var(--text2);
+}
+
 /* ===== SUGGESTIONS ===== */
 .suggestions-strip {
   padding: 0 24px 10px;
@@ -907,6 +913,12 @@ body {
   background: rgba(59, 123, 255, 0.1);
   color: var(--accent2);
   border: 1px solid rgba(59, 123, 255, 0.2);
+}
+
+.result-tag.neutral {
+  background: var(--surface3);
+  color: var(--text2);
+  border-color: var(--border2);
 }
 
 /* ===== PANEL FOOTER ===== */

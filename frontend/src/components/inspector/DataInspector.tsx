@@ -4,6 +4,7 @@ import BidCard from './BidCard';
 import DataInspectorTabs from './DataInspectorTabs';
 import { useInspectorData } from '../../hooks/useInspectorData';
 import type { CatalogLoading } from '../../hooks/useCatalogData';
+import { toolBadge } from '../../i18n/translations';
 import type { Translations } from '../../i18n/translations';
 import type { Bid, Message, RightTab, Supplier } from '../../types';
 
@@ -18,6 +19,11 @@ interface DataInspectorProps {
   onTabChange: (tab: RightTab) => void;
   onClearChat: () => void;
   t: Translations;
+}
+
+function ToolTag({ tool, t }: { tool: string; t: Translations }) {
+  const badge = toolBadge(tool, t);
+  return <span className={`result-tag${badge.neutral ? ' neutral' : ''}`}>{badge.label}</span>;
 }
 
 export default function DataInspector({
@@ -157,7 +163,7 @@ export default function DataInspector({
                     </div>
                     <div className="result-card-tags">
                       <span className="result-tag">Procurement</span>
-                      {msg.toolUsed && <span className="result-tag">{msg.toolUsed}</span>}
+                      {msg.toolUsed && <ToolTag tool={msg.toolUsed} t={t} />}
                       {msg.usage && (
                         <span className="result-tag">${msg.usage.cost_usd.toFixed(4)}</span>
                       )}

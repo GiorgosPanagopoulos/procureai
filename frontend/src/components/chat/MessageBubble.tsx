@@ -3,6 +3,7 @@ import remarkGfm from 'remark-gfm';
 import Icon from '../common/Icon';
 import TracePanel from './TracePanel';
 import UsageBadge from './UsageBadge';
+import { TRANSLATIONS, toolBadge } from '../../i18n/translations';
 import type { Language, Message } from '../../types';
 
 interface MessageBubbleProps {
@@ -13,6 +14,7 @@ interface MessageBubbleProps {
 }
 
 export default function MessageBubble({ message, language, viewReasoningLabel, hideReasoningLabel }: MessageBubbleProps) {
+  const badge = message.toolUsed ? toolBadge(message.toolUsed, TRANSLATIONS[language]) : null;
   return (
     <div className={`msg-row ${message.sender}`}>
       <div className={`msg-avatar ${message.sender}`}>
@@ -31,8 +33,10 @@ export default function MessageBubble({ message, language, viewReasoningLabel, h
           ) : (
             message.text
           )}
-          {message.toolUsed && (
-            <div className="tool-badge">⚙ {message.toolUsed}</div>
+          {badge && (
+            <div className={`tool-badge${badge.neutral ? ' neutral' : ''}`}>
+              {badge.neutral ? badge.label : `⚙ ${badge.label}`}
+            </div>
           )}
           {message.usage && <UsageBadge usage={message.usage} />}
         </div>

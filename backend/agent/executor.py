@@ -65,11 +65,14 @@ def _build_trace(steps: List) -> List[Dict]:
     return trace
 
 
+NO_HISTORY = "(none)"
+
+
 async def _load_history(conversation_id: str) -> str:
     doc = await db.conversations.find_one({"conversation_id": conversation_id}, {"history": 1})
     history = doc.get("history") if doc else None
     if not history:
-        return "(none)"
+        return NO_HISTORY
     labels = {"user": "User", "assistant": "Assistant"}
     return "\n".join(f"{labels[m['role']]}: {m['content'][:HISTORY_CHARS]}" for m in history)
 
@@ -137,7 +140,12 @@ async def run_agent(
     output = strip_unsupported_citations(result["output"], "\n".join(rag_context))
 
     steps = result.get("intermediate_steps", [])
-    tool_used = steps[0][0].tool if steps else "unknown"
+    # No intermediate steps: the agent answered from the conversation so far
+    # ("history") or straight away, e.g. a clarifying question ("direct").
+    if steps:
+        tool_used = steps[0][0].tool
+    else:
+        tool_used = "history" if chat_history != NO_HISTORY else "direct"
     if steps:
         sentry_sdk.add_breadcrumb(
             category="agent", message=f"Agent selected tool: {tool_used}", level="info"

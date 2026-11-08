@@ -135,6 +135,30 @@ async def test_run_agent_returns_final_answer_and_trace(executor_db):
     assert executor_db.conversations.update_one.call_args.kwargs["upsert"] is True
 
 
+async def test_tool_less_answer_with_history_is_labelled_history(executor_db):
+    executor_db.conversations.find_one.return_value = {
+        "history": [
+            {"role": "user", "content": "Compare the IT bids"},
+            {"role": "assistant", "content": "Acme €18,000.00, Beta €21,000.00"},
+        ]
+    }
+    llm = ScriptedChatModel(responses=[FINAL])
+
+    result = await _run(llm, "and which one is cheaper?")
+
+    assert result["trace"] == []
+    assert result["tool_used"] == "history"
+
+
+async def test_tool_less_answer_without_history_is_labelled_direct(executor_db):
+    llm = ScriptedChatModel(responses=[FINAL])
+
+    result = await _run(llm, "Which category do you mean?")
+
+    assert result["trace"] == []
+    assert result["tool_used"] == "direct"
+
+
 async def test_conversation_owner_is_set_only_on_insert(executor_db):
     await _run(ScriptedChatModel(responses=[FINAL]), "hi", user_id="u1")
 
