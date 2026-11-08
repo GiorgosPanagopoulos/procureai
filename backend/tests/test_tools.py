@@ -150,9 +150,16 @@ def _fake_collection(
 
 
 def _fake_bids_db(
-    bids, total: Optional[int] = None, categories: Optional[list] = None
+    bids,
+    total: Optional[int] = None,
+    categories: Optional[list] = None,
+    suppliers: Optional[list] = None,
 ) -> MagicMock:
-    return MagicMock(bids=_fake_collection(bids, total, categories))
+    """bids plus a suppliers collection, which bid_comparison queries for names."""
+    return MagicMock(
+        bids=_fake_collection(bids, total, categories),
+        suppliers=_fake_collection(suppliers or []),
+    )
 
 
 def _fake_suppliers_db(
@@ -181,7 +188,7 @@ async def test_bid_comparison_applies_category_filter():
     mongo_query = fake_db.bids.find.call_args.args[0]
     assert mongo_query["category"]["$options"] == "i"
     assert mongo_query["category"]["$regex"] == re.escape("Εξοπλισμός IT")
-    assert result == "No bids found for category: Εξοπλισμός IT."
+    assert result.startswith("No bids found for category: Εξοπλισμός IT.")
 
 
 async def test_bid_comparison_lists_real_categories_when_filter_matches_nothing():
@@ -208,14 +215,32 @@ async def test_bid_comparison_lists_real_categories_when_filter_matches_nothing(
     assert "'Γραφική'" in observation
 
 
-async def test_bid_comparison_no_match_without_categories_stays_short():
+async def test_bid_comparison_no_match_without_categories_stops_retries():
+    # Live 2026-11-08: Atlas bids had no category field, the bare "No bids found"
+    # observation sent the agent through English/Greek variants until the cap.
     from agent.tools import bid_comparison
 
     fake_db = _fake_bids_db([])
     with patch("agent.tools.db", fake_db):
         observation = await bid_comparison.ainvoke("medical equipment")
 
-    assert observation == "No bids found for category: medical equipment."
+    assert observation == (
+        "No bids found for category: medical equipment. No bids in the system have a "
+        "category, so a category filter cannot match. Do not retry with other names; "
+        "tell the user."
+    )
+
+
+async def test_no_match_hint_without_categories_returns_no_retry_message():
+    from agent.tools import _no_match_hint
+
+    collection = _fake_collection([], categories=["", None])
+    observation = await _no_match_hint(collection, "suppliers", "Medical")
+
+    assert observation.startswith("No suppliers found for category: Medical.")
+    assert "No suppliers in the system have a category" in observation
+    assert "Do not retry with other names; tell the user." in observation
+    assert "Retry with one of these labels" not in observation
 
 
 async def test_bid_comparison_escapes_regex_metacharacters():
@@ -259,6 +284,7 @@ async def test_bid_comparison_returns_structured_json():
         bids=[
             RankedBid(
                 supplier_id="s1",
+                supplier_name="Acme IT",
                 total_price_eur=450.0,
                 delivery_days=3,
                 status="accepted",
@@ -284,6 +310,7 @@ def _ranked(bids: list) -> list:
     return [
         RankedBid(
             supplier_id=b["supplier_id"],
+            supplier_name=b["supplier_id"],
             total_price_eur=b["total_price"],
             delivery_days=b["delivery_days"],
             status="pending",
@@ -374,6 +401,107 @@ async def test_bid_comparison_plain_text_fallback_labels_truncation():
     assert observation.startswith(
         "Bid Comparison Results (showing 2 of 5 matching bids; results truncated):"
     )
+
+
+async def test_supplier_names_maps_object_ids_and_string_ids():
+    from agent.tools import _supplier_names
+    from bson import ObjectId
+
+    oid = ObjectId()
+    fake_db = _fake_bids_db(
+        [],
+        suppliers=[
+            {"_id": oid, "name": "Acme IT"},
+            {"_id": "legacy-7", "name": "Βήτα Α.Ε."},
+        ],
+    )
+    with patch("agent.tools.db", fake_db):
+        names = await _supplier_names([str(oid), "legacy-7", "not-an-oid", str(oid), ""])
+
+    assert names == {str(oid): "Acme IT", "legacy-7": "Βήτα Α.Ε."}
+    fake_db.suppliers.find.assert_called_once()
+    query, projection = fake_db.suppliers.find.call_args.args
+    assert projection == {"name": 1}
+    in_list = query["_id"]["$in"]
+    # Only the valid id becomes an ObjectId; every id is also matched as a string.
+    assert [i for i in in_list if isinstance(i, ObjectId)] == [oid]
+    assert [i for i in in_list if isinstance(i, str)] == [str(oid), "legacy-7", "not-an-oid"]
+
+
+async def test_supplier_names_skips_query_for_no_ids():
+    from agent.tools import _supplier_names
+
+    fake_db = _fake_bids_db([])
+    with patch("agent.tools.db", fake_db):
+        assert await _supplier_names(["", ""]) == {}
+    fake_db.suppliers.find.assert_not_called()
+
+
+async def test_bid_comparison_passes_supplier_names_to_the_model():
+    from agent.tools import bid_comparison
+    from bson import ObjectId
+    from schemas import BidComparisonResult, RankedBid
+
+    oid = ObjectId()
+    fake_db = _fake_bids_db(
+        [
+            {"supplier_id": str(oid), "total_price": 450.0, "delivery_days": 3},
+            {"supplier_id": "unknown", "total_price": 500.0, "delivery_days": 4},
+        ],
+        suppliers=[{"_id": oid, "name": "Acme IT"}],
+    )
+    parsed = BidComparisonResult(
+        bids=[
+            RankedBid(
+                supplier_id=str(oid),
+                supplier_name="Acme IT",
+                total_price_eur=450.0,
+                delivery_days=3,
+                status="pending",
+            )
+        ],
+        recommendation="Award to Acme IT.",
+        total_matched=2,
+        truncated=False,
+    )
+    llm = _structured_llm(parsed)
+
+    with patch("agent.tools.db", fake_db), patch("agent.tools.claude_llm", llm):
+        observation = json.loads(await bid_comparison.ainvoke(""))
+
+    assert observation["bids"][0]["supplier_name"] == "Acme IT"
+    prompt = llm.with_structured_output.return_value.ainvoke.call_args.args[0]
+    sent = json.loads(prompt.split("Bids:\n", 1)[1])
+    assert [b["supplier_name"] for b in sent] == ["Acme IT", "unknown"]  # id as fallback
+
+
+def test_format_bids_text_shows_supplier_names_when_given():
+    from agent.tools import _format_bids_text
+
+    bids = [
+        {"supplier_id": "s1", "total_price": 100.0, "delivery_days": 2},
+        {"supplier_id": "s2", "total_price": 200.0, "delivery_days": 3},
+    ]
+    text = _format_bids_text(bids, 2, {"s1": "Acme IT"})
+
+    assert "1. Supplier: Acme IT" in text
+    assert "2. Supplier: s2" in text
+    assert "Supplier ID" not in text
+
+
+async def test_bid_comparison_plain_text_fallback_uses_supplier_names():
+    from agent.tools import bid_comparison
+
+    fake_db = _fake_bids_db(
+        [{"supplier_id": "legacy-7", "total_price": 100.0, "delivery_days": 2}],
+        suppliers=[{"_id": "legacy-7", "name": "Βήτα Α.Ε."}],
+    )
+    llm = _structured_llm(RuntimeError("anthropic unavailable"))
+
+    with patch("agent.tools.db", fake_db), patch("agent.tools.claude_llm", llm):
+        observation = await bid_comparison.ainvoke("")
+
+    assert "Supplier: Βήτα Α.Ε." in observation
 
 
 # ── supplier_lookup ──────────────────────────────────────────────────────────

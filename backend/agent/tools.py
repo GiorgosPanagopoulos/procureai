@@ -7,6 +7,7 @@ from typing import Dict, List, Optional
 import sentry_sdk
 import structlog
 from anthropic.types import TextBlock
+from bson import ObjectId
 from config import settings
 from core.tenant import get_active_user_id, get_search_filter
 from db import db
@@ -141,7 +142,12 @@ async def _no_match_hint(collection, label: str, requested: str) -> str:
     categories = sorted(c for c in await collection.distinct("category") if c)
     message = f"No {label} found for category: {requested}."
     if not categories:
-        return message
+        # Without this the agent cycles English/Greek variants of the filter until
+        # the iteration cap (live, 2026-11-08: Atlas bids had no category field).
+        return (
+            f"{message} No {label} in the system have a category, so a category filter "
+            "cannot match. Do not retry with other names; tell the user."
+        )
     return (
         f"{message} Categories in the system are: {', '.join(categories)}. "
         "Retry with one of these labels (a distinctive part of it, such as "
@@ -149,8 +155,28 @@ async def _no_match_hint(collection, label: str, requested: str) -> str:
     )
 
 
-def _format_bids_text(bids: List[Dict], total_matched: int) -> str:
+async def _supplier_names(ids: List[str]) -> Dict[str, str]:
+    """Map supplier ids to names with a single query.
+
+    Bids store supplier_id as a string while supplier _ids may be ObjectIds or
+    strings, so the $in list carries both forms. Ids that are not valid ObjectIds
+    are still matched as plain strings.
+    """
+    unique = list(dict.fromkeys(i for i in ids if i))
+    if not unique:
+        return {}
+    object_ids = [ObjectId(i) for i in unique if ObjectId.is_valid(i)]
+    docs = await db.suppliers.find({"_id": {"$in": [*object_ids, *unique]}}, {"name": 1}).to_list(
+        length=None
+    )
+    return {str(d["_id"]): d["name"] for d in docs if d.get("name")}
+
+
+def _format_bids_text(
+    bids: List[Dict], total_matched: int, names: Optional[Dict[str, str]] = None
+) -> str:
     """Plain-text ranking used as the fallback observation when Claude is unavailable."""
+    names = names or {}
     ranked = sorted(bids, key=lambda b: (b.get("total_price", 0), b.get("delivery_days", 0)))
     if total_matched > len(ranked):
         result = (
@@ -160,8 +186,9 @@ def _format_bids_text(bids: List[Dict], total_matched: int) -> str:
     else:
         result = f"Bid Comparison Results ({total_matched} bids):\n"
     for i, bid in enumerate(ranked, 1):
+        supplier_id = str(bid.get("supplier_id", "")) or "N/A"
         result += (
-            f"\n{i}. Supplier ID: {bid.get('supplier_id', 'N/A')}\n"
+            f"\n{i}. Supplier: {names.get(supplier_id, supplier_id)}\n"
             f"   Total Price: €{bid.get('total_price', 0):.2f}\n"
             f"   Delivery Days: {bid.get('delivery_days', 'N/A')}\n"
             f"   Terms: {bid.get('terms', 'N/A')}\n"
@@ -192,6 +219,7 @@ async def bid_comparison(category: str = "") -> str:
             if category.strip():
                 return await _no_match_hint(db.bids, "bids", category.strip())
             return "No bids found in the system."
+        names = await _supplier_names([str(b.get("supplier_id", "")) for b in bids_list])
     except Exception as exc:
         return f"Error comparing bids: {exc}"
 
@@ -200,6 +228,9 @@ async def bid_comparison(category: str = "") -> str:
     raw_bids = [
         {
             "supplier_id": str(bid.get("supplier_id", "")),
+            "supplier_name": names.get(
+                str(bid.get("supplier_id", "")), str(bid.get("supplier_id", ""))
+            ),
             "category": bid.get("category", ""),
             "total_price_eur": bid.get("total_price", 0),
             "delivery_days": bid.get("delivery_days", 0),
@@ -239,7 +270,7 @@ async def bid_comparison(category: str = "") -> str:
         return result.model_dump_json(indent=2)
     except Exception as exc:
         log.warning("bid_comparison_structured_failed", error=str(exc))
-        return _format_bids_text(bids_list, total_matched)
+        return _format_bids_text(bids_list, total_matched, names)
 
 
 @tool

@@ -7,6 +7,10 @@ class RankedBid(BaseModel):
     """One bid as ranked by the model, cheapest and fastest first."""
 
     supplier_id: str = Field(description="MongoDB id of the supplier that submitted the bid")
+    supplier_name: str = Field(
+        description="Name of the supplier, copied from the input as given; do not translate "
+        "or rewrite it"
+    )
     total_price_eur: float = Field(description="Bid total in euros, as stored")
     delivery_days: int = Field(description="Promised delivery time in days")
     status: str = Field(description="Bid status: pending, accepted or rejected")
