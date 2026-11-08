@@ -31,7 +31,20 @@ export default function LoginBrandPanel({ text }: { text: LoginText }) {
   );
 }
 
-// Static grid and rings, decorative only.
+// Nodes: documents (squares), suppliers (circles), bids (small dots).
+// Static and decorative only.
+const NODES: Array<[number, number, 'doc' | 'supplier' | 'bid']> = [
+  [120, 140, 'doc'], [300, 90, 'supplier'], [470, 170, 'bid'], [610, 70, 'doc'],
+  [220, 300, 'bid'], [400, 330, 'supplier'], [580, 280, 'doc'], [700, 380, 'bid'],
+  [140, 470, 'supplier'], [330, 520, 'doc'], [520, 470, 'bid'], [660, 560, 'supplier'],
+  [250, 660, 'bid'], [450, 650, 'supplier'], [620, 720, 'doc'],
+];
+const EDGES: Array<[number, number]> = [
+  [0, 1], [1, 2], [2, 3], [0, 4], [1, 5], [4, 5], [5, 6], [6, 3], [6, 7],
+  [4, 8], [5, 9], [8, 9], [9, 10], [6, 10], [10, 11], [7, 11],
+  [9, 12], [12, 13], [10, 13], [13, 14], [11, 14],
+];
+
 function Backdrop() {
   const gridId = `login-grid-${useId().replace(/:/g, '')}`;
   return (
@@ -43,23 +56,23 @@ function Backdrop() {
           </pattern>
         </defs>
         <rect width="100%" height="100%" fill={`url(#${gridId})`} />
-        <g className="login-desktop-only" stroke="currentColor" strokeOpacity="0.12">
-          <line x1="74%" y1="0" x2="74%" y2="100%" />
-          <line x1="0" y1="63%" x2="100%" y2="63%" />
-        </g>
       </svg>
-      <svg className="login-brand__rings login-desktop-only" viewBox="0 0 820 820" focusable="false">
-        <g fill="none" stroke="currentColor" strokeOpacity="0.12">
-          <circle cx="410" cy="410" r="130" />
-          <circle cx="410" cy="410" r="205" />
-          <circle cx="410" cy="410" r="285" />
-          <circle cx="410" cy="410" r="390" />
+      <svg className="login-brand__graph login-desktop-only" viewBox="0 0 820 800" focusable="false">
+        <g stroke="currentColor" strokeOpacity="0.14" strokeWidth="1">
+          {EDGES.map(([a, b]) => (
+            <line key={`${a}-${b}`} x1={NODES[a][0]} y1={NODES[a][1]} x2={NODES[b][0]} y2={NODES[b][1]} />
+          ))}
         </g>
-        <g fill="currentColor" fillOpacity="0.5">
-          <circle cx="356" cy="215" r="2.5" />
-          <circle cx="507" cy="313" r="3.5" />
-          <circle cx="258" cy="519" r="3" />
-        </g>
+        {NODES.map(([x, y, kind], i) =>
+          kind === 'doc' ? (
+            <rect key={i} x={x - 7} y={y - 9} width="14" height="18" rx="2"
+              fill="#0b1022" stroke="currentColor" strokeOpacity="0.4" />
+          ) : kind === 'supplier' ? (
+            <circle key={i} cx={x} cy={y} r="8" fill="#0b1022" stroke="currentColor" strokeOpacity="0.45" />
+          ) : (
+            <circle key={i} cx={x} cy={y} r="3" fill="currentColor" fillOpacity="0.5" />
+          ),
+        )}
       </svg>
     </div>
   );
